@@ -1,0 +1,178 @@
+import { readFileSync } from "fs";
+import { resolve } from "path";
+import { describe, it, expect, beforeAll } from "vitest";
+import { parseLogFile } from "../../lib/parser";
+import { analyzeDamageDealt } from "../../lib/analysis/damageDealt";
+import { analyzeDamageTaken } from "../../lib/analysis/damageTaken";
+import { analyzeReps } from "../../lib/analysis/repAnalysis";
+import { analyzeCapPressure } from "../../lib/analysis/capAnalysis";
+import type { ParsedLog } from "../../lib/types";
+
+// Helper: create a File from disk path
+function fileFromDisk(filePath: string): File {
+  const buffer = readFileSync(filePath);
+  const blob = new Blob([buffer], { type: "text/plain" });
+  return new File([blob], filePath.split("/").pop()!, { type: "text/plain" });
+}
+
+const LOG_B_PATH = resolve(__dirname, "../../../20260219_045352_151402274.txt");
+
+let parsed: ParsedLog;
+
+beforeAll(async () => {
+  parsed = await parseLogFile(fileFromDisk(LOG_B_PATH));
+});
+
+describe("Log B — Parser header", () => {
+  it("extracts character name", () => {
+    expect(parsed.characterName).toBe("Bungo Brown");
+  });
+
+  it("extracts session start year 2026", () => {
+    expect(parsed.sessionStart?.getFullYear()).toBe(2026);
+  });
+});
+
+describe("Log B — Event type counts", () => {
+  it("counts damage-dealt entries", () => {
+    expect(
+      parsed.entries.filter((e) => e.eventType === "damage-dealt").length,
+    ).toBe(499);
+  });
+
+  it("counts damage-received entries", () => {
+    expect(
+      parsed.entries.filter((e) => e.eventType === "damage-received").length,
+    ).toBe(512);
+  });
+
+  it("counts miss-incoming entries", () => {
+    expect(
+      parsed.entries.filter((e) => e.eventType === "miss-incoming").length,
+    ).toBe(255);
+  });
+
+  it("has zero rep-received entries", () => {
+    expect(
+      parsed.entries.filter((e) => e.eventType === "rep-received").length,
+    ).toBe(0);
+  });
+
+  it("has zero neut-received entries", () => {
+    expect(
+      parsed.entries.filter((e) => e.eventType === "neut-received").length,
+    ).toBe(0);
+  });
+
+  it("has zero nos-dealt entries", () => {
+    expect(
+      parsed.entries.filter((e) => e.eventType === "nos-dealt").length,
+    ).toBe(0);
+  });
+});
+
+describe("Log B — NPC damage handling", () => {
+  it("NPC entries have isNpc true", () => {
+    const npcEntries = parsed.entries.filter(
+      (e) => e.eventType === "damage-received" && e.isNpc,
+    );
+    expect(npcEntries.length).toBeGreaterThan(0);
+  });
+
+  it("NPC entries without weapon still have hitQuality", () => {
+    const noWeapon = parsed.entries.filter(
+      (e) => e.eventType === "damage-received" && e.isNpc && !e.weapon,
+    );
+    expect(noWeapon.length).toBeGreaterThan(0);
+    noWeapon.forEach((e) => expect(e.hitQuality).not.toBe("unknown"));
+  });
+
+  it("no NPC entries have corpTicker", () => {
+    const npc = parsed.entries.filter((e) => e.isNpc);
+    npc.forEach((e) => expect(e.corpTicker).toBeUndefined());
+  });
+
+  it("identifies Gist Cherubim as NPC", () => {
+    const cherub = parsed.entries.filter(
+      (e) =>
+        e.eventType === "damage-received" && e.shipType === "Gist Cherubim",
+    );
+    expect(cherub.length).toBeGreaterThan(0);
+    expect(cherub[0].isNpc).toBe(true);
+  });
+});
+
+describe("Log B — Damage dealt fields", () => {
+  it("identifies Infiltrator II as drone", () => {
+    const drone = parsed.entries.filter(
+      (e) => e.eventType === "damage-dealt" && e.isDrone,
+    );
+    expect(drone.length).toBeGreaterThan(0);
+    drone.forEach((e) => expect(e.weapon).toMatch(/Infiltrator II/));
+  });
+
+  it("Medium Breacher Pod Launcher is not a drone", () => {
+    const launcher = parsed.entries.filter(
+      (e) =>
+        e.eventType === "damage-dealt" &&
+        e.weapon === "Medium Breacher Pod Launcher",
+    );
+    expect(launcher.length).toBeGreaterThan(0);
+    launcher.forEach((e) => expect(e.isDrone).toBeFalsy());
+  });
+
+  it("damage-dealt entries target Diana Wanda in Ishtar", () => {
+    const diana = parsed.entries.filter(
+      (e) => e.eventType === "damage-dealt" && e.pilotName === "Diana Wanda",
+    );
+    expect(diana.length).toBeGreaterThan(0);
+    expect(diana[0].corpTicker).toBe("P.L.A");
+    expect(diana[0].shipType).toBe("Ishtar");
+  });
+});
+
+describe("Log B — analyzeReps (zero reps)", () => {
+  it("totalRepReceived is 0", () => {
+    const reps = analyzeReps(parsed.entries);
+    expect(reps.totalRepReceived).toBe(0);
+  });
+
+  it("repReceivedSources is empty", () => {
+    const reps = analyzeReps(parsed.entries);
+    expect(reps.repReceivedSources.length).toBe(0);
+  });
+});
+
+describe("Log B — analyzeCapPressure (zero cap events)", () => {
+  it("totalGjNeutReceived is 0", () => {
+    const cap = analyzeCapPressure(parsed.entries);
+    expect(cap.totalGjNeutReceived).toBe(0);
+  });
+
+  it("totalGjOutgoing is 0", () => {
+    const cap = analyzeCapPressure(parsed.entries);
+    expect(cap.totalGjOutgoing).toBe(0);
+  });
+
+  it("neutReceivedTimeline is empty", () => {
+    const cap = analyzeCapPressure(parsed.entries);
+    expect(cap.neutReceivedTimeline.length).toBe(0);
+  });
+});
+
+describe("Log B — analyzeDamageTaken", () => {
+  it("totalDamageReceived is positive", () => {
+    const dt = analyzeDamageTaken(parsed.entries);
+    expect(dt.totalDamageReceived).toBeGreaterThan(0);
+  });
+
+  it("detects incoming drone damage from players", () => {
+    const dt = analyzeDamageTaken(parsed.entries);
+    expect(dt.incomingDroneSummaries.length).toBeGreaterThan(0);
+  });
+
+  it("peakDps30s.maxDps is positive", () => {
+    const dt = analyzeDamageTaken(parsed.entries);
+    expect(dt.peakDps30s.maxDps).toBeGreaterThan(0);
+  });
+});

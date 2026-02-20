@@ -1,0 +1,179 @@
+@import "tailwindcss";
+@config "../../tailwind.config.ts";
+
+/* ============================================================
+   EVE Log Parser — Design Tokens
+   ============================================================ */
+
+:root {
+  /* Core Backgrounds */
+  --color-void: #060810;
+  --color-space: #0a0e14;
+  --color-panel: #0d1520;
+  --color-elevated: #111d2e;
+  --color-overlay: #162034;
+
+  /* Accent — Capsuleer Cyan */
+  --color-cyan-glow: #00d4ff;
+  --color-cyan-mid: #0099cc;
+  --color-cyan-dim: #005f80;
+  --color-cyan-ghost: #00d4ff1a;
+
+  /* Accent — ISK Gold */
+  --color-gold-bright: #c9a227;
+  --color-gold-mid: #a07d1a;
+  --color-gold-dim: #5a4510;
+  --color-gold-ghost: #c9a2271a;
+
+  /* Border Colors */
+  --color-border-default: #1a2540;
+  --color-border-active: #00d4ff40;
+  --color-border-subtle: #0f1c30;
+
+  /* Status Colors */
+  --color-status-kill: #e53e3e;
+  --color-status-loss: #fc8181;
+  --color-status-safe: #38a169;
+  --color-status-neutral: #718096;
+  --color-status-hostile: #e53e3e;
+  --color-status-friendly: #4299e1;
+  --color-status-corp: #38a169;
+
+  /* Typography Colors */
+  --color-text-primary: #e8eaf0;
+  --color-text-secondary: #8892a4;
+  --color-text-muted: #4a5568;
+  --color-text-accent: #00d4ff;
+
+  /* Fonts */
+  --font-ui: var(--font-rajdhani), 'Barlow Condensed', sans-serif;
+  --font-mono: var(--font-jetbrains-mono), 'Fira Code', monospace;
+}
+
+/* ============================================================
+   Tailwind v4 Theme Registration
+   ============================================================ */
+
+@theme inline {
+  /* Colors */
+  --color-void: #060810;
+  --color-space: #0a0e14;
+  --color-panel: #0d1520;
+  --color-elevated: #111d2e;
+  --color-overlay: #162034;
+
+  --color-cyan-glow: #00d4ff;
+  --color-cyan-mid: #0099cc;
+  --color-cyan-dim: #005f80;
+  --color-cyan-ghost: #00d4ff1a;
+
+  --color-gold-bright: #c9a227;
+  --color-gold-mid: #a07d1a;
+  --color-gold-dim: #5a4510;
+  --color-gold-ghost: #c9a2271a;
+
+  --color-border: #1a2540;
+  --color-border-active: #00d4ff40;
+  --color-border-subtle: #0f1c30;
+
+  --color-status-kill: #e53e3e;
+  --color-status-loss: #fc8181;
+  --color-status-safe: #38a169;
+  --color-status-neutral: #718096;
+  --color-status-hostile: #e53e3e;
+  --color-status-friendly: #4299e1;
+  --color-status-corp: #38a169;
+
+  --color-text-primary: #e8eaf0;
+  --color-text-secondary: #8892a4;
+  --color-text-muted: #4a5568;
+  --color-text-accent: #00d4ff;
+
+  /* Fonts */
+  --font-ui: var(--font-rajdhani), 'Barlow Condensed', sans-serif;
+  --font-mono: var(--font-jetbrains-mono), 'Fira Code', monospace;
+
+  /* Animations */
+  --animate-scan-reveal: scanReveal 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-pulse-glow: pulseGlow 2s ease-in-out infinite;
+  --animate-flicker: flicker 4s ease-in-out infinite;
+}
+
+/* ============================================================
+   Keyframe Animations
+   ============================================================ */
+
+@keyframes scanReveal {
+  from {
+    clip-path: inset(0 0 100% 0);
+    opacity: 0;
+  }
+  to {
+    clip-path: inset(0 0 0% 0);
+    opacity: 1;
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 4px #00d4ff80;
+  }
+  50% {
+    box-shadow: 0 0 12px #00d4ffcc;
+  }
+}
+
+@keyframes flicker {
+  0%, 95%, 100% {
+    opacity: 1;
+  }
+  96% {
+    opacity: 0.8;
+  }
+  97% {
+    opacity: 1;
+  }
+  98% {
+    opacity: 0.7;
+  }
+}
+
+/* ============================================================
+   Base Styles
+   ============================================================ */
+
+@layer base {
+  * {
+    border-color: #1a2540;
+  }
+
+  /* Scrollbar styling — dark, thin, cyan thumb */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #060810;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #005f80;
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #00d4ff;
+  }
+
+  /* Firefox scrollbar */
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: #005f80 #060810;
+  }
+
+  /* Monospace override for number data */
+  .font-mono {
+    font-family: var(--font-jetbrains-mono), 'Fira Code', monospace;
+  }
+}
