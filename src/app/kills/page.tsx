@@ -50,18 +50,18 @@ export default function KillReportPage() {
   );
 
   // Stats
-  const killCount = allEntries.filter((e) => e.eventType === 'damage-dealt').length;
-  const lossCount = allEntries.filter((e) => e.eventType === 'damage-received').length;
+  const hitsOutCount = allEntries.filter((e) => e.eventType === 'damage-dealt').length;
+  const hitsInCount = allEntries.filter((e) => e.eventType === 'damage-received').length;
 
   const filterButtons: { mode: FilterMode; label: string }[] = [
     { mode: 'all', label: 'ALL' },
-    { mode: 'kills', label: 'KILLS' },
-    { mode: 'losses', label: 'LOSSES' },
+    { mode: 'kills', label: 'HITS OUT' },
+    { mode: 'losses', label: 'HITS IN' },
     { mode: 'misses', label: 'MISSES' },
   ];
 
   return (
-    <AppLayout title="KILL REPORT">
+    <AppLayout title="RAW DATA">
       {!hasLogs ? (
         <div className="flex items-center justify-center min-h-[60vh]">
           <Panel className="text-center max-w-sm w-full">
@@ -71,7 +71,7 @@ export default function KillReportPage() {
                   NO LOGS PARSED
                 </h2>
                 <p className="text-text-muted font-mono text-sm">
-                  Upload EVE combat logs to view kill reports
+                  Upload EVE combat logs to view raw combat events
                 </p>
               </div>
               <Link href="/upload">
@@ -137,11 +137,11 @@ export default function KillReportPage() {
             </span>
             <span className="text-text-muted">|</span>
             <span>
-              <span className="text-status-kill">{killCount.toLocaleString()}</span> kills
+              <span className="text-status-kill">{hitsOutCount.toLocaleString()}</span> hits out
             </span>
             <span className="text-text-muted">|</span>
             <span>
-              <span className="text-status-safe">{lossCount.toLocaleString()}</span> losses
+              <span className="text-status-safe">{hitsInCount.toLocaleString()}</span> hits in
             </span>
           </div>
 

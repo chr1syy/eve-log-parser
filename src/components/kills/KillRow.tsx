@@ -11,7 +11,7 @@ interface KillRowProps {
 function eventBadge(eventType: EventType): ReactNode {
   switch (eventType) {
     case 'damage-dealt':
-      return <Badge variant="red">KILL</Badge>;
+      return <Badge variant="red">HIT</Badge>;
     case 'damage-received':
       return <Badge variant="green">LOSS</Badge>;
     case 'miss-incoming':
@@ -43,7 +43,7 @@ export default function KillRow({ entry }: KillRowProps) {
     amount,
   } = entry;
 
-  const isKill = eventType === 'damage-dealt';
+  const isHitOut = eventType === 'damage-dealt';
   const pilotDisplay = pilotName
     ? corpTicker
       ? <>{pilotName} <span className="text-text-muted">[{corpTicker}]</span></>
@@ -70,7 +70,7 @@ export default function KillRow({ entry }: KillRowProps) {
       {/* Pilot name */}
       <td className={cn(
         'px-3 py-2 font-mono text-xs',
-        isKill ? 'text-cyan-glow' : 'text-text-primary',
+        isHitOut ? 'text-cyan-glow' : 'text-text-primary',
       )}>
         {pilotDisplay}
       </td>
