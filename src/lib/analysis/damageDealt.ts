@@ -188,3 +188,73 @@ export function analyzeDamageDealt(entries: LogEntry[]): DamageDealtAnalysis {
     overallHitQualities,
   }
 }
+
+export interface DamageDealtTimePoint {
+  timestamp: Date
+  badHitPct: number          // 0–100
+  damageByTarget: Record<string, number>  // target label → damage in window
+}
+
+export interface DamageDealtTimeSeries {
+  points: DamageDealtTimePoint[]
+  topTargets: string[]       // ordered list of target labels (up to maxTargets)
+}
+
+const BAD_HIT_QUALITIES = new Set<HitQuality>(['Glances Off', 'Grazes', 'Barely Scratches'])
+
+export function generateDamageDealtTimeSeries(
+  entries: LogEntry[],
+  windowSeconds = 10,
+  maxTargets = 6,
+): DamageDealtTimeSeries {
+  const sorted = entries
+    .filter((e) => e.eventType === 'damage-dealt')
+    .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
+
+  if (sorted.length === 0) return { points: [], topTargets: [] }
+
+  // Identify top N targets by total damage dealt
+  const targetDamageMap = new Map<string, number>()
+  for (const e of sorted) {
+    const key = e.pilotName ?? e.shipType ?? 'Unknown'
+    targetDamageMap.set(key, (targetDamageMap.get(key) ?? 0) + (e.amount ?? 0))
+  }
+  const topTargets = [...targetDamageMap.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, maxTargets)
+    .map(([name]) => name)
+
+  const WINDOW_MS = windowSeconds * 1000
+  const points: DamageDealtTimePoint[] = []
+  let prevSecond = -1
+
+  for (const entry of sorted) {
+    const t = entry.timestamp.getTime()
+    const second = Math.floor(t / 1000)
+    if (second === prevSecond) continue   // one point per second
+    prevSecond = second
+
+    const windowStart = t - WINDOW_MS
+    const inWindow = sorted.filter((e) => {
+      const et = e.timestamp.getTime()
+      return et >= windowStart && et <= t
+    })
+
+    const damageByTarget: Record<string, number> = {}
+    for (const target of topTargets) {
+      damageByTarget[target] = inWindow
+        .filter((e) => (e.pilotName ?? e.shipType ?? 'Unknown') === target)
+        .reduce((sum, e) => sum + (e.amount ?? 0), 0)
+    }
+
+    const totalHits = inWindow.length
+    const badHits = inWindow.filter(
+      (e) => e.hitQuality != null && BAD_HIT_QUALITIES.has(e.hitQuality),
+    ).length
+    const badHitPct = totalHits > 0 ? (badHits / totalHits) * 100 : 0
+
+    points.push({ timestamp: entry.timestamp, badHitPct, damageByTarget })
+  }
+
+  return { points, topTargets }
+}
