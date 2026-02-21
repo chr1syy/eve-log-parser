@@ -7,6 +7,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import Panel from '@/components/ui/Panel';
 import Button from '@/components/ui/Button';
 import DropZone from '@/components/upload/DropZone';
+import ShareButton from '@/components/upload/ShareButton';
 import { parseLogFile } from '@/lib/parser';
 import type { ParsedLog } from '@/lib/types';
 
@@ -178,13 +179,16 @@ export default function UploadPage() {
                       </div>
                     </div>
                   </div>
-                  <Link
-                    href="/"
-                    className="flex items-center gap-1 text-cyan-glow text-sm font-ui font-semibold uppercase tracking-wider hover:text-cyan-mid transition-colors duration-150 flex-shrink-0 mt-1"
-                  >
-                    VIEW REPORT
-                    <ChevronRight size={14} />
-                  </Link>
+                  <div className="flex flex-col gap-2 items-end flex-shrink-0 mt-1">
+                    <Link
+                      href="/"
+                      className="flex items-center gap-1 text-cyan-glow text-sm font-ui font-semibold uppercase tracking-wider hover:text-cyan-mid transition-colors duration-150"
+                    >
+                      VIEW REPORT
+                      <ChevronRight size={14} />
+                    </Link>
+                    <ShareButton log={log} />
+                  </div>
                 </div>
               </Panel>
             ))}
