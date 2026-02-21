@@ -11,8 +11,9 @@ import StatCard from '@/components/dashboard/StatCard';
 import DataTable from '@/components/ui/DataTable';
 import type { Column } from '@/components/ui/DataTable';
 import { useParsedLogs } from '@/hooks/useParsedLogs';
-import { analyzeDamageDealt } from '@/lib/analysis/damageDealt';
-import type { TargetEngagement, WeaponApplicationSummary } from '@/lib/analysis/damageDealt';
+import { analyzeDamageDealt, generateDamageDealtTimeSeries } from '@/lib/analysis/damageDealt';
+import type { TargetEngagement, WeaponApplicationSummary, DamageDealtTimeSeries } from '@/lib/analysis/damageDealt';
+import DamageDealtChart from '@/components/charts/DamageDealtChart';
 import type { HitQuality } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -268,6 +269,11 @@ export default function DamageDealtPage() {
     return analyzeDamageDealt(activeLogs[0].entries)
   }, [activeLogs, hasLogs])
 
+  const timeSeries: DamageDealtTimeSeries = useMemo(() => {
+    if (!hasLogs) return { points: [], topTargets: [] }
+    return generateDamageDealtTimeSeries(activeLogs[0].entries)
+  }, [activeLogs, hasLogs])
+
   const maxDps = useMemo(() => {
     if (!analysis) return 0
     return Math.max(0, ...analysis.engagements.map((e) => e.dps))
@@ -360,6 +366,11 @@ export default function DamageDealtPage() {
               variant="gold"
             />
           </div>
+
+          {/* Damage dealt time-series chart */}
+          <Panel title="DAMAGE DEALT OVER TIME">
+            <DamageDealtChart series={timeSeries} />
+          </Panel>
 
           {/* Section 1 — DPS per target */}
           <Panel title="DPS PER TARGET">
