@@ -6,7 +6,7 @@ import {
   Crosshair,
   LayoutDashboard,
   Upload,
-  Skull,
+  Database,
   Sword,
   ShieldAlert,
   Zap,
@@ -15,7 +15,7 @@ import {
 const navItems = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
   { label: "Upload", href: "/upload", icon: Upload },
-  { label: "Kill Report", href: "/kills", icon: Skull },
+  { label: "Raw Data", href: "/kills", icon: Database },
   { label: "Damage Out", href: "/damage-dealt", icon: Sword },
   { label: "Damage In", href: "/damage-taken", icon: ShieldAlert },
   { label: "Cap Pressure", href: "/cap-pressure", icon: Zap },
