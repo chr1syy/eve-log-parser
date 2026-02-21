@@ -34,6 +34,9 @@ function CustomTooltip({ active, payload }: any) {
       <p style={{ color: d.payload.fill }}>
         Hits: {d.payload.count.toLocaleString()}
       </p>
+      <p className="text-text-primary font-bold">
+        {d.payload.pct.toFixed(1)}% of damage
+      </p>
       <p className="text-text-secondary">
         Damage: {d.payload.totalDamage.toLocaleString()}
       </p>
@@ -52,11 +55,14 @@ export default function DamageBreakdownChart({ stats }: DamageBreakdownChartProp
     );
   }
 
+  const grandTotalDamage = weapons.reduce((sum, w) => sum + w.totalDamage, 0);
+
   const data = weapons.map((w) => ({
     name: w.name,
     value: w.count,
     count: w.count,
     totalDamage: w.totalDamage,
+    pct: grandTotalDamage > 0 ? (w.totalDamage / grandTotalDamage) * 100 : 0,
   }));
 
   return (
@@ -124,6 +130,9 @@ export default function DamageBreakdownChart({ stats }: DamageBreakdownChartProp
             />
             <span className="flex-1 text-text-secondary text-xs font-mono truncate">{w.name}</span>
             <span className="text-text-muted text-xs font-mono">{w.count.toLocaleString()} hits</span>
+            <span className="text-cyan-glow text-xs font-mono w-12 text-right">
+              {data[i].pct.toFixed(1)}%
+            </span>
           </div>
         ))}
       </div>
