@@ -154,10 +154,50 @@ describe('parseCombatLine — damage-received (NPC)', () => {
 // parseCombatLine — miss
 // ────────────────────────────────────────────────────────────
 describe('parseCombatLine — miss-incoming', () => {
-  it('parses a miss line', () => {
+  it('parses a bare NPC miss line', () => {
     const raw = 'Arch Gistii Thug misses you completely'
     const entry = parseCombatLine(raw, new Date(), 'test-5')
     expect(entry.eventType).toBe('miss-incoming')
+    expect(entry.pilotName).toBe('Arch Gistii Thug')
+    expect(entry.weapon).toBeUndefined()
+  })
+
+  it('parses an incoming miss with weapon suffix', () => {
+    const raw = 'Kasa Habalu misses you completely - Caldari Navy Mjolnir Heavy Missile'
+    const entry = parseCombatLine(raw, new Date(), 'test-5b')
+    expect(entry.eventType).toBe('miss-incoming')
+    expect(entry.pilotName).toBe('Kasa Habalu')
+    expect(entry.weapon).toBe('Caldari Navy Mjolnir Heavy Missile')
+    expect(entry.isDrone).toBe(false)
+  })
+
+  it('parses an incoming drone miss with "belonging to" format', () => {
+    const raw = 'Infiltrator II belonging to Kasa Habalu misses you completely - Infiltrator II'
+    const entry = parseCombatLine(raw, new Date(), 'test-5c')
+    expect(entry.eventType).toBe('miss-incoming')
+    expect(entry.weapon).toBe('Infiltrator II')
+    expect(entry.pilotName).toBe('Kasa Habalu')
+    expect(entry.isDrone).toBe(true)
+  })
+})
+
+describe('parseCombatLine — miss-outgoing', () => {
+  it('parses an outgoing miss line', () => {
+    const raw = 'Your Heavy Entropic Disintegrator II misses Kasa Habalu completely'
+    const entry = parseCombatLine(raw, new Date(), 'test-5d')
+    expect(entry.eventType).toBe('miss-outgoing')
+    expect(entry.weapon).toBe('Heavy Entropic Disintegrator II')
+    expect(entry.shipType).toBe('Kasa Habalu')
+    expect(entry.isDrone).toBe(false)
+  })
+
+  it('parses an outgoing drone miss line', () => {
+    const raw = 'Your Wasp II misses Target Frigate completely - Wasp II'
+    const entry = parseCombatLine(raw, new Date(), 'test-5e')
+    expect(entry.eventType).toBe('miss-outgoing')
+    expect(entry.weapon).toBe('Wasp II')
+    expect(entry.shipType).toBe('Target Frigate')
+    expect(entry.isDrone).toBe(true)
   })
 })
 

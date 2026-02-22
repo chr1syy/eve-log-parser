@@ -288,12 +288,43 @@ export function parseCombatLine(
       }
 
       case null: {
-        // No color tag — check for miss (optionally followed by weapon info)
-        if (/^.+ misses you completely/.test(clean)) {
-          base.eventType = "miss-incoming";
-        } else {
-          base.eventType = "other";
+        // Outgoing miss: "Your WeaponName misses TargetName completely - WeaponName"
+        const outgoingMiss = clean.match(
+          /^Your (.+?) misses (.+?) completely(?:\s+-\s+(.+))?$/
+        );
+        if (outgoingMiss) {
+          base.eventType = "miss-outgoing";
+          base.weapon = outgoingMiss[1].trim();
+          base.shipType = outgoingMiss[2].trim(); // target name/ship
+          base.isDrone = isDroneWeapon(base.weapon);
+          break;
         }
+
+        // Incoming drone miss: "DroneName belonging to PilotName misses you completely - DroneName"
+        const droneMiss = clean.match(
+          /^(.+?) belonging to (.+?) misses you completely(?:\s+-\s+(.+))?$/
+        );
+        if (droneMiss) {
+          base.eventType = "miss-incoming";
+          base.weapon = droneMiss[1].trim();       // drone type
+          base.pilotName = droneMiss[2].trim();    // owner pilot
+          base.isDrone = true;
+          break;
+        }
+
+        // Incoming player/NPC miss: "PilotName misses you completely - WeaponName"
+        const incomingMiss = clean.match(
+          /^(.+?) misses you completely(?:\s+-\s+(.+))?$/
+        );
+        if (incomingMiss) {
+          base.eventType = "miss-incoming";
+          base.pilotName = incomingMiss[1].trim();
+          base.weapon = incomingMiss[2]?.trim();
+          base.isDrone = base.weapon ? isDroneWeapon(base.weapon) : false;
+          break;
+        }
+
+        base.eventType = "other";
         break;
       }
 
