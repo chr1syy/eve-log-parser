@@ -46,8 +46,16 @@ export function useShareLog(): UseShareLogResult {
         if (!res.ok) throw new Error("Upload failed");
         const { uuid } = (await res.json()) as { uuid: string };
         const shareUrl = `${window.location.origin}/share/${uuid}`;
-        await navigator.clipboard.writeText(shareUrl);
-        setShareState("copied");
+
+        // Check if clipboard API is available
+        if (navigator?.clipboard?.writeText) {
+          await navigator.clipboard.writeText(shareUrl);
+          setShareState("copied");
+        } else {
+          // Fallback: log to console if clipboard not available
+          console.warn("Clipboard API not available, share URL:", shareUrl);
+          setShareState("error");
+        }
         scheduleReset(2000);
       } catch (error) {
         console.error("Share failed:", error);

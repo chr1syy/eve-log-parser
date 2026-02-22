@@ -56,12 +56,16 @@ export function useParsedLogs(): UseParsedLogsResult {
     // Upsert log into logs array (update if exists by sessionId, otherwise append)
     setLogs((prev) => {
       const idx = prev.findIndex((l) => l.sessionId === log.sessionId);
-      if (idx >= 0) {
-        const updated = [...prev];
-        updated[idx] = log;
-        return updated;
+      const updated =
+        idx >= 0
+          ? [...prev.slice(0, idx), log, ...prev.slice(idx + 1)]
+          : [...prev, log];
+
+      // Persist to localStorage
+      if (typeof window !== "undefined") {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       }
-      return [...prev, log];
+      return updated;
     });
     setActiveSessionId(log.sessionId);
     if (typeof window !== "undefined") {
