@@ -17,6 +17,27 @@ function generateUUID(): string {
   });
 }
 
+/**
+ * Produces a deterministic UUID v4-compatible string by SHA-256 hashing
+ * the provided text. Same content always yields the same UUID, enabling
+ * deduplication when the same file is uploaded more than once.
+ * Falls back to generateUUID() if crypto.subtle is unavailable.
+ */
+async function hashContent(text: string): Promise<string> {
+  try {
+    const encoded = new TextEncoder().encode(text);
+    const buffer = await crypto.subtle.digest("SHA-256", encoded);
+    const bytes = new Uint8Array(buffer);
+    const h = Array.from(bytes)
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join(""); // 64 hex chars
+    // Format as UUID v4-like: 8-4-4-4-12
+    return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-8${h.slice(17, 20)}-${h.slice(20, 32)}`;
+  } catch {
+    return generateUUID();
+  }
+}
+
 const DRONE_PATTERN =
   /\b(Wasp|Infiltrator|Hornet|Hammerhead|Ogre|Valkyrie|Warrior|Curator|Garde|Warden|Bouncer|Berserker|Acolyte|Praetor|Gecko)\b/i;
 
@@ -369,7 +390,7 @@ export async function parseLogFile(file: File): Promise<ParsedLog> {
   const text = await file.text();
   const lines = text.split(/\r?\n/);
 
-  const sessionId = generateUUID();
+  const sessionId = await hashContent(text);
   let characterName: string | undefined;
   let sessionStart: Date | undefined;
   const entries: LogEntry[] = [];
