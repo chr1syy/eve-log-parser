@@ -42,3 +42,6 @@ next-env.d.ts
 
 # shared log storage
 data/
+
+# Maestro Auto Run Docs (local agent playbooks)
+Auto Run Docs/
