@@ -2,6 +2,7 @@ export type EventType =
   | 'damage-dealt'
   | 'damage-received'
   | 'miss-incoming'
+  | 'miss-outgoing'
   | 'rep-received'
   | 'rep-outgoing'
   | 'neut-received'
@@ -50,6 +51,11 @@ export interface LogEntry {
 
   // Direction (for reps and cap events)
   direction?: 'outgoing' | 'incoming'
+
+  // Warp scram/disrupt fields (warp-scram)
+  tackleDirection?: 'outgoing' | 'incoming' // 'outgoing' = you tackled them
+  tackleTarget?: string   // ship type of the vessel being tackled
+  tackleSource?: string   // ship type of the scrambler (when incoming)
 }
 
 export interface ParsedLog {

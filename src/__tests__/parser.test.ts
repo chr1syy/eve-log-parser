@@ -5,7 +5,7 @@ import {
   parseCombatLine,
 } from '@/lib/parser/eveLogParser'
 import { computeStats } from '@/lib/parser/computeStats'
-import { LogEntry } from '@/lib/types'
+import { EventType, LogEntry } from '@/lib/types'
 
 // ────────────────────────────────────────────────────────────
 // stripTags
@@ -158,6 +158,51 @@ describe('parseCombatLine — miss-incoming', () => {
     const raw = 'Arch Gistii Thug misses you completely'
     const entry = parseCombatLine(raw, new Date(), 'test-5')
     expect(entry.eventType).toBe('miss-incoming')
+  })
+})
+
+// ────────────────────────────────────────────────────────────
+// EventType — miss-outgoing is in the union
+// ────────────────────────────────────────────────────────────
+describe('EventType — miss-outgoing', () => {
+  it('includes miss-outgoing in the EventType union (type-level)', () => {
+    const type: EventType = 'miss-outgoing'
+    expect(type).toBe('miss-outgoing')
+  })
+})
+
+// ────────────────────────────────────────────────────────────
+// LogEntry — warp-scram tackle fields
+// ────────────────────────────────────────────────────────────
+describe('LogEntry — tackle fields', () => {
+  const ts = new Date('2025-10-23T02:10:00')
+
+  it('accepts tackleDirection outgoing on a warp-scram entry', () => {
+    const entry: LogEntry = {
+      id: 'test-tackle-1',
+      timestamp: ts,
+      rawLine: '',
+      eventType: 'warp-scram',
+      tackleDirection: 'outgoing',
+      tackleTarget: 'Ishtar',
+    }
+    expect(entry.tackleDirection).toBe('outgoing')
+    expect(entry.tackleTarget).toBe('Ishtar')
+    expect(entry.tackleSource).toBeUndefined()
+  })
+
+  it('accepts tackleDirection incoming on a warp-scram entry', () => {
+    const entry: LogEntry = {
+      id: 'test-tackle-2',
+      timestamp: ts,
+      rawLine: '',
+      eventType: 'warp-scram',
+      tackleDirection: 'incoming',
+      tackleSource: 'Proteus',
+    }
+    expect(entry.tackleDirection).toBe('incoming')
+    expect(entry.tackleSource).toBe('Proteus')
+    expect(entry.tackleTarget).toBeUndefined()
   })
 })
 
