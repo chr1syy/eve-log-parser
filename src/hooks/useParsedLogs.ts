@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import type { ParsedLog } from "@/lib/types";
 
 const STORAGE_KEY = "eve-parsed-logs";
@@ -47,13 +47,17 @@ export function useParsedLogs(): UseParsedLogsResult {
     }
   }, []);
 
-  const activeLog: ParsedLog | null =
-    logs.find((l) => l.sessionId === activeSessionId) ??
-    logs[logs.length - 1] ??
-    null;
+  // Use useMemo to ensure activeLog is a stable reference and properly updates
+  const activeLog: ParsedLog | null = useMemo(() => {
+    return (
+      logs.find((l) => l.sessionId === activeSessionId) ??
+      logs[logs.length - 1] ??
+      null
+    );
+  }, [logs, activeSessionId]);
 
   const setActiveLog = useCallback((log: ParsedLog) => {
-    // Upsert log into logs array (update if exists by sessionId, otherwise append)
+    // Update logs array: upsert log (update if exists by sessionId, otherwise append)
     setLogs((prev) => {
       const idx = prev.findIndex((l) => l.sessionId === log.sessionId);
       const updated =
@@ -61,22 +65,36 @@ export function useParsedLogs(): UseParsedLogsResult {
           ? [...prev.slice(0, idx), log, ...prev.slice(idx + 1)]
           : [...prev, log];
 
-      // Persist to localStorage
+      // Persist to localStorage immediately
       if (typeof window !== "undefined") {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+        } catch {
+          // Ignore storage errors
+        }
       }
       return updated;
     });
+
+    // Update active session ID
     setActiveSessionId(log.sessionId);
     if (typeof window !== "undefined") {
-      localStorage.setItem(ACTIVE_SESSION_KEY, log.sessionId);
+      try {
+        localStorage.setItem(ACTIVE_SESSION_KEY, log.sessionId);
+      } catch {
+        // Ignore storage errors
+      }
     }
   }, []);
 
   const clearLogs = useCallback(() => {
     if (typeof window === "undefined") return;
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(ACTIVE_SESSION_KEY);
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(ACTIVE_SESSION_KEY);
+    } catch {
+      // Ignore storage errors
+    }
     setLogs([]);
     setActiveSessionId(null);
   }, []);

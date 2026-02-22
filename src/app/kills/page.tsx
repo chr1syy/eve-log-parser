@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { Upload } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
@@ -8,7 +8,7 @@ import Panel from "@/components/ui/Panel";
 import Button from "@/components/ui/Button";
 import KillRow from "@/components/kills/KillRow";
 import { useParsedLogs } from "@/hooks/useParsedLogs";
-import type { EventType, LogEntry, ParsedLog } from "@/lib/types";
+import type { EventType, LogEntry } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type FilterMode = "all" | "kills" | "losses" | "misses";
@@ -26,28 +26,15 @@ function filterEntries(entries: LogEntry[], mode: FilterMode): LogEntry[] {
 }
 
 export default function KillReportPage() {
-  const { logs, activeLog } = useParsedLogs();
+  const { activeLog } = useParsedLogs();
   const [filterMode, setFilterMode] = useState<FilterMode>("all");
-  const [activeSessionId, setActiveSessionId] = useState<string>(
-    () => activeLog?.sessionId ?? "all",
-  );
 
-  useEffect(() => {
-    setActiveSessionId(activeLog?.sessionId ?? "all");
-  }, [activeLog?.sessionId]);
+  const hasLogs = activeLog !== null;
 
-  const hasLogs = logs.length > 0;
-
-  // Determine which logs to display
-  const selectedLogs: ParsedLog[] = useMemo(() => {
-    if (activeSessionId === "all") return logs;
-    return logs.filter((l) => l.sessionId === activeSessionId);
-  }, [logs, activeSessionId]);
-
-  // Merge entries from selected logs
+  // Use activeLog directly instead of maintaining local session state
   const allEntries: LogEntry[] = useMemo(
-    () => selectedLogs.flatMap((l) => l.entries),
-    [selectedLogs],
+    () => activeLog?.entries ?? [],
+    [activeLog],
   );
 
   const filteredEntries = useMemo(
@@ -94,40 +81,6 @@ export default function KillReportPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {/* Session selector (only shown when multiple logs) */}
-          {logs.length > 1 && (
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-text-muted font-ui text-xs uppercase tracking-widest">
-                Session:
-              </span>
-              <button
-                onClick={() => setActiveSessionId("all")}
-                className={cn(
-                  "font-mono text-xs px-3 py-1 border rounded-sm transition-colors",
-                  activeSessionId === "all"
-                    ? "border-cyan-dim text-cyan-glow bg-cyan-ghost"
-                    : "border-border text-text-secondary hover:border-cyan-dim hover:text-text-primary",
-                )}
-              >
-                ALL SESSIONS
-              </button>
-              {logs.map((log) => (
-                <button
-                  key={log.sessionId}
-                  onClick={() => setActiveSessionId(log.sessionId)}
-                  className={cn(
-                    "font-mono text-xs px-3 py-1 border rounded-sm transition-colors",
-                    activeSessionId === log.sessionId
-                      ? "border-cyan-dim text-cyan-glow bg-cyan-ghost"
-                      : "border-border text-text-secondary hover:border-cyan-dim hover:text-text-primary",
-                  )}
-                >
-                  {log.fileName}
-                </button>
-              ))}
-            </div>
-          )}
-
           {/* Filter bar */}
           <div className="flex items-center gap-2 flex-wrap">
             {filterButtons.map(({ mode, label }) => (
