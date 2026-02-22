@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Upload, ShieldAlert } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
@@ -18,7 +18,10 @@ import type {
   IncomingWeaponSummary,
   TimeSeriesDpsPoint,
 } from "@/lib/analysis/damageTaken";
-import type { RepSourceSummary } from "@/lib/analysis/repAnalysis";
+import type {
+  RepSourceSummary,
+  RepAnalysisResult,
+} from "@/lib/analysis/repAnalysis";
 import type { HitQuality } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -119,6 +122,20 @@ function WeaponTable({
       render: (v) => (
         <span className="font-mono text-xs">{fmt(v as number)}</span>
       ),
+    },
+    {
+      key: "missCount",
+      label: "Misses",
+      sortable: true,
+      numeric: true,
+      render: (v) => {
+        const n = v as number;
+        return n > 0 ? (
+          <span className="font-mono text-xs text-text-muted">{fmt(n)}</span>
+        ) : (
+          <span className="text-text-muted font-mono text-xs">—</span>
+        );
+      },
     },
     {
       key: "totalDamage",
@@ -288,16 +305,22 @@ function RepTable({
 export default function DamageTakenPage() {
   const { activeLog } = useParsedLogs();
   const hasLogs = activeLog !== null;
+  const [hideNpcs, setHideNpcs] = useState(false);
+
+  const entries = useMemo(() => {
+    const raw = activeLog?.entries ?? [];
+    return hideNpcs ? raw.filter((e) => !e.isNpc) : raw;
+  }, [activeLog, hideNpcs]);
 
   const damageAnalysis = useMemo(() => {
     if (!hasLogs) return null;
-    return analyzeDamageTaken(activeLog!.entries);
-  }, [activeLog, hasLogs]);
+    return analyzeDamageTaken(entries);
+  }, [entries, hasLogs]);
 
   const repAnalysis = useMemo(() => {
     if (!hasLogs) return null;
-    return analyzeReps(activeLog!.entries);
-  }, [activeLog, hasLogs]);
+    return analyzeReps(entries);
+  }, [entries, hasLogs]);
 
   const hasIncomingDamage =
     damageAnalysis && damageAnalysis.totalIncomingHits > 0;
@@ -340,11 +363,30 @@ export default function DamageTakenPage() {
         </div>
       ) : (
         <div className="space-y-6">
+          {/* NPC Filter Toggle */}
+          <div className="flex items-center justify-between gap-4">
+            <Button
+              variant={hideNpcs ? "primary" : "secondary"}
+              onClick={() => setHideNpcs(!hideNpcs)}
+            >
+              {hideNpcs ? "SHOW NPCs" : "HIDE NPCs"}
+            </Button>
+            {hideNpcs &&
+              activeLog &&
+              activeLog.entries.some((e) => e.isNpc) && (
+                <span className="text-text-muted font-mono text-xs">
+                  {activeLog.entries.filter((e) => e.isNpc).length} NPC sources
+                  hidden
+                </span>
+              )}
+          </div>
+
           {/* Section 1 — DPS Over Time */}
           <Panel title="INCOMING DPS OVER TIME (10s ROLLING)">
             <DpsTakenChart
               timeSeries={damageAnalysis.dpsTimeSeries}
               fights={damageAnalysis.fights}
+              repTimeSeries={repAnalysis?.incomingRepTimeSeries}
             />
           </Panel>
 

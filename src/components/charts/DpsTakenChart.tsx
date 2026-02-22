@@ -15,10 +15,12 @@ import type {
   TimeSeriesDpsPoint,
   FightSegment,
 } from "@/lib/analysis/damageTaken";
+import type { RepTimeSeriesPoint } from "@/lib/analysis/repAnalysis";
 
 interface DpsTakenChartProps {
   timeSeries: TimeSeriesDpsPoint[];
   fights: FightSegment[];
+  repTimeSeries?: RepTimeSeriesPoint[];
 }
 
 function formatTime(date: Date): string {
@@ -33,14 +35,37 @@ function formatTime(date: Date): string {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
-  const point = payload[0].payload as TimeSeriesDpsPoint;
+
+  // Find the DPS point (from the first line)
+  const dpsPoint = payload.find((p: any) => p.dataKey === "dps")
+    ?.payload as TimeSeriesDpsPoint;
+  const repPoint = payload.find((p: any) => p.dataKey === "repsPerSecond")
+    ?.payload as RepTimeSeriesPoint;
+
+  if (!dpsPoint && !repPoint) return null;
+
+  const point = dpsPoint || repPoint;
+
   return (
     <div className="bg-overlay border border-[#00d4ff40] px-3 py-2 rounded-sm font-mono text-xs backdrop-blur">
       <p className="text-text-secondary mb-1">{formatTime(point.timestamp)}</p>
-      <p className="text-status-kill font-bold">
-        DPS: {point.dps.toLocaleString(undefined, { maximumFractionDigits: 1 })}
-      </p>
-      <p className="text-text-muted">Fight {point.fightIndex + 1}</p>
+      {dpsPoint && (
+        <p className="text-status-kill font-bold">
+          DPS IN:{" "}
+          {dpsPoint.dps.toLocaleString(undefined, { maximumFractionDigits: 1 })}
+        </p>
+      )}
+      {repPoint && (
+        <p className="text-text-success font-bold">
+          REPS IN:{" "}
+          {repPoint.repsPerSecond.toLocaleString(undefined, {
+            maximumFractionDigits: 1,
+          })}
+        </p>
+      )}
+      {dpsPoint && (
+        <p className="text-text-muted">Fight {dpsPoint.fightIndex + 1}</p>
+      )}
     </div>
   );
 }
@@ -48,6 +73,7 @@ function CustomTooltip({ active, payload, label }: any) {
 export default function DpsTakenChart({
   timeSeries,
   fights,
+  repTimeSeries,
 }: DpsTakenChartProps) {
   if (timeSeries.length === 0) {
     return (
@@ -67,11 +93,31 @@ export default function DpsTakenChart({
   }
 
   // Convert time series data for Recharts
-  const data = timeSeries.map((point) => ({
+  const data: Array<{
+    timestampMs: number;
+    timeLabel: string;
+    timestamp: Date;
+    dps: number;
+    fightIndex: number;
+    repsPerSecond?: number;
+  }> = timeSeries.map((point) => ({
     ...point,
     timestampMs: point.timestamp.getTime(),
     timeLabel: formatTime(point.timestamp),
   }));
+
+  // Merge rep time series into data if available
+  if (repTimeSeries && repTimeSeries.length > 0) {
+    const repMap = new Map(
+      repTimeSeries.map((p) => [p.timestamp.getTime(), p.repsPerSecond]),
+    );
+    for (const point of data) {
+      const repsPerSecond = repMap.get(point.timestampMs);
+      if (repsPerSecond !== undefined) {
+        point.repsPerSecond = repsPerSecond;
+      }
+    }
+  }
 
   return (
     <div className="space-y-3">
@@ -134,6 +180,19 @@ export default function DpsTakenChart({
             animationDuration={600}
             animationEasing="ease-out"
           />
+          {repTimeSeries && repTimeSeries.length > 0 && (
+            <Line
+              type="monotone"
+              dataKey="repsPerSecond"
+              stroke="#66cc66"
+              strokeWidth={2}
+              strokeDasharray="4 2"
+              dot={false}
+              activeDot={{ r: 3, fill: "#66cc66" }}
+              animationDuration={600}
+              animationEasing="ease-out"
+            />
+          )}
           {fightBoundaries.map((boundary, idx) => (
             <ReferenceLine
               key={idx}

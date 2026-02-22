@@ -10,13 +10,18 @@ export interface RepSourceSummary {
   maxRep: number;
 }
 
+export interface RepTimeSeriesPoint {
+  timestamp: Date;
+  repsPerSecond: number; // rolling 10s window
+}
+
 export interface RepWindowPeak {
   windowSeconds: number; // 30 or 60
   maxRepsPerSecond: number;
   peakTimestamp: Date;
 }
 
-export interface RepAnalysis {
+export interface RepAnalysisResult {
   // Incoming reps (received by you)
   totalRepReceived: number;
   repReceivedSources: RepSourceSummary[]; // bots and ships
@@ -24,6 +29,7 @@ export interface RepAnalysis {
   repReceivedByShips: RepSourceSummary[]; // isBot = false only
   peakRepIncoming30s: RepWindowPeak;
   peakRepIncoming60s: RepWindowPeak;
+  incomingRepTimeSeries: RepTimeSeriesPoint[];
 
   // Outgoing reps (you repped others)
   totalRepOutgoing: number;
@@ -99,7 +105,37 @@ function buildRepSourceSummaries(entries: LogEntry[]): RepSourceSummary[] {
   return summaries;
 }
 
-export function analyzeReps(entries: LogEntry[]): RepAnalysis {
+function computeRepTimeSeries(
+  entries: LogEntry[],
+  rollingWindowMs = 10_000,
+): RepTimeSeriesPoint[] {
+  const points: RepTimeSeriesPoint[] = [];
+  const sorted = [...entries].sort(
+    (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
+  );
+
+  if (sorted.length === 0) return points;
+
+  // Collect unique timestamps from entries
+  const timestamps = sorted.map((e) => e.timestamp.getTime());
+  const uniqueTs = Array.from(new Set(timestamps)).sort((a, b) => a - b);
+
+  for (const ts of uniqueTs) {
+    const windowStart = ts - rollingWindowMs;
+    const windowReps = sorted
+      .filter((e) => {
+        const t = e.timestamp.getTime();
+        return t > windowStart && t <= ts;
+      })
+      .reduce((sum, e) => sum + (e.amount ?? 0), 0);
+    const repsPerSecond = windowReps / (rollingWindowMs / 1000);
+    points.push({ timestamp: new Date(ts), repsPerSecond });
+  }
+
+  return points;
+}
+
+export function analyzeReps(entries: LogEntry[]): RepAnalysisResult {
   // Incoming reps
   const incomingEntries = entries.filter((e) => e.eventType === "rep-received");
   const totalRepReceived = incomingEntries.reduce(
@@ -124,6 +160,9 @@ export function analyzeReps(entries: LogEntry[]): RepAnalysis {
   const peakRepOutgoing30s = computePeakRepsPerSecond(outgoingEntries, 30);
   const peakRepOutgoing60s = computePeakRepsPerSecond(outgoingEntries, 60);
 
+  // Compute incoming rep time series
+  const incomingRepTimeSeries = computeRepTimeSeries(incomingEntries, 10_000);
+
   return {
     totalRepReceived,
     repReceivedSources,
@@ -131,6 +170,7 @@ export function analyzeReps(entries: LogEntry[]): RepAnalysis {
     repReceivedByShips,
     peakRepIncoming30s,
     peakRepIncoming60s,
+    incomingRepTimeSeries,
     totalRepOutgoing,
     repOutgoingTargets,
     peakRepOutgoing30s,
