@@ -1,18 +1,18 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { Loader2, ChevronRight, AlertTriangle } from 'lucide-react';
-import AppLayout from '@/components/layout/AppLayout';
-import Panel from '@/components/ui/Panel';
-import Button from '@/components/ui/Button';
-import DropZone from '@/components/upload/DropZone';
-import ShareButton from '@/components/upload/ShareButton';
-import { parseLogFile } from '@/lib/parser';
-import { useParsedLogs } from '@/hooks/useParsedLogs';
-import type { ParsedLog } from '@/lib/types';
+import { useState } from "react";
+import Link from "next/link";
+import { Loader2, ChevronRight, AlertTriangle } from "lucide-react";
+import AppLayout from "@/components/layout/AppLayout";
+import Panel from "@/components/ui/Panel";
+import Button from "@/components/ui/Button";
+import DropZone from "@/components/upload/DropZone";
+import ShareButton from "@/components/upload/ShareButton";
+import { parseLogFile } from "@/lib/parser";
+import { useParsedLogs } from "@/hooks/useParsedLogs";
+import type { ParsedLog } from "@/lib/types";
 
-const STORAGE_KEY = 'eve-parsed-logs';
+const STORAGE_KEY = "eve-parsed-logs";
 
 function formatNumber(n: number): string {
   return n.toLocaleString();
@@ -53,34 +53,18 @@ export default function UploadPage() {
         results.push(log);
       }
 
-      // Persist to localStorage
-      if (typeof window !== 'undefined') {
-        // Merge with existing logs (deduplicate by sessionId)
-        let existing: ParsedLog[] = [];
-        try {
-          const raw = localStorage.getItem(STORAGE_KEY);
-          if (raw) existing = JSON.parse(raw);
-        } catch {
-          // Ignore
-        }
-        const merged = [...existing];
-        for (const r of results) {
-          const idx = merged.findIndex((e) => e.sessionId === r.sessionId);
-          if (idx >= 0) {
-            merged[idx] = r;
-          } else {
-            merged.push(r);
-          }
-        }
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
-      }
-
-      setParsedLogs(results);
+      // Update state with parsed logs
+      results.forEach((log) => setActiveLog(log));
       if (results.length > 0) {
-        setActiveLog(results[results.length - 1]);
+        setActiveLog(results[results.length - 1]); // Ensure last is active
       }
+      setParsedLogs(results);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred during parsing.');
+      setError(
+        err instanceof Error
+          ? err.message
+          : "An unexpected error occurred during parsing.",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -115,7 +99,7 @@ export default function UploadPage() {
                 INITIALIZING PARSE SEQUENCE...
               </p>
               <p className="text-text-muted font-mono text-xs">
-                Processing {files.length} file{files.length !== 1 ? 's' : ''}
+                Processing {files.length} file{files.length !== 1 ? "s" : ""}
               </p>
             </div>
           </Panel>
@@ -125,7 +109,10 @@ export default function UploadPage() {
         {error && !isLoading && (
           <Panel variant="default" className="border-t-status-kill">
             <div className="flex items-start gap-3">
-              <AlertTriangle size={18} className="text-status-kill flex-shrink-0 mt-0.5" />
+              <AlertTriangle
+                size={18}
+                className="text-status-kill flex-shrink-0 mt-0.5"
+              />
               <div>
                 <p className="text-status-kill font-ui font-semibold uppercase tracking-wider text-sm mb-1">
                   Parse Error
@@ -140,7 +127,8 @@ export default function UploadPage() {
         {!isLoading && parsedLogs.length > 0 && (
           <div className="space-y-4">
             <h2 className="text-text-secondary text-xs font-ui uppercase tracking-widest">
-              PARSE RESULTS — {parsedLogs.length} FILE{parsedLogs.length !== 1 ? 'S' : ''}
+              PARSE RESULTS — {parsedLogs.length} FILE
+              {parsedLogs.length !== 1 ? "S" : ""}
             </h2>
             {parsedLogs.map((log) => (
               <Panel key={log.sessionId} variant="accent">

@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { Upload, Crosshair, Shield, Clock, Activity } from 'lucide-react';
-import AppLayout from '@/components/layout/AppLayout';
-import Panel from '@/components/ui/Panel';
-import Button from '@/components/ui/Button';
-import StatCard from '@/components/dashboard/StatCard';
-import DamageOverTimeChart from '@/components/dashboard/DamageOverTimeChart';
-import DamageBreakdownChart from '@/components/dashboard/DamageBreakdownChart';
-import { useParsedLogs } from '@/hooks/useParsedLogs';
-import type { LogEntry, LogStats, ParsedLog } from '@/lib/types';
+import Link from "next/link";
+import { Upload, Crosshair, Shield, Clock, Activity } from "lucide-react";
+import AppLayout from "@/components/layout/AppLayout";
+import Panel from "@/components/ui/Panel";
+import Button from "@/components/ui/Button";
+import StatCard from "@/components/dashboard/StatCard";
+import DamageOverTimeChart from "@/components/dashboard/DamageOverTimeChart";
+import DamageBreakdownChart from "@/components/dashboard/DamageBreakdownChart";
+import { useParsedLogs } from "@/hooks/useParsedLogs";
+import type { LogEntry, LogStats, ParsedLog } from "@/lib/types";
 
 function mergeStats(logs: ParsedLog[]): LogStats {
   const merged: LogStats = {
@@ -35,7 +35,10 @@ function mergeStats(logs: ParsedLog[]): LogStats {
   if (logs.length === 0) return merged;
 
   const weaponMap = new Map<string, { count: number; totalDamage: number }>();
-  const targetMap = new Map<string, { shipType: string; totalDamage: number }>();
+  const targetMap = new Map<
+    string,
+    { shipType: string; totalDamage: number }
+  >();
 
   for (const log of logs) {
     const s = log.stats;
@@ -58,7 +61,10 @@ function mergeStats(logs: ParsedLog[]): LogStats {
     }
 
     for (const t of s.topTargets) {
-      const existing = targetMap.get(t.name) ?? { shipType: t.shipType, totalDamage: 0 };
+      const existing = targetMap.get(t.name) ?? {
+        shipType: t.shipType,
+        totalDamage: 0,
+      };
       targetMap.set(t.name, {
         shipType: t.shipType,
         totalDamage: existing.totalDamage + t.totalDamage,
@@ -163,7 +169,9 @@ export default function DashboardPage() {
             <div className="xl:col-span-4">
               <Panel title="TOP TARGETS">
                 {stats.topTargets.length === 0 ? (
-                  <p className="text-text-muted font-mono text-xs py-4 text-center">No target data</p>
+                  <p className="text-text-muted font-mono text-xs py-4 text-center">
+                    No target data
+                  </p>
                 ) : (
                   <div className="space-y-0">
                     {stats.topTargets.slice(0, 8).map((t, i) => (
@@ -171,10 +179,16 @@ export default function DashboardPage() {
                         key={t.name}
                         className="flex items-center gap-2 py-1.5 border-b border-border-subtle last:border-0"
                       >
-                        <span className="text-text-muted font-mono text-xs w-4 flex-shrink-0">{i + 1}</span>
+                        <span className="text-text-muted font-mono text-xs w-4 flex-shrink-0">
+                          {i + 1}
+                        </span>
                         <div className="flex-1 min-w-0">
-                          <p className="text-text-primary font-mono text-xs truncate">{t.name}</p>
-                          <p className="text-text-muted font-mono text-xs truncate">{t.shipType}</p>
+                          <p className="text-text-primary font-mono text-xs truncate">
+                            {t.name}
+                          </p>
+                          <p className="text-text-muted font-mono text-xs truncate">
+                            {t.shipType}
+                          </p>
                         </div>
                         <span className="text-gold-bright font-mono text-xs flex-shrink-0">
                           {t.totalDamage.toLocaleString()}
@@ -198,10 +212,17 @@ export default function DashboardPage() {
             <div className="xl:col-span-6">
               <Panel title="INCOMING HIT QUALITY">
                 {Object.keys(stats.hitQualityReceived).length === 0 ? (
-                  <p className="text-text-muted font-mono text-xs py-4 text-center">No incoming data</p>
+                  <p className="text-text-muted font-mono text-xs py-4 text-center">
+                    No incoming data
+                  </p>
                 ) : (
                   <div className="space-y-0">
-                    {(Object.entries(stats.hitQualityReceived) as [string, number][])
+                    {(
+                      Object.entries(stats.hitQualityReceived) as [
+                        string,
+                        number,
+                      ][]
+                    )
                       .sort(([, a], [, b]) => b - a)
                       .map(([quality, count]) => (
                         <div
@@ -209,7 +230,9 @@ export default function DashboardPage() {
                           className="flex items-center gap-2 py-1.5 border-b border-border-subtle last:border-0"
                         >
                           <div className="flex-1">
-                            <p className="text-text-secondary font-mono text-xs">{quality}</p>
+                            <p className="text-text-secondary font-mono text-xs">
+                              {quality}
+                            </p>
                           </div>
                           <span className="text-status-kill font-mono text-xs">
                             {count.toLocaleString()} hits

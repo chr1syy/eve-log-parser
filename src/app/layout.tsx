@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Rajdhani, JetBrains_Mono } from "next/font/google";
+import { LogsProvider } from "@/contexts/LogsContext";
 import "./globals.css";
 
 const rajdhani = Rajdhani({
@@ -35,7 +36,9 @@ export default function RootLayout({
       <body
         className={`${rajdhani.variable} ${jetbrainsMono.variable} bg-void text-text-primary font-ui antialiased`}
       >
-        {children}
+        <LogsProvider>
+          {children}
+        </LogsProvider>
       </body>
     </html>
   );
