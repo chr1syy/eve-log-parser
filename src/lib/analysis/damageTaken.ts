@@ -24,6 +24,7 @@ export interface IncomingWeaponSummary {
   weapon: string
   isDrone: boolean
   hitCount: number
+  missCount: number       // count of miss-incoming events for this weapon
   totalDamage: number
   minHit: number
   maxHit: number
@@ -145,6 +146,7 @@ function computePeakDps(entries: LogEntry[], windowSeconds: number): DpsWindow {
 
 export function analyzeDamageTaken(entries: LogEntry[]): DamageTakenAnalysis {
   const damageEntries = entries.filter((e) => e.eventType === 'damage-received')
+  const missEntries = entries.filter((e) => e.eventType === 'miss-incoming')
 
   const empty: DamageTakenAnalysis = {
     totalDamageReceived: 0,
@@ -174,12 +176,24 @@ export function analyzeDamageTaken(entries: LogEntry[]): DamageTakenAnalysis {
 
   // Incoming weapon/drone summaries grouped by (source + weapon)
   const weaponMap = new Map<string, LogEntry[]>()
+  const missMap = new Map<string, number>()  // key -> missCount
+
   for (const entry of damageEntries) {
     const source = entry.pilotName ?? entry.shipType ?? 'Unknown'
     const weapon = entry.weapon ?? 'Unknown'
     const key = `${source}||${weapon}`
     if (!weaponMap.has(key)) weaponMap.set(key, [])
     weaponMap.get(key)!.push(entry)
+  }
+
+  // Accumulate miss-incoming entries into missMap (keyed same as weaponMap)
+  for (const entry of missEntries) {
+    const source = entry.pilotName ?? entry.shipType ?? 'Unknown'
+    const weapon = entry.weapon ?? 'Unknown'
+    const key = `${source}||${weapon}`
+    missMap.set(key, (missMap.get(key) ?? 0) + 1)
+    // Ensure a hit-group exists for miss-only entries so they appear in summaries
+    if (!weaponMap.has(key)) weaponMap.set(key, [])
   }
 
   const incomingWeaponSummaries: IncomingWeaponSummary[] = []
@@ -191,8 +205,9 @@ export function analyzeDamageTaken(entries: LogEntry[]): DamageTakenAnalysis {
     const amounts = group.map((e) => e.amount ?? 0)
     const totalDamage = amounts.reduce((a, b) => a + b, 0)
     const hitCount = group.length
-    const minHit = Math.min(...amounts)
-    const maxHit = Math.max(...amounts)
+    const missCount = missMap.get(key) ?? 0
+    const minHit = amounts.length > 0 ? Math.min(...amounts) : 0
+    const maxHit = amounts.length > 0 ? Math.max(...amounts) : 0
 
     const hitQualities: Partial<Record<HitQuality, number>> = {}
     for (const entry of group) {
@@ -206,6 +221,7 @@ export function analyzeDamageTaken(entries: LogEntry[]): DamageTakenAnalysis {
       weapon,
       isDrone,
       hitCount,
+      missCount,
       totalDamage,
       minHit,
       maxHit,

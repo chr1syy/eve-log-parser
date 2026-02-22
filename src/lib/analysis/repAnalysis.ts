@@ -16,6 +16,11 @@ export interface RepWindowPeak {
   peakTimestamp: Date;
 }
 
+export interface RepTimeSeriesPoint {
+  timestamp: Date;
+  repsPerSecond: number; // rolling 10s window
+}
+
 export interface RepAnalysis {
   // Incoming reps (received by you)
   totalRepReceived: number;
@@ -24,12 +29,40 @@ export interface RepAnalysis {
   repReceivedByShips: RepSourceSummary[]; // isBot = false only
   peakRepIncoming30s: RepWindowPeak;
   peakRepIncoming60s: RepWindowPeak;
+  incomingRepTimeSeries: RepTimeSeriesPoint[]; // rolling 10s window
 
   // Outgoing reps (you repped others)
   totalRepOutgoing: number;
   repOutgoingTargets: RepSourceSummary[];
   peakRepOutgoing30s: RepWindowPeak;
   peakRepOutgoing60s: RepWindowPeak;
+}
+
+function computeRepTimeSeries(
+  entries: LogEntry[],
+  rollingWindowMs = 10_000,
+): RepTimeSeriesPoint[] {
+  const sorted = [...entries].sort(
+    (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
+  );
+  if (sorted.length === 0) return [];
+
+  const timestamps = sorted.map((e) => e.timestamp.getTime());
+  const uniqueTs = Array.from(new Set(timestamps)).sort((a, b) => a - b);
+
+  return uniqueTs.map((ts) => {
+    const windowStart = ts - rollingWindowMs;
+    const windowAmount = sorted
+      .filter((e) => {
+        const t = e.timestamp.getTime();
+        return t > windowStart && t <= ts;
+      })
+      .reduce((sum, e) => sum + (e.amount ?? 0), 0);
+    return {
+      timestamp: new Date(ts),
+      repsPerSecond: windowAmount / (rollingWindowMs / 1000),
+    };
+  });
 }
 
 function computePeakRepsPerSecond(
@@ -124,6 +157,9 @@ export function analyzeReps(entries: LogEntry[]): RepAnalysis {
   const peakRepOutgoing30s = computePeakRepsPerSecond(outgoingEntries, 30);
   const peakRepOutgoing60s = computePeakRepsPerSecond(outgoingEntries, 60);
 
+  // Compute incoming rep time series (10s rolling window)
+  const incomingRepTimeSeries = computeRepTimeSeries(incomingEntries);
+
   return {
     totalRepReceived,
     repReceivedSources,
@@ -131,6 +167,7 @@ export function analyzeReps(entries: LogEntry[]): RepAnalysis {
     repReceivedByShips,
     peakRepIncoming30s,
     peakRepIncoming60s,
+    incomingRepTimeSeries,
     totalRepOutgoing,
     repOutgoingTargets,
     peakRepOutgoing30s,
