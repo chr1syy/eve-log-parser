@@ -29,13 +29,40 @@ export interface RepAnalysisResult {
   repReceivedByShips: RepSourceSummary[]; // isBot = false only
   peakRepIncoming30s: RepWindowPeak;
   peakRepIncoming60s: RepWindowPeak;
-  incomingRepTimeSeries: RepTimeSeriesPoint[];
+  incomingRepTimeSeries: RepTimeSeriesPoint[]; // rolling 10s window
 
   // Outgoing reps (you repped others)
   totalRepOutgoing: number;
   repOutgoingTargets: RepSourceSummary[];
   peakRepOutgoing30s: RepWindowPeak;
   peakRepOutgoing60s: RepWindowPeak;
+}
+
+function computeRepTimeSeries(
+  entries: LogEntry[],
+  rollingWindowMs = 10_000,
+): RepTimeSeriesPoint[] {
+  const sorted = [...entries].sort(
+    (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
+  );
+  if (sorted.length === 0) return [];
+
+  const timestamps = sorted.map((e) => e.timestamp.getTime());
+  const uniqueTs = Array.from(new Set(timestamps)).sort((a, b) => a - b);
+
+  return uniqueTs.map((ts) => {
+    const windowStart = ts - rollingWindowMs;
+    const windowAmount = sorted
+      .filter((e) => {
+        const t = e.timestamp.getTime();
+        return t > windowStart && t <= ts;
+      })
+      .reduce((sum, e) => sum + (e.amount ?? 0), 0);
+    return {
+      timestamp: new Date(ts),
+      repsPerSecond: windowAmount / (rollingWindowMs / 1000),
+    };
+  });
 }
 
 function computePeakRepsPerSecond(
@@ -105,36 +132,6 @@ function buildRepSourceSummaries(entries: LogEntry[]): RepSourceSummary[] {
   return summaries;
 }
 
-function computeRepTimeSeries(
-  entries: LogEntry[],
-  rollingWindowMs = 10_000,
-): RepTimeSeriesPoint[] {
-  const points: RepTimeSeriesPoint[] = [];
-  const sorted = [...entries].sort(
-    (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
-  );
-
-  if (sorted.length === 0) return points;
-
-  // Collect unique timestamps from entries
-  const timestamps = sorted.map((e) => e.timestamp.getTime());
-  const uniqueTs = Array.from(new Set(timestamps)).sort((a, b) => a - b);
-
-  for (const ts of uniqueTs) {
-    const windowStart = ts - rollingWindowMs;
-    const windowReps = sorted
-      .filter((e) => {
-        const t = e.timestamp.getTime();
-        return t > windowStart && t <= ts;
-      })
-      .reduce((sum, e) => sum + (e.amount ?? 0), 0);
-    const repsPerSecond = windowReps / (rollingWindowMs / 1000);
-    points.push({ timestamp: new Date(ts), repsPerSecond });
-  }
-
-  return points;
-}
-
 export function analyzeReps(entries: LogEntry[]): RepAnalysisResult {
   // Incoming reps
   const incomingEntries = entries.filter((e) => e.eventType === "rep-received");
@@ -160,7 +157,7 @@ export function analyzeReps(entries: LogEntry[]): RepAnalysisResult {
   const peakRepOutgoing30s = computePeakRepsPerSecond(outgoingEntries, 30);
   const peakRepOutgoing60s = computePeakRepsPerSecond(outgoingEntries, 60);
 
-  // Compute incoming rep time series
+  // Compute incoming rep time series (10s rolling window)
   const incomingRepTimeSeries = computeRepTimeSeries(incomingEntries, 10_000);
 
   return {
