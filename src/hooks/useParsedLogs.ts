@@ -49,48 +49,93 @@ export function useParsedLogs(): UseParsedLogsResult {
 
   // Use useMemo to ensure activeLog is a stable reference and properly updates
   const activeLog: ParsedLog | null = useMemo(() => {
-    return (
+    console.log(
+      `[useParsedLogs] useMemo computing activeLog. logs count: ${logs.length}, activeSessionId: ${activeSessionId}`,
+    );
+    const result =
       logs.find((l) => l.sessionId === activeSessionId) ??
       logs[logs.length - 1] ??
-      null
+      null;
+    console.log(
+      `[useParsedLogs] activeLog computed:`,
+      result?.fileName ?? "null",
     );
+    return result;
+  }, [logs, activeSessionId]);
+
+  // When logs array changes, ensure activeSessionId matches one of the logs
+  // This prevents showing stale activeSessionId when a log is removed
+  useEffect(() => {
+    if (logs.length === 0) {
+      setActiveSessionId(null);
+      return;
+    }
+
+    // Check if current activeSessionId exists in logs
+    const sessionExists = logs.some((l) => l.sessionId === activeSessionId);
+    if (!sessionExists && logs.length > 0) {
+      // Set to most recent log
+      console.log(
+        `[useParsedLogs] activeSessionId ${activeSessionId} not in logs, resetting to:`,
+        logs[logs.length - 1].sessionId,
+      );
+      setActiveSessionId(logs[logs.length - 1].sessionId);
+    }
   }, [logs, activeSessionId]);
 
   const setActiveLog = useCallback((log: ParsedLog) => {
+    console.log(
+      `[useParsedLogs] setActiveLog called with: ${log.fileName} (${log.sessionId})`,
+    );
+
     // Update logs array: upsert log (update if exists by sessionId, otherwise append)
-    // This MUST happen synchronously with activeSessionId update to avoid stale reads
     setLogs((prev) => {
+      console.log(
+        `[useParsedLogs] Current logs before update:`,
+        prev.map((l) => l.fileName),
+      );
+
       const idx = prev.findIndex((l) => l.sessionId === log.sessionId);
       const updated =
         idx >= 0
           ? [...prev.slice(0, idx), log, ...prev.slice(idx + 1)]
           : [...prev, log];
 
+      console.log(
+        `[useParsedLogs] Updated logs array, now have ${updated.length} logs`,
+        updated.map((l) => l.fileName),
+      );
+
       // Persist to localStorage immediately
       if (typeof window !== "undefined") {
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+          console.log(`[useParsedLogs] Persisted logs to localStorage`);
         } catch (err) {
           console.error(`[useParsedLogs] localStorage error:`, err);
         }
       }
 
-      // Also update activeSessionId here to ensure synchronous update
-      // This ensures logs and activeSessionId always update together
-      setActiveSessionId(log.sessionId);
-      if (typeof window !== "undefined") {
-        try {
-          localStorage.setItem(ACTIVE_SESSION_KEY, log.sessionId);
-        } catch (err) {
-          console.error(
-            `[useParsedLogs] localStorage ACTIVE_SESSION_KEY error:`,
-            err,
-          );
-        }
-      }
-
       return updated;
     });
+
+    // Update active session ID SEPARATELY but SYNCHRONOUSLY
+    // React will batch these together since they're called in the same function
+    console.log(`[useParsedLogs] Setting activeSessionId to: ${log.sessionId}`);
+    setActiveSessionId(log.sessionId);
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(ACTIVE_SESSION_KEY, log.sessionId);
+        console.log(
+          `[useParsedLogs] Persisted activeSessionId to localStorage`,
+        );
+      } catch (err) {
+        console.error(
+          `[useParsedLogs] localStorage ACTIVE_SESSION_KEY error:`,
+          err,
+        );
+      }
+    }
   }, []);
 
   const clearLogs = useCallback(() => {
