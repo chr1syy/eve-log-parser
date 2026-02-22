@@ -278,11 +278,34 @@ export function parseCombatLine(
       }
 
       case "0xffffffff": {
-        // White — warp scram/disrupt or other
-        if (clean.includes("Warp scram") || clean.includes("Warp disrupt")) {
-          base.eventType = "warp-scram";
-        } else {
+        const isScram = clean.includes("Warp scram") || clean.includes("Warp disrupt");
+        if (!isScram) {
           base.eventType = "other";
+          break;
+        }
+        base.eventType = "warp-scram";
+
+        // Extract all <u>...</u> targets from the raw line
+        const uMatches = [...raw.matchAll(/<u>([\s\S]*?)<\/u>/gi)].map(
+          (m) => stripTags(m[1]).trim()
+        );
+
+        // Detect direction by checking if "you" is the source
+        const fromYou = /from\s+(?:<[^>]+>)*you(?:<[^>]+>)*\s+to/i.test(raw);
+        const toYou = /to\s+(?:<[^>]+>)*you[!]?(?:<[^>]+>)*\s*$/i.test(raw) ||
+                      clean.toLowerCase().includes("to you");
+
+        if (fromYou) {
+          base.tackleDirection = "outgoing";
+          base.tackleTarget = uMatches[0];
+        } else if (toYou) {
+          base.tackleDirection = "incoming";
+          base.tackleSource = uMatches[0];
+        } else {
+          // Observed scram (neither side is the listener)
+          base.tackleDirection = "incoming";
+          base.tackleSource = uMatches[0];
+          base.tackleTarget = uMatches[1];
         }
         break;
       }

@@ -247,6 +247,49 @@ describe('LogEntry — tackle fields', () => {
 })
 
 // ────────────────────────────────────────────────────────────
+// parseCombatLine — warp-scram
+// ────────────────────────────────────────────────────────────
+describe('parseCombatLine — warp-scram', () => {
+  const ts = new Date('2025-10-23T02:10:00')
+
+  it('parses outgoing warp scramble (you → target ship)', () => {
+    const raw = '<color=0xffffffff>Warp scramble attempt from you to <u>Ishtar</u>'
+    const entry = parseCombatLine(raw, ts, 'test-scram-1')
+    expect(entry.eventType).toBe('warp-scram')
+    expect(entry.tackleDirection).toBe('outgoing')
+    expect(entry.tackleTarget).toBe('Ishtar')
+    expect(entry.tackleSource).toBeUndefined()
+  })
+
+  it('parses incoming warp scramble (enemy ship → you)', () => {
+    const raw = '<color=0xffffffff>Warp scramble attempt from <u>Proteus</u> to you'
+    const entry = parseCombatLine(raw, ts, 'test-scram-2')
+    expect(entry.eventType).toBe('warp-scram')
+    expect(entry.tackleDirection).toBe('incoming')
+    expect(entry.tackleSource).toBe('Proteus')
+    expect(entry.tackleTarget).toBeUndefined()
+  })
+
+  it('parses outgoing warp disruption (you → target ship)', () => {
+    const raw = '<color=0xffffffff>Warp disruption attempt from you to <u>Huginn</u>'
+    const entry = parseCombatLine(raw, ts, 'test-scram-3')
+    expect(entry.eventType).toBe('warp-scram')
+    expect(entry.tackleDirection).toBe('outgoing')
+    expect(entry.tackleTarget).toBe('Huginn')
+    expect(entry.tackleSource).toBeUndefined()
+  })
+
+  it('parses incoming warp scramble with exclamation (to you!)', () => {
+    const raw = '<color=0xffffffff>Warp scramble attempt from <u>Sabre</u> to you!'
+    const entry = parseCombatLine(raw, ts, 'test-scram-4')
+    expect(entry.eventType).toBe('warp-scram')
+    expect(entry.tackleDirection).toBe('incoming')
+    expect(entry.tackleSource).toBe('Sabre')
+    expect(entry.tackleTarget).toBeUndefined()
+  })
+})
+
+// ────────────────────────────────────────────────────────────
 // parseCombatLine — rep-received
 // ────────────────────────────────────────────────────────────
 describe('parseCombatLine — rep-received', () => {
