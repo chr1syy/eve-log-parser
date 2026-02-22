@@ -81,6 +81,20 @@ describe('parseCombatLine — damage-dealt', () => {
     const entry = parseCombatLine(raw, ts, 'test-drone')
     expect(entry.isDrone).toBe(true)
   })
+
+  it('detects faction drone weapon without tier suffix (e.g. Imperial Navy Praetor)', () => {
+    const raw =
+      '<color=0xff00ffff><b>350</b> <color=0x77ffffff><font size=10>to</font> <b><color=0xffffffff>Target[CORP](Ship)</b><font size=10><color=0x77ffffff> - Imperial Navy Praetor - Smashes'
+    const entry = parseCombatLine(raw, ts, 'test-faction-drone')
+    expect(entry.isDrone).toBe(true)
+  })
+
+  it('detects faction drone weapon without tier suffix (e.g. Caldari Navy Hornet)', () => {
+    const raw =
+      '<color=0xff00ffff><b>80</b> <color=0x77ffffff><font size=10>to</font> <b><color=0xffffffff>Target[CORP](Ship)</b><font size=10><color=0x77ffffff> - Caldari Navy Hornet - Hits'
+    const entry = parseCombatLine(raw, ts, 'test-faction-drone-2')
+    expect(entry.isDrone).toBe(true)
+  })
 })
 
 // ────────────────────────────────────────────────────────────

@@ -18,7 +18,7 @@ function generateUUID(): string {
 }
 
 const DRONE_PATTERN =
-  /(Wasp|Infiltrator|Hornet|Hammerhead|Ogre|Valkyrie|Warrior|Curator|Garde|Warden|Bouncer|Berserker|Acolyte|Praetor|Gecko)\s+(I{1,3}|IV|V|VI)/i;
+  /\b(Wasp|Infiltrator|Hornet|Hammerhead|Ogre|Valkyrie|Warrior|Curator|Garde|Warden|Bouncer|Berserker|Acolyte|Praetor|Gecko)\b/i;
 
 /**
  * Strips all EVE HTML markup tags from a line, collapsing extra whitespace.
