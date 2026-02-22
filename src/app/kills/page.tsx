@@ -1,23 +1,23 @@
-'use client';
+"use client";
 
-import { useState, useMemo } from 'react';
-import Link from 'next/link';
-import { Upload } from 'lucide-react';
-import AppLayout from '@/components/layout/AppLayout';
-import Panel from '@/components/ui/Panel';
-import Button from '@/components/ui/Button';
-import KillRow from '@/components/kills/KillRow';
-import { useParsedLogs } from '@/hooks/useParsedLogs';
-import type { EventType, LogEntry, ParsedLog } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { useState, useMemo, useEffect } from "react";
+import Link from "next/link";
+import { Upload } from "lucide-react";
+import AppLayout from "@/components/layout/AppLayout";
+import Panel from "@/components/ui/Panel";
+import Button from "@/components/ui/Button";
+import KillRow from "@/components/kills/KillRow";
+import { useParsedLogs } from "@/hooks/useParsedLogs";
+import type { EventType, LogEntry, ParsedLog } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
-type FilterMode = 'all' | 'kills' | 'losses' | 'misses';
+type FilterMode = "all" | "kills" | "losses" | "misses";
 
 const FILTER_EVENT_TYPES: Record<FilterMode, EventType[]> = {
-  all: ['damage-dealt', 'damage-received', 'miss-incoming', 'miss-outgoing'],
-  kills: ['damage-dealt', 'miss-outgoing'],
-  losses: ['damage-received'],
-  misses: ['miss-incoming', 'miss-outgoing'],
+  all: ["damage-dealt", "damage-received", "miss-incoming", "miss-outgoing"],
+  kills: ["damage-dealt"],
+  losses: ["damage-received"],
+  misses: ["miss-incoming", "miss-outgoing"],
 };
 
 function filterEntries(entries: LogEntry[], mode: FilterMode): LogEntry[] {
@@ -27,14 +27,20 @@ function filterEntries(entries: LogEntry[], mode: FilterMode): LogEntry[] {
 
 export default function KillReportPage() {
   const { logs, activeLog } = useParsedLogs();
-  const [filterMode, setFilterMode] = useState<FilterMode>('all');
-  const [activeSessionId, setActiveSessionId] = useState<string>(() => activeLog?.sessionId ?? 'all');
+  const [filterMode, setFilterMode] = useState<FilterMode>("all");
+  const [activeSessionId, setActiveSessionId] = useState<string>(
+    () => activeLog?.sessionId ?? "all",
+  );
+
+  useEffect(() => {
+    setActiveSessionId(activeLog?.sessionId ?? "all");
+  }, [activeLog?.sessionId]);
 
   const hasLogs = logs.length > 0;
 
   // Determine which logs to display
   const selectedLogs: ParsedLog[] = useMemo(() => {
-    if (activeSessionId === 'all') return logs;
+    if (activeSessionId === "all") return logs;
     return logs.filter((l) => l.sessionId === activeSessionId);
   }, [logs, activeSessionId]);
 
@@ -50,14 +56,18 @@ export default function KillReportPage() {
   );
 
   // Stats
-  const hitsOutCount = allEntries.filter((e) => e.eventType === 'damage-dealt' || e.eventType === 'miss-outgoing').length;
-  const hitsInCount = allEntries.filter((e) => e.eventType === 'damage-received').length;
+  const hitsOutCount = allEntries.filter(
+    (e) => e.eventType === "damage-dealt",
+  ).length;
+  const hitsInCount = allEntries.filter(
+    (e) => e.eventType === "damage-received",
+  ).length;
 
   const filterButtons: { mode: FilterMode; label: string }[] = [
-    { mode: 'all', label: 'ALL' },
-    { mode: 'kills', label: 'HITS OUT' },
-    { mode: 'losses', label: 'HITS IN' },
-    { mode: 'misses', label: 'MISSES' },
+    { mode: "all", label: "ALL" },
+    { mode: "kills", label: "HITS OUT" },
+    { mode: "losses", label: "HITS IN" },
+    { mode: "misses", label: "MISSES" },
   ];
 
   return (
@@ -87,14 +97,16 @@ export default function KillReportPage() {
           {/* Session selector (only shown when multiple logs) */}
           {logs.length > 1 && (
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-text-muted font-ui text-xs uppercase tracking-widest">Session:</span>
+              <span className="text-text-muted font-ui text-xs uppercase tracking-widest">
+                Session:
+              </span>
               <button
-                onClick={() => setActiveSessionId('all')}
+                onClick={() => setActiveSessionId("all")}
                 className={cn(
-                  'font-mono text-xs px-3 py-1 border rounded-sm transition-colors',
-                  activeSessionId === 'all'
-                    ? 'border-cyan-dim text-cyan-glow bg-cyan-ghost'
-                    : 'border-border text-text-secondary hover:border-cyan-dim hover:text-text-primary',
+                  "font-mono text-xs px-3 py-1 border rounded-sm transition-colors",
+                  activeSessionId === "all"
+                    ? "border-cyan-dim text-cyan-glow bg-cyan-ghost"
+                    : "border-border text-text-secondary hover:border-cyan-dim hover:text-text-primary",
                 )}
               >
                 ALL SESSIONS
@@ -104,10 +116,10 @@ export default function KillReportPage() {
                   key={log.sessionId}
                   onClick={() => setActiveSessionId(log.sessionId)}
                   className={cn(
-                    'font-mono text-xs px-3 py-1 border rounded-sm transition-colors',
+                    "font-mono text-xs px-3 py-1 border rounded-sm transition-colors",
                     activeSessionId === log.sessionId
-                      ? 'border-cyan-dim text-cyan-glow bg-cyan-ghost'
-                      : 'border-border text-text-secondary hover:border-cyan-dim hover:text-text-primary',
+                      ? "border-cyan-dim text-cyan-glow bg-cyan-ghost"
+                      : "border-border text-text-secondary hover:border-cyan-dim hover:text-text-primary",
                   )}
                 >
                   {log.fileName}
@@ -121,7 +133,7 @@ export default function KillReportPage() {
             {filterButtons.map(({ mode, label }) => (
               <Button
                 key={mode}
-                variant={filterMode === mode ? 'primary' : 'secondary'}
+                variant={filterMode === mode ? "primary" : "secondary"}
                 size="sm"
                 onClick={() => setFilterMode(mode)}
               >
@@ -133,15 +145,24 @@ export default function KillReportPage() {
           {/* Stats summary bar */}
           <div className="flex items-center gap-3 text-xs font-mono text-text-muted">
             <span>
-              <span className="text-text-secondary">{filteredEntries.length.toLocaleString()}</span> shown
+              <span className="text-text-secondary">
+                {filteredEntries.length.toLocaleString()}
+              </span>{" "}
+              shown
             </span>
             <span className="text-text-muted">|</span>
             <span>
-              <span className="text-status-kill">{hitsOutCount.toLocaleString()}</span> hits out
+              <span className="text-status-kill">
+                {hitsOutCount.toLocaleString()}
+              </span>{" "}
+              hits out
             </span>
             <span className="text-text-muted">|</span>
             <span>
-              <span className="text-status-safe">{hitsInCount.toLocaleString()}</span> hits in
+              <span className="text-status-safe">
+                {hitsInCount.toLocaleString()}
+              </span>{" "}
+              hits in
             </span>
           </div>
 
@@ -170,7 +191,10 @@ function KillTable({ entries }: { entries: LogEntry[] }) {
   const [page, setPage] = useState(1);
   const totalPages = Math.max(1, Math.ceil(entries.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
-  const paginated = entries.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const paginated = entries.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
 
   return (
     <div className="flex flex-col gap-3">
@@ -209,8 +233,8 @@ function KillTable({ entries }: { entries: LogEntry[] }) {
       {totalPages > 1 && (
         <div className="flex items-center justify-between px-1">
           <span className="font-mono text-text-muted text-xs">
-            {entries.length.toLocaleString()} rows &middot; page{' '}
-            <span className="text-text-secondary">{currentPage}</span> /{' '}
+            {entries.length.toLocaleString()} rows &middot; page{" "}
+            <span className="text-text-secondary">{currentPage}</span> /{" "}
             <span className="text-text-secondary">{totalPages}</span>
           </span>
           <div className="flex gap-2">
@@ -218,9 +242,9 @@ function KillTable({ entries }: { entries: LogEntry[] }) {
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
               className={cn(
-                'font-mono text-xs px-3 py-1 border border-border rounded-sm',
-                'text-text-secondary hover:border-cyan-dim hover:text-text-primary transition-colors',
-                'disabled:opacity-30 disabled:cursor-not-allowed',
+                "font-mono text-xs px-3 py-1 border border-border rounded-sm",
+                "text-text-secondary hover:border-cyan-dim hover:text-text-primary transition-colors",
+                "disabled:opacity-30 disabled:cursor-not-allowed",
               )}
             >
               PREV
@@ -229,9 +253,9 @@ function KillTable({ entries }: { entries: LogEntry[] }) {
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
               className={cn(
-                'font-mono text-xs px-3 py-1 border border-border rounded-sm',
-                'text-text-secondary hover:border-cyan-dim hover:text-text-primary transition-colors',
-                'disabled:opacity-30 disabled:cursor-not-allowed',
+                "font-mono text-xs px-3 py-1 border border-border rounded-sm",
+                "text-text-secondary hover:border-cyan-dim hover:text-text-primary transition-colors",
+                "disabled:opacity-30 disabled:cursor-not-allowed",
               )}
             >
               NEXT

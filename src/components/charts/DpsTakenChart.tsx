@@ -108,13 +108,28 @@ export default function DpsTakenChart({
 
   // Merge rep time series into data if available
   if (repTimeSeries && repTimeSeries.length > 0) {
-    const repMap = new Map(
-      repTimeSeries.map((p) => [p.timestamp.getTime(), p.repsPerSecond]),
-    );
+    // Build rep map with carry-forward logic
+    const sortedReps = repTimeSeries
+      .map((p) => ({ ts: p.timestamp.getTime(), rps: p.repsPerSecond }))
+      .sort((a, b) => a.ts - b.ts);
+
+    // For each damage point, find the most recent rep value
+    let repIdx = 0;
+
     for (const point of data) {
-      const repsPerSecond = repMap.get(point.timestampMs);
-      if (repsPerSecond !== undefined) {
-        point.repsPerSecond = repsPerSecond;
+      // Find the last rep entry <= this timestamp
+      while (
+        repIdx < sortedReps.length - 1 &&
+        sortedReps[repIdx + 1].ts <= point.timestampMs
+      ) {
+        repIdx++;
+      }
+
+      if (
+        repIdx < sortedReps.length &&
+        sortedReps[repIdx].ts <= point.timestampMs
+      ) {
+        point.repsPerSecond = sortedReps[repIdx].rps;
       }
     }
   }
