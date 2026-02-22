@@ -8,20 +8,24 @@ import {
   useCallback,
   useMemo,
   useRef,
+  useState,
   type ReactNode,
 } from "react";
 import type { ParsedLog } from "@/lib/types";
 
 const STORAGE_KEY = "eve-parsed-logs";
 const ACTIVE_SESSION_KEY = "eve-active-session";
+const USER_ID_KEY = "eve-user-id";
 
 export interface LogsContextValue {
   logs: ParsedLog[];
   activeLog: ParsedLog | null;
   userId: string | null;
+  needsRecovery: boolean;
   setActiveLog: (log: ParsedLog) => void;
   removeLog: (sessionId: string) => void;
   clearLogs: () => void;
+  restoreFromUserId: (uuid: string) => Promise<number>;
 }
 
 interface LogsState {
@@ -127,6 +131,24 @@ function logsReducer(state: LogsState, action: LogsAction): LogsState {
   }
 }
 
+/** Re-hydrate Date objects after JSON deserialization */
+function hydrateLog(log: ParsedLog): ParsedLog {
+  return {
+    ...log,
+    parsedAt: new Date(log.parsedAt as unknown as string),
+    sessionStart: log.sessionStart
+      ? new Date(log.sessionStart as unknown as string)
+      : undefined,
+    sessionEnd: log.sessionEnd
+      ? new Date(log.sessionEnd as unknown as string)
+      : undefined,
+    entries: log.entries.map((e) => ({
+      ...e,
+      timestamp: new Date(e.timestamp as unknown as string),
+    })),
+  };
+}
+
 const LogsContext = createContext<LogsContextValue | null>(null);
 
 export function LogsProvider({ children }: { children: ReactNode }) {
@@ -136,45 +158,84 @@ export function LogsProvider({ children }: { children: ReactNode }) {
   });
 
   const userIdRef = useRef<string | null>(null);
+  const autoRestoredRef = useRef(false);
+
+  const [userId, setUserId] = useState<string | null>(null);
+  const [needsRecovery, setNeedsRecovery] = useState(false);
 
   // Load from localStorage on mount
   useEffect(() => {
     if (typeof window === "undefined") return;
+    // Guard against React 18 strict-mode double-invocation in dev
+    if (autoRestoredRef.current) return;
+    autoRestoredRef.current = true;
 
-    // Resolve or generate persistent user identity
-    let userId = localStorage.getItem("eve-user-id");
-    if (!userId) {
-      userId = crypto.randomUUID();
-      localStorage.setItem("eve-user-id", userId);
+    const storedUserId = localStorage.getItem(USER_ID_KEY);
+    const parsedLogsRaw = localStorage.getItem(STORAGE_KEY);
+
+    if (!storedUserId && !parsedLogsRaw) {
+      // Both keys absent: full cache wipe. Generate a fresh userId and ask the
+      // user to supply their old one via the recovery banner.
+      const newUserId = crypto.randomUUID();
+      localStorage.setItem(USER_ID_KEY, newUserId);
+      userIdRef.current = newUserId;
+      setUserId(newUserId);
+      setNeedsRecovery(true);
+      return;
     }
-    userIdRef.current = userId;
 
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed: ParsedLog[] = JSON.parse(raw);
-        // Re-hydrate Date objects
-        const hydrated = parsed.map((log) => ({
-          ...log,
-          parsedAt: new Date(log.parsedAt),
-          sessionStart: log.sessionStart
-            ? new Date(log.sessionStart)
-            : undefined,
-          sessionEnd: log.sessionEnd ? new Date(log.sessionEnd) : undefined,
-          entries: log.entries.map((e) => ({
-            ...e,
-            timestamp: new Date(e.timestamp),
-          })),
-        }));
+    // Resolve or generate userId
+    let resolvedUserId = storedUserId;
+    if (!resolvedUserId) {
+      resolvedUserId = crypto.randomUUID();
+      localStorage.setItem(USER_ID_KEY, resolvedUserId);
+    }
+    userIdRef.current = resolvedUserId;
+    setUserId(resolvedUserId);
 
+    if (parsedLogsRaw) {
+      // Normal hydration from localStorage
+      try {
+        const parsed: ParsedLog[] = JSON.parse(parsedLogsRaw);
+        const hydrated = parsed.map(hydrateLog);
         const storedSessionId = localStorage.getItem(ACTIVE_SESSION_KEY);
         dispatch({
           type: "HYDRATE_FROM_STORAGE",
           payload: { logs: hydrated, activeSessionId: storedSessionId },
         });
+      } catch {
+        // Ignore corrupt storage
       }
-    } catch {
-      // Ignore corrupt storage
+    } else {
+      // Auto-restore: userId present but no local logs (quota eviction).
+      // Silently re-fetch all user logs from the server in the background.
+      void (async () => {
+        try {
+          const res = await fetch(
+            `/api/user-logs?userId=${resolvedUserId}`
+          );
+          if (!res.ok) return;
+          const { logs: metas } = (await res.json()) as {
+            logs: Array<{ sessionId: string }>;
+          };
+          if (!metas || metas.length === 0) return;
+
+          for (const meta of metas) {
+            try {
+              const logRes = await fetch(
+                `/api/user-logs/${meta.sessionId}?userId=${resolvedUserId}`
+              );
+              if (!logRes.ok) continue;
+              const { log } = (await logRes.json()) as { log: ParsedLog };
+              dispatch({ type: "SET_ACTIVE_LOG", payload: hydrateLog(log) });
+            } catch {
+              // Skip individual failed fetches
+            }
+          }
+        } catch {
+          // Ignore network errors during silent restore
+        }
+      })();
     }
   }, []);
 
@@ -190,13 +251,13 @@ export function LogsProvider({ children }: { children: ReactNode }) {
   const setActiveLog = useCallback((log: ParsedLog) => {
     dispatch({ type: "SET_ACTIVE_LOG", payload: log });
 
-    // Fire-and-forget: persist full log to server for recovery (phase 04)
-    const userId = userIdRef.current;
-    if (userId) {
+    // Fire-and-forget: persist full log to server for recovery
+    const uid = userIdRef.current;
+    if (uid) {
       fetch("/api/user-logs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, log }),
+        body: JSON.stringify({ userId: uid, log }),
       }).catch(() => {});
     }
   }, []);
@@ -209,16 +270,66 @@ export function LogsProvider({ children }: { children: ReactNode }) {
     dispatch({ type: "CLEAR_LOGS" });
   }, []);
 
+  /**
+   * Restore session from a user-supplied UUID (recovery banner flow).
+   * Returns the number of logs successfully restored.
+   */
+  const restoreFromUserId = useCallback(
+    async (uuid: string): Promise<number> => {
+      localStorage.setItem(USER_ID_KEY, uuid);
+      userIdRef.current = uuid;
+      setUserId(uuid);
+
+      const res = await fetch(`/api/user-logs?userId=${uuid}`);
+      if (!res.ok) return 0;
+
+      const { logs: metas } = (await res.json()) as {
+        logs: Array<{ sessionId: string }>;
+      };
+      if (!metas || metas.length === 0) return 0;
+
+      let count = 0;
+      for (const meta of metas) {
+        try {
+          const logRes = await fetch(
+            `/api/user-logs/${meta.sessionId}?userId=${uuid}`
+          );
+          if (!logRes.ok) continue;
+          const { log } = (await logRes.json()) as { log: ParsedLog };
+          dispatch({ type: "SET_ACTIVE_LOG", payload: hydrateLog(log) });
+          count++;
+        } catch {
+          // Skip individual failed fetches
+        }
+      }
+
+      setNeedsRecovery(false);
+      return count;
+    },
+    []
+  );
+
   const value: LogsContextValue = useMemo(
     () => ({
       logs: state.logs,
       activeLog,
-      userId: userIdRef.current,
+      userId,
+      needsRecovery,
       setActiveLog,
       removeLog,
       clearLogs,
+      restoreFromUserId,
     }),
-    [state.logs, activeLog, setActiveLog, removeLog, clearLogs]
+    [
+      state.logs,
+      activeLog,
+      userId,
+      needsRecovery,
+      setActiveLog,
+      removeLog,
+      clearLogs,
+      restoreFromUserId,
+    ]
   );
 
   return <LogsContext.Provider value={value}>{children}</LogsContext.Provider>;
