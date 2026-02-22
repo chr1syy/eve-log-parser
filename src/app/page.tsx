@@ -91,11 +91,11 @@ function formatMinutes(minutes: number): string {
 }
 
 export default function DashboardPage() {
-  const { activeLogs } = useParsedLogs();
+  const { activeLog } = useParsedLogs();
 
-  const hasLogs = activeLogs.length > 0;
-  const stats = mergeStats(activeLogs);
-  const allEntries = mergeEntries(activeLogs);
+  const hasLogs = activeLog !== null;
+  const stats = mergeStats(activeLog ? [activeLog] : []);
+  const allEntries = mergeEntries(activeLog ? [activeLog] : []);
 
   return (
     <AppLayout title="DASHBOARD">
@@ -148,7 +148,7 @@ export default function DashboardPage() {
               value={formatMinutes(stats.activeTimeMinutes)}
               variant="cyan"
               icon={<Clock size={20} />}
-              subValue={`${activeLogs.length} session${activeLogs.length !== 1 ? 's' : ''}`}
+              subValue={`1 session`}
             />
           </div>
 

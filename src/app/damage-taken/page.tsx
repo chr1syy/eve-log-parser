@@ -286,18 +286,18 @@ function RepTable({
 }
 
 export default function DamageTakenPage() {
-  const { activeLogs } = useParsedLogs();
-  const hasLogs = activeLogs.length > 0;
+  const { activeLog } = useParsedLogs();
+  const hasLogs = activeLog !== null;
 
   const damageAnalysis = useMemo(() => {
     if (!hasLogs) return null;
-    return analyzeDamageTaken(activeLogs[0].entries);
-  }, [activeLogs, hasLogs]);
+    return analyzeDamageTaken(activeLog!.entries);
+  }, [activeLog, hasLogs]);
 
   const repAnalysis = useMemo(() => {
     if (!hasLogs) return null;
-    return analyzeReps(activeLogs[0].entries);
-  }, [activeLogs, hasLogs]);
+    return analyzeReps(activeLog!.entries);
+  }, [activeLog, hasLogs]);
 
   const hasIncomingDamage =
     damageAnalysis && damageAnalysis.totalIncomingHits > 0;

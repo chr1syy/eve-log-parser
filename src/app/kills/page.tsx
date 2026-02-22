@@ -26,9 +26,9 @@ function filterEntries(entries: LogEntry[], mode: FilterMode): LogEntry[] {
 }
 
 export default function KillReportPage() {
-  const { logs } = useParsedLogs();
+  const { logs, activeLog } = useParsedLogs();
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
-  const [activeSessionId, setActiveSessionId] = useState<string>('all');
+  const [activeSessionId, setActiveSessionId] = useState<string>(() => activeLog?.sessionId ?? 'all');
 
   const hasLogs = logs.length > 0;
 

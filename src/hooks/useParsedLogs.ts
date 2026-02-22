@@ -4,17 +4,18 @@ import { useState, useEffect, useCallback } from 'react';
 import type { ParsedLog } from '@/lib/types';
 
 const STORAGE_KEY = 'eve-parsed-logs';
+const ACTIVE_SESSION_KEY = 'eve-active-session';
 
 interface UseParsedLogsResult {
   logs: ParsedLog[];
-  activeLogs: ParsedLog[];
-  setActiveLogs: (logs: ParsedLog[]) => void;
+  activeLog: ParsedLog | null;
+  setActiveLog: (log: ParsedLog) => void;
   clearLogs: () => void;
 }
 
 export function useParsedLogs(): UseParsedLogsResult {
   const [logs, setLogs] = useState<ParsedLog[]>([]);
-  const [activeLogs, setActiveLogsState] = useState<ParsedLog[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -31,25 +32,35 @@ export function useParsedLogs(): UseParsedLogsResult {
           entries: log.entries.map((e) => ({ ...e, timestamp: new Date(e.timestamp) })),
         }));
         setLogs(hydrated);
-        setActiveLogsState(hydrated);
+      }
+      const storedSessionId = localStorage.getItem(ACTIVE_SESSION_KEY);
+      if (storedSessionId) {
+        setActiveSessionId(storedSessionId);
       }
     } catch {
       // Ignore corrupt storage
     }
   }, []);
 
-  const setActiveLogs = useCallback((updated: ParsedLog[]) => {
-    setActiveLogsState(updated);
+  const activeLog: ParsedLog | null =
+    logs.find((l) => l.sessionId === activeSessionId) ?? logs[logs.length - 1] ?? null;
+
+  const setActiveLog = useCallback((log: ParsedLog) => {
+    setActiveSessionId(log.sessionId);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(ACTIVE_SESSION_KEY, log.sessionId);
+    }
   }, []);
 
   const clearLogs = useCallback(() => {
     if (typeof window === 'undefined') return;
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(ACTIVE_SESSION_KEY);
     setLogs([]);
-    setActiveLogsState([]);
+    setActiveSessionId(null);
   }, []);
 
-  return { logs, activeLogs, setActiveLogs, clearLogs };
+  return { logs, activeLog, setActiveLog, clearLogs };
 }
 
 export default useParsedLogs;

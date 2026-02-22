@@ -219,13 +219,13 @@ const incomingModuleColumns: Column<Record<string, unknown>>[] = [
 ];
 
 export default function CapPressurePage() {
-  const { activeLogs } = useParsedLogs();
-  const hasLogs = activeLogs.length > 0;
+  const { activeLog } = useParsedLogs();
+  const hasLogs = activeLog !== null;
 
   const analysis = useMemo(() => {
     if (!hasLogs) return null;
-    return analyzeCapPressure(activeLogs[0].entries);
-  }, [activeLogs, hasLogs]);
+    return analyzeCapPressure(activeLog!.entries);
+  }, [activeLog, hasLogs]);
 
   // Calculate total zero hits from outgoing nos
   const totalZeroHits = useMemo(() => {

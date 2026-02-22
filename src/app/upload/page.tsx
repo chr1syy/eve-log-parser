@@ -9,6 +9,7 @@ import Button from '@/components/ui/Button';
 import DropZone from '@/components/upload/DropZone';
 import ShareButton from '@/components/upload/ShareButton';
 import { parseLogFile } from '@/lib/parser';
+import { useParsedLogs } from '@/hooks/useParsedLogs';
 import type { ParsedLog } from '@/lib/types';
 
 const STORAGE_KEY = 'eve-parsed-logs';
@@ -25,6 +26,7 @@ function formatMinutes(minutes: number): string {
 }
 
 export default function UploadPage() {
+  const { setActiveLog } = useParsedLogs();
   const [files, setFiles] = useState<File[]>([]);
   const [parsedLogs, setParsedLogs] = useState<ParsedLog[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -74,6 +76,9 @@ export default function UploadPage() {
       }
 
       setParsedLogs(results);
+      if (results.length > 0) {
+        setActiveLog(results[results.length - 1]);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred during parsing.');
     } finally {

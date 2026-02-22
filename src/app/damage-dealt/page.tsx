@@ -258,18 +258,18 @@ function WeaponTable({ summaries, emptyMessage }: { summaries: WeaponApplication
 }
 
 export default function DamageDealtPage() {
-  const { activeLogs } = useParsedLogs()
-  const hasLogs = activeLogs.length > 0
+  const { activeLog } = useParsedLogs()
+  const hasLogs = activeLog !== null
 
   const analysis = useMemo(() => {
     if (!hasLogs) return null
-    return analyzeDamageDealt(activeLogs[0].entries)
-  }, [activeLogs, hasLogs])
+    return analyzeDamageDealt(activeLog!.entries)
+  }, [activeLog, hasLogs])
 
   const timeSeries: DamageDealtTimeSeries = useMemo(() => {
     if (!hasLogs) return { points: [], topTargets: [] }
-    return generateDamageDealtTimeSeries(activeLogs[0].entries)
-  }, [activeLogs, hasLogs])
+    return generateDamageDealtTimeSeries(activeLog!.entries)
+  }, [activeLog, hasLogs])
 
   const maxDps = useMemo(() => {
     if (!analysis) return 0
