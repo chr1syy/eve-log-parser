@@ -68,7 +68,6 @@ function normalizeHitQuality(raw: string): HitQuality {
     "Hits",
     "Glances Off",
     "Grazes",
-    "Barely Scratches",
     "misses",
   ];
   const trimmed = raw.trim();

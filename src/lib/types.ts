@@ -12,7 +12,7 @@ export type EventType =
 
 export type HitQuality =
   | 'Wrecks' | 'Smashes' | 'Penetrates' | 'Hits'
-  | 'Glances Off' | 'Grazes' | 'Barely Scratches'
+  | 'Glances Off' | 'Grazes'
   | 'misses' | 'unknown'
 
 export type CapEventType = 'neut-received' | 'neut-dealt' | 'nos-dealt'

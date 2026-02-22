@@ -30,7 +30,6 @@ const HIT_QUALITY_ORDER: HitQuality[] = [
   "Hits",
   "Glances Off",
   "Grazes",
-  "Barely Scratches",
 ];
 
 function hitQualityColor(hq: HitQuality): string {
@@ -44,8 +43,6 @@ function hitQualityColor(hq: HitQuality): string {
     case "Glances Off":
     case "Grazes":
       return "text-text-muted";
-    case "Barely Scratches":
-      return "text-status-kill";
     default:
       return "text-text-secondary";
   }

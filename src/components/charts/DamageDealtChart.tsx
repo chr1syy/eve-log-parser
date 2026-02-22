@@ -139,7 +139,7 @@ export default function DamageDealtChart({ series }: DamageDealtChartProps) {
         </ComposedChart>
       </ResponsiveContainer>
       <p className="text-text-muted font-mono text-xs">
-        Stacked damage by target (10 s rolling window) · Red line = bad-hit % (Glances Off / Grazes / Barely Scratches)
+        Stacked damage by target (10 s rolling window) · Red line = bad-hit % (Glances Off / Grazes)
       </p>
     </div>
   )

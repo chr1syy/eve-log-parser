@@ -200,7 +200,7 @@ export interface DamageDealtTimeSeries {
   topTargets: string[]       // ordered list of target labels (up to maxTargets)
 }
 
-const BAD_HIT_QUALITIES = new Set<HitQuality>(['Glances Off', 'Grazes', 'Barely Scratches'])
+const BAD_HIT_QUALITIES = new Set<HitQuality>(['Glances Off', 'Grazes'])
 
 export function generateDamageDealtTimeSeries(
   entries: LogEntry[],
