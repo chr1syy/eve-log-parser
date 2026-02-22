@@ -295,55 +295,66 @@ export function generateDamageDealtTimeSeries(
   const timestamps = dealtEntries.map((e) => e.timestamp.getTime());
   const uniqueTs = Array.from(new Set(timestamps)).sort((a, b) => a - b);
 
-  // Sliding window for damage DPS (O(n))
-  let damageWindowStart = 0;
+  // Sliding window pointers for damage (O(n))
+  let damageStart = 0;
+  let damageEnd = 0;
   let damageSum = 0;
 
-  for (const t of uniqueTs) {
-    const windowEnd = t - WINDOW_MS;
+  // Sliding window pointers for shots (O(n))
+  let shotStart = 0;
+  let shotEnd = 0;
 
-    // Slide the window: remove entries that fell outside
+  for (const t of uniqueTs) {
+    const windowStart = t - WINDOW_MS;
+
+    // Advance damageStart pointer: remove entries older than window
     while (
-      damageWindowStart < dealtEntries.length &&
-      dealtEntries[damageWindowStart].timestamp.getTime() <= windowEnd
+      damageStart < dealtEntries.length &&
+      dealtEntries[damageStart].timestamp.getTime() < windowStart
     ) {
-      damageSum -= dealtEntries[damageWindowStart].amount ?? 0;
-      damageWindowStart++;
+      damageSum -= dealtEntries[damageStart].amount ?? 0;
+      damageStart++;
     }
 
-    // Add all entries in the current window
-    let tempIdx = damageWindowStart;
+    // Advance damageEnd pointer: add entries up to current time
     while (
-      tempIdx < dealtEntries.length &&
-      dealtEntries[tempIdx].timestamp.getTime() <= t
+      damageEnd < dealtEntries.length &&
+      dealtEntries[damageEnd].timestamp.getTime() <= t
     ) {
-      if (dealtEntries[tempIdx].timestamp.getTime() > windowEnd) {
-        damageSum += dealtEntries[tempIdx].amount ?? 0;
-      }
-      tempIdx++;
+      damageSum += dealtEntries[damageEnd].amount ?? 0;
+      damageEnd++;
     }
 
     const dps = damageSum / (WINDOW_MS / 1000);
 
-    // Sliding window for shot counting (O(n))
-    let shotWindowStart = 0;
-    let shotsInWindow = 0;
-    let badHits = 0;
+    // Advance shotStart pointer: remove shots older than window
+    while (
+      shotStart < allShots.length &&
+      allShots[shotStart].timestamp.getTime() < windowStart
+    ) {
+      shotStart++;
+    }
 
-    for (let i = 0; i < allShots.length; i++) {
-      if (allShots[i].timestamp.getTime() <= windowEnd) {
-        shotWindowStart = i + 1;
-      } else if (allShots[i].timestamp.getTime() <= t) {
-        shotsInWindow++;
-        if (
-          allShots[i].hitQuality != null &&
-          BAD_HIT_QUALITIES.has(allShots[i].hitQuality as HitQuality)
-        ) {
-          badHits++;
-        }
+    // Advance shotEnd pointer: count shots up to current time
+    while (
+      shotEnd < allShots.length &&
+      allShots[shotEnd].timestamp.getTime() <= t
+    ) {
+      shotEnd++;
+    }
+
+    // Count bad hits in [shotStart, shotEnd)
+    let badHits = 0;
+    for (let i = shotStart; i < shotEnd; i++) {
+      if (
+        allShots[i].hitQuality != null &&
+        BAD_HIT_QUALITIES.has(allShots[i].hitQuality as HitQuality)
+      ) {
+        badHits++;
       }
     }
 
+    const shotsInWindow = shotEnd - shotStart;
     const badHitPct = shotsInWindow > 0 ? (badHits / shotsInWindow) * 100 : 0;
 
     points.push({
