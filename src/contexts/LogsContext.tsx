@@ -7,6 +7,7 @@ import {
   useEffect,
   useCallback,
   useMemo,
+  useRef,
   type ReactNode,
 } from "react";
 import type { ParsedLog } from "@/lib/types";
@@ -17,6 +18,7 @@ const ACTIVE_SESSION_KEY = "eve-active-session";
 export interface LogsContextValue {
   logs: ParsedLog[];
   activeLog: ParsedLog | null;
+  userId: string | null;
   setActiveLog: (log: ParsedLog) => void;
   removeLog: (sessionId: string) => void;
   clearLogs: () => void;
@@ -133,9 +135,20 @@ export function LogsProvider({ children }: { children: ReactNode }) {
     activeSessionId: null,
   });
 
+  const userIdRef = useRef<string | null>(null);
+
   // Load from localStorage on mount
   useEffect(() => {
     if (typeof window === "undefined") return;
+
+    // Resolve or generate persistent user identity
+    let userId = localStorage.getItem("eve-user-id");
+    if (!userId) {
+      userId = crypto.randomUUID();
+      localStorage.setItem("eve-user-id", userId);
+    }
+    userIdRef.current = userId;
+
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
@@ -176,6 +189,16 @@ export function LogsProvider({ children }: { children: ReactNode }) {
 
   const setActiveLog = useCallback((log: ParsedLog) => {
     dispatch({ type: "SET_ACTIVE_LOG", payload: log });
+
+    // Fire-and-forget: persist full log to server for recovery (phase 04)
+    const userId = userIdRef.current;
+    if (userId) {
+      fetch("/api/user-logs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, log }),
+      }).catch(() => {});
+    }
   }, []);
 
   const removeLog = useCallback((sessionId: string) => {
@@ -187,7 +210,14 @@ export function LogsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value: LogsContextValue = useMemo(
-    () => ({ logs: state.logs, activeLog, setActiveLog, removeLog, clearLogs }),
+    () => ({
+      logs: state.logs,
+      activeLog,
+      userId: userIdRef.current,
+      setActiveLog,
+      removeLog,
+      clearLogs,
+    }),
     [state.logs, activeLog, setActiveLog, removeLog, clearLogs]
   );
 
