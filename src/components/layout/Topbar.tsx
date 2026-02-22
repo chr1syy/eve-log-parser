@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Upload, Share2, ChevronDown, FileText } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Upload, Share2, ChevronDown, FileText, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useParsedLogs } from "@/hooks/useParsedLogs";
 import { useShareLog } from "@/hooks/useShareLog";
@@ -16,9 +16,27 @@ function truncate(name: string, max = 24): string {
 
 export default function Topbar({ title }: TopbarProps) {
   const router = useRouter();
-  const { logs, activeLog, setActiveLog } = useParsedLogs();
+  const { logs, activeLog, setActiveLog, removeLog } = useParsedLogs();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const { shareState, handleShare } = useShareLog();
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!dropdownOpen) return;
+
+    function handleMouseDown(e: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
+        setDropdownOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleMouseDown);
+    return () => document.removeEventListener("mousedown", handleMouseDown);
+  }, [dropdownOpen]);
 
   const shareLabel =
     shareState === "copied"
@@ -46,7 +64,7 @@ export default function Topbar({ title }: TopbarProps) {
 
         {/* Log selector */}
         {logs.length > 0 && activeLog && (
-          <div className="relative">
+          <div className="relative" ref={dropdownRef}>
             <button
               type="button"
               onClick={() => logs.length > 1 && setDropdownOpen((o) => !o)}
@@ -62,17 +80,32 @@ export default function Topbar({ title }: TopbarProps) {
             {dropdownOpen && logs.length > 1 && (
               <div className="absolute right-0 top-full mt-1 z-50 bg-panel border border-border rounded-sm shadow-lg min-w-[200px]">
                 {logs.map((log) => (
-                  <button
+                  <div
                     key={log.sessionId}
-                    type="button"
-                    onClick={() => {
-                      setActiveLog(log);
-                      setDropdownOpen(false);
-                    }}
-                    className="w-full text-left px-3 py-2 font-mono text-xs text-text-secondary hover:bg-elevated hover:text-text-primary transition-colors"
+                    className="flex items-center group"
                   >
-                    {log.fileName}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveLog(log);
+                        setDropdownOpen(false);
+                      }}
+                      className="flex-1 text-left px-3 py-2 font-mono text-xs text-text-secondary hover:bg-elevated hover:text-text-primary transition-colors"
+                    >
+                      {log.fileName}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeLog(log.sessionId);
+                      }}
+                      className="px-2 py-2 text-text-muted hover:text-status-kill transition-colors opacity-0 group-hover:opacity-100"
+                      aria-label={`Remove ${log.fileName}`}
+                    >
+                      <X size={10} />
+                    </button>
+                  </div>
                 ))}
               </div>
             )}
