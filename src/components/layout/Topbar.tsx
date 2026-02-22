@@ -198,7 +198,7 @@ export default function Topbar({ title }: TopbarProps) {
         <div className="flex-shrink-0 px-6 py-3 bg-amber-950/40 border-b border-amber-500/30">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2">
             <p className="text-amber-400 font-mono text-xs uppercase tracking-wider flex-shrink-0">
-              SESSION DATA LOST — Enter your User ID to restore logs
+              SESSION DATA LOST OR NEW USER — Enter a previous User ID to restore logs
             </p>
             <div className="flex items-center gap-2 sm:ml-auto">
               <input

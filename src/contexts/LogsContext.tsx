@@ -17,6 +17,17 @@ const STORAGE_KEY = "eve-parsed-logs";
 const ACTIVE_SESSION_KEY = "eve-active-session";
 const USER_ID_KEY = "eve-user-id";
 
+function generateUUID(): string {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 export interface LogsContextValue {
   logs: ParsedLog[];
   activeLog: ParsedLog | null;
@@ -176,7 +187,7 @@ export function LogsProvider({ children }: { children: ReactNode }) {
     if (!storedUserId && !parsedLogsRaw) {
       // Both keys absent: full cache wipe. Generate a fresh userId and ask the
       // user to supply their old one via the recovery banner.
-      const newUserId = crypto.randomUUID();
+      const newUserId = generateUUID();
       localStorage.setItem(USER_ID_KEY, newUserId);
       userIdRef.current = newUserId;
       setUserId(newUserId);
@@ -187,7 +198,7 @@ export function LogsProvider({ children }: { children: ReactNode }) {
     // Resolve or generate userId
     let resolvedUserId = storedUserId;
     if (!resolvedUserId) {
-      resolvedUserId = crypto.randomUUID();
+      resolvedUserId = generateUUID();
       localStorage.setItem(USER_ID_KEY, resolvedUserId);
     }
     userIdRef.current = resolvedUserId;
@@ -314,7 +325,7 @@ export function LogsProvider({ children }: { children: ReactNode }) {
       logs: state.logs,
       activeLog,
       userId,
-      needsRecovery,
+      needsRecovery: needsRecovery && state.logs.length === 0,
       setActiveLog,
       removeLog,
       clearLogs,
