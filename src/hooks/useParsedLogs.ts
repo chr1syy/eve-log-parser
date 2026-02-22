@@ -57,6 +57,10 @@ export function useParsedLogs(): UseParsedLogsResult {
   }, [logs, activeSessionId]);
 
   const setActiveLog = useCallback((log: ParsedLog) => {
+    console.log(
+      `[useParsedLogs] setActiveLog called with: ${log.fileName} (${log.sessionId})`,
+    );
+
     // Update logs array: upsert log (update if exists by sessionId, otherwise append)
     setLogs((prev) => {
       const idx = prev.findIndex((l) => l.sessionId === log.sessionId);
@@ -65,24 +69,33 @@ export function useParsedLogs(): UseParsedLogsResult {
           ? [...prev.slice(0, idx), log, ...prev.slice(idx + 1)]
           : [...prev, log];
 
+      console.log(
+        `[useParsedLogs] Updated logs array, now have ${updated.length} logs`,
+      );
+
       // Persist to localStorage immediately
       if (typeof window !== "undefined") {
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-        } catch {
-          // Ignore storage errors
+          console.log(`[useParsedLogs] Persisted to localStorage`);
+        } catch (err) {
+          console.error(`[useParsedLogs] localStorage error:`, err);
         }
       }
       return updated;
     });
 
     // Update active session ID
+    console.log(`[useParsedLogs] Setting activeSessionId to: ${log.sessionId}`);
     setActiveSessionId(log.sessionId);
     if (typeof window !== "undefined") {
       try {
         localStorage.setItem(ACTIVE_SESSION_KEY, log.sessionId);
-      } catch {
-        // Ignore storage errors
+      } catch (err) {
+        console.error(
+          `[useParsedLogs] localStorage ACTIVE_SESSION_KEY error:`,
+          err,
+        );
       }
     }
   }, []);
