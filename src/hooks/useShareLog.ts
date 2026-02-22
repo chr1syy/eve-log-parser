@@ -38,21 +38,14 @@ export function useShareLog(): UseShareLogResult {
       if (!log) return;
       setShareState("loading");
       try {
-        // Log the payload size for debugging
         const payload = { log };
         const jsonString = JSON.stringify(payload);
-        const sizeInMB = jsonString.length / (1024 * 1024);
-        console.log(
-          `[Share] Sending log: ${sizeInMB.toFixed(2)}MB (${jsonString.length} bytes)`,
-        );
 
         const res = await fetch("/api/logs", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: jsonString,
         });
-
-        console.log(`[Share] API response status: ${res.status}`);
 
         if (!res.ok) {
           const errorText = await res.text();
@@ -62,16 +55,13 @@ export function useShareLog(): UseShareLogResult {
 
         const { uuid } = (await res.json()) as { uuid: string };
         const shareUrl = `${window.location.origin}/share/${uuid}`;
-        console.log(`[Share] Generated URL: ${shareUrl}`);
 
         // Check if clipboard API is available
         if (navigator?.clipboard?.writeText) {
           await navigator.clipboard.writeText(shareUrl);
           setShareState("copied");
-          console.log(`[Share] Successfully copied to clipboard`);
         } else {
-          // Fallback: log to console if clipboard not available
-          console.warn("Clipboard API not available, share URL:", shareUrl);
+          // Fallback: show error state if clipboard not available
           setShareState("error");
         }
         scheduleReset(2000);
