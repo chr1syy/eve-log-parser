@@ -1,10 +1,52 @@
-import { Upload } from 'lucide-react';
+'use client';
+
+import { useState } from 'react';
+import { Upload, Share2, ChevronDown, FileText } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useParsedLogs } from '@/hooks/useParsedLogs';
 
 interface TopbarProps {
   title: string;
 }
 
+type ShareState = 'idle' | 'loading' | 'copied' | 'error';
+
+function truncate(name: string, max = 24): string {
+  return name.length > max ? name.slice(0, max - 1) + '…' : name;
+}
+
 export default function Topbar({ title }: TopbarProps) {
+  const router = useRouter();
+  const { logs, activeLog, setActiveLog } = useParsedLogs();
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [shareState, setShareState] = useState<ShareState>('idle');
+
+  const handleShare = async () => {
+    if (!activeLog) return;
+    setShareState('loading');
+    try {
+      const res = await fetch('/api/logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ log: activeLog }),
+      });
+      if (!res.ok) throw new Error('Upload failed');
+      const { uuid } = (await res.json()) as { uuid: string };
+      const shareUrl = `${window.location.origin}/share/${uuid}`;
+      await navigator.clipboard.writeText(shareUrl);
+      setShareState('copied');
+      setTimeout(() => setShareState('idle'), 2000);
+    } catch {
+      setShareState('error');
+      setTimeout(() => setShareState('idle'), 2000);
+    }
+  };
+
+  const shareLabel =
+    shareState === 'copied' ? 'COPIED!' :
+    shareState === 'error' ? 'FAILED' :
+    'SHARE';
+
   return (
     <header className="h-16 flex items-center justify-between px-6 bg-space border-b border-border flex-shrink-0">
       {/* Left: page title */}
@@ -22,9 +64,56 @@ export default function Topbar({ title }: TopbarProps) {
           </span>
         </div>
 
+        {/* Log selector */}
+        {logs.length > 0 && activeLog && (
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => logs.length > 1 && setDropdownOpen((o) => !o)}
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-border text-text-secondary font-mono text-xs rounded-sm hover:border-cyan-dim transition-colors"
+            >
+              <FileText className="w-3 h-3 text-text-muted flex-shrink-0" />
+              <span>{truncate(activeLog.fileName)}</span>
+              {logs.length > 1 && <ChevronDown className="w-3 h-3 text-text-muted" />}
+            </button>
+
+            {dropdownOpen && logs.length > 1 && (
+              <div className="absolute right-0 top-full mt-1 z-50 bg-panel border border-border rounded-sm shadow-lg min-w-[200px]">
+                {logs.map((log) => (
+                  <button
+                    key={log.sessionId}
+                    type="button"
+                    onClick={() => {
+                      setActiveLog(log);
+                      setDropdownOpen(false);
+                    }}
+                    className="w-full text-left px-3 py-2 font-mono text-xs text-text-secondary hover:bg-elevated hover:text-text-primary transition-colors"
+                  >
+                    {log.fileName}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Share button */}
+        {activeLog !== null && (
+          <button
+            type="button"
+            onClick={handleShare}
+            disabled={shareState === 'loading'}
+            className="flex items-center gap-2 px-3 py-1.5 border border-border text-text-secondary font-ui font-semibold uppercase tracking-wider text-xs rounded-sm transition-all duration-150 hover:border-cyan-dim hover:text-text-primary disabled:opacity-50"
+          >
+            <Share2 className="w-3.5 h-3.5" />
+            {shareLabel}
+          </button>
+        )}
+
         {/* Upload Logs button */}
         <button
           type="button"
+          onClick={() => router.push('/upload')}
           className="flex items-center gap-2 px-4 py-1.5 border border-cyan-glow text-cyan-glow font-ui font-semibold uppercase tracking-wider text-sm rounded-sm transition-all duration-150 hover:bg-cyan-ghost hover:shadow-[0_0_12px_#00d4ff40]"
         >
           <Upload className="w-4 h-4" />

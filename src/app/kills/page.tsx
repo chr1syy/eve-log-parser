@@ -14,10 +14,10 @@ import { cn } from '@/lib/utils';
 type FilterMode = 'all' | 'kills' | 'losses' | 'misses';
 
 const FILTER_EVENT_TYPES: Record<FilterMode, EventType[]> = {
-  all: ['damage-dealt', 'damage-received', 'miss-incoming'],
-  kills: ['damage-dealt'],
+  all: ['damage-dealt', 'damage-received', 'miss-incoming', 'miss-outgoing'],
+  kills: ['damage-dealt', 'miss-outgoing'],
   losses: ['damage-received'],
-  misses: ['miss-incoming'],
+  misses: ['miss-incoming', 'miss-outgoing'],
 };
 
 function filterEntries(entries: LogEntry[], mode: FilterMode): LogEntry[] {
@@ -50,7 +50,7 @@ export default function KillReportPage() {
   );
 
   // Stats
-  const hitsOutCount = allEntries.filter((e) => e.eventType === 'damage-dealt').length;
+  const hitsOutCount = allEntries.filter((e) => e.eventType === 'damage-dealt' || e.eventType === 'miss-outgoing').length;
   const hitsInCount = allEntries.filter((e) => e.eventType === 'damage-received').length;
 
   const filterButtons: { mode: FilterMode; label: string }[] = [
