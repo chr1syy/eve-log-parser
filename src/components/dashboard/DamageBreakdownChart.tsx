@@ -1,13 +1,7 @@
-'use client';
+"use client";
 
-import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  ResponsiveContainer,
-} from 'recharts';
-import type { LogStats } from '@/lib/types';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
+import type { LogStats } from "@/lib/types";
 
 interface DamageBreakdownChartProps {
   stats: LogStats;
@@ -15,13 +9,13 @@ interface DamageBreakdownChartProps {
 
 // Colors: first = cyan-glow, second = gold-bright, rest = progressively dimmer blues
 const SEGMENT_COLORS = [
-  '#00d4ff', // cyan-glow
-  '#c9a227', // gold-bright
-  '#0099cc', // cyan-mid
-  '#005f80', // cyan-dim
-  '#003d54', // darker blue
-  '#4a5568', // muted
-  '#2d3748', // very muted
+  "#00d4ff", // cyan-glow
+  "#c9a227", // gold-bright
+  "#0099cc", // cyan-mid
+  "#005f80", // cyan-dim
+  "#003d54", // darker blue
+  "#4a5568", // muted
+  "#2d3748", // very muted
 ];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -44,7 +38,9 @@ function CustomTooltip({ active, payload }: any) {
   );
 }
 
-export default function DamageBreakdownChart({ stats }: DamageBreakdownChartProps) {
+export default function DamageBreakdownChart({
+  stats,
+}: DamageBreakdownChartProps) {
   const weapons = stats.topWeapons.slice(0, 7);
 
   if (weapons.length === 0) {
@@ -59,7 +55,7 @@ export default function DamageBreakdownChart({ stats }: DamageBreakdownChartProp
 
   const data = weapons.map((w) => ({
     name: w.name,
-    value: w.count,
+    value: w.totalDamage,
     count: w.count,
     totalDamage: w.totalDamage,
     pct: grandTotalDamage > 0 ? (w.totalDamage / grandTotalDamage) * 100 : 0,
@@ -126,10 +122,16 @@ export default function DamageBreakdownChart({ stats }: DamageBreakdownChartProp
           <div key={w.name} className="flex items-center gap-2">
             <div
               className="w-2 h-2 rounded-full flex-shrink-0"
-              style={{ backgroundColor: SEGMENT_COLORS[i % SEGMENT_COLORS.length] }}
+              style={{
+                backgroundColor: SEGMENT_COLORS[i % SEGMENT_COLORS.length],
+              }}
             />
-            <span className="flex-1 text-text-secondary text-xs font-mono truncate">{w.name}</span>
-            <span className="text-text-muted text-xs font-mono">{w.count.toLocaleString()} hits</span>
+            <span className="flex-1 text-text-secondary text-xs font-mono truncate">
+              {w.name}
+            </span>
+            <span className="text-text-muted text-xs font-mono">
+              {w.count.toLocaleString()} hits
+            </span>
             <span className="text-cyan-glow text-xs font-mono w-12 text-right">
               {data[i].pct.toFixed(1)}%
             </span>
