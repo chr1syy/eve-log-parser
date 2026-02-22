@@ -5,7 +5,7 @@ import {
   parseCombatLine,
 } from '@/lib/parser/eveLogParser'
 import { computeStats } from '@/lib/parser/computeStats'
-import { LogEntry } from '@/lib/types'
+import { EventType, LogEntry } from '@/lib/types'
 
 // ────────────────────────────────────────────────────────────
 // stripTags
@@ -81,6 +81,20 @@ describe('parseCombatLine — damage-dealt', () => {
     const entry = parseCombatLine(raw, ts, 'test-drone')
     expect(entry.isDrone).toBe(true)
   })
+
+  it('detects faction drone weapon without tier suffix (e.g. Imperial Navy Praetor)', () => {
+    const raw =
+      '<color=0xff00ffff><b>350</b> <color=0x77ffffff><font size=10>to</font> <b><color=0xffffffff>Target[CORP](Ship)</b><font size=10><color=0x77ffffff> - Imperial Navy Praetor - Smashes'
+    const entry = parseCombatLine(raw, ts, 'test-faction-drone')
+    expect(entry.isDrone).toBe(true)
+  })
+
+  it('detects faction drone weapon without tier suffix (e.g. Caldari Navy Hornet)', () => {
+    const raw =
+      '<color=0xff00ffff><b>80</b> <color=0x77ffffff><font size=10>to</font> <b><color=0xffffffff>Target[CORP](Ship)</b><font size=10><color=0x77ffffff> - Caldari Navy Hornet - Hits'
+    const entry = parseCombatLine(raw, ts, 'test-faction-drone-2')
+    expect(entry.isDrone).toBe(true)
+  })
 })
 
 // ────────────────────────────────────────────────────────────
@@ -140,10 +154,138 @@ describe('parseCombatLine — damage-received (NPC)', () => {
 // parseCombatLine — miss
 // ────────────────────────────────────────────────────────────
 describe('parseCombatLine — miss-incoming', () => {
-  it('parses a miss line', () => {
+  it('parses a bare NPC miss line', () => {
     const raw = 'Arch Gistii Thug misses you completely'
     const entry = parseCombatLine(raw, new Date(), 'test-5')
     expect(entry.eventType).toBe('miss-incoming')
+    expect(entry.pilotName).toBe('Arch Gistii Thug')
+    expect(entry.weapon).toBeUndefined()
+  })
+
+  it('parses an incoming miss with weapon suffix', () => {
+    const raw = 'Kasa Habalu misses you completely - Caldari Navy Mjolnir Heavy Missile'
+    const entry = parseCombatLine(raw, new Date(), 'test-5b')
+    expect(entry.eventType).toBe('miss-incoming')
+    expect(entry.pilotName).toBe('Kasa Habalu')
+    expect(entry.weapon).toBe('Caldari Navy Mjolnir Heavy Missile')
+    expect(entry.isDrone).toBe(false)
+  })
+
+  it('parses an incoming drone miss with "belonging to" format', () => {
+    const raw = 'Infiltrator II belonging to Kasa Habalu misses you completely - Infiltrator II'
+    const entry = parseCombatLine(raw, new Date(), 'test-5c')
+    expect(entry.eventType).toBe('miss-incoming')
+    expect(entry.weapon).toBe('Infiltrator II')
+    expect(entry.pilotName).toBe('Kasa Habalu')
+    expect(entry.isDrone).toBe(true)
+  })
+})
+
+describe('parseCombatLine — miss-outgoing', () => {
+  it('parses an outgoing miss line', () => {
+    const raw = 'Your Heavy Entropic Disintegrator II misses Kasa Habalu completely'
+    const entry = parseCombatLine(raw, new Date(), 'test-5d')
+    expect(entry.eventType).toBe('miss-outgoing')
+    expect(entry.weapon).toBe('Heavy Entropic Disintegrator II')
+    expect(entry.shipType).toBe('Kasa Habalu')
+    expect(entry.isDrone).toBe(false)
+  })
+
+  it('parses an outgoing drone miss line', () => {
+    const raw = 'Your Wasp II misses Target Frigate completely - Wasp II'
+    const entry = parseCombatLine(raw, new Date(), 'test-5e')
+    expect(entry.eventType).toBe('miss-outgoing')
+    expect(entry.weapon).toBe('Wasp II')
+    expect(entry.shipType).toBe('Target Frigate')
+    expect(entry.isDrone).toBe(true)
+  })
+})
+
+// ────────────────────────────────────────────────────────────
+// EventType — miss-outgoing is in the union
+// ────────────────────────────────────────────────────────────
+describe('EventType — miss-outgoing', () => {
+  it('includes miss-outgoing in the EventType union (type-level)', () => {
+    const type: EventType = 'miss-outgoing'
+    expect(type).toBe('miss-outgoing')
+  })
+})
+
+// ────────────────────────────────────────────────────────────
+// LogEntry — warp-scram tackle fields
+// ────────────────────────────────────────────────────────────
+describe('LogEntry — tackle fields', () => {
+  const ts = new Date('2025-10-23T02:10:00')
+
+  it('accepts tackleDirection outgoing on a warp-scram entry', () => {
+    const entry: LogEntry = {
+      id: 'test-tackle-1',
+      timestamp: ts,
+      rawLine: '',
+      eventType: 'warp-scram',
+      tackleDirection: 'outgoing',
+      tackleTarget: 'Ishtar',
+    }
+    expect(entry.tackleDirection).toBe('outgoing')
+    expect(entry.tackleTarget).toBe('Ishtar')
+    expect(entry.tackleSource).toBeUndefined()
+  })
+
+  it('accepts tackleDirection incoming on a warp-scram entry', () => {
+    const entry: LogEntry = {
+      id: 'test-tackle-2',
+      timestamp: ts,
+      rawLine: '',
+      eventType: 'warp-scram',
+      tackleDirection: 'incoming',
+      tackleSource: 'Proteus',
+    }
+    expect(entry.tackleDirection).toBe('incoming')
+    expect(entry.tackleSource).toBe('Proteus')
+    expect(entry.tackleTarget).toBeUndefined()
+  })
+})
+
+// ────────────────────────────────────────────────────────────
+// parseCombatLine — warp-scram
+// ────────────────────────────────────────────────────────────
+describe('parseCombatLine — warp-scram', () => {
+  const ts = new Date('2025-10-23T02:10:00')
+
+  it('parses outgoing warp scramble (you → target ship)', () => {
+    const raw = '<color=0xffffffff>Warp scramble attempt from you to <u>Ishtar</u>'
+    const entry = parseCombatLine(raw, ts, 'test-scram-1')
+    expect(entry.eventType).toBe('warp-scram')
+    expect(entry.tackleDirection).toBe('outgoing')
+    expect(entry.tackleTarget).toBe('Ishtar')
+    expect(entry.tackleSource).toBeUndefined()
+  })
+
+  it('parses incoming warp scramble (enemy ship → you)', () => {
+    const raw = '<color=0xffffffff>Warp scramble attempt from <u>Proteus</u> to you'
+    const entry = parseCombatLine(raw, ts, 'test-scram-2')
+    expect(entry.eventType).toBe('warp-scram')
+    expect(entry.tackleDirection).toBe('incoming')
+    expect(entry.tackleSource).toBe('Proteus')
+    expect(entry.tackleTarget).toBeUndefined()
+  })
+
+  it('parses outgoing warp disruption (you → target ship)', () => {
+    const raw = '<color=0xffffffff>Warp disruption attempt from you to <u>Huginn</u>'
+    const entry = parseCombatLine(raw, ts, 'test-scram-3')
+    expect(entry.eventType).toBe('warp-scram')
+    expect(entry.tackleDirection).toBe('outgoing')
+    expect(entry.tackleTarget).toBe('Huginn')
+    expect(entry.tackleSource).toBeUndefined()
+  })
+
+  it('parses incoming warp scramble with exclamation (to you!)', () => {
+    const raw = '<color=0xffffffff>Warp scramble attempt from <u>Sabre</u> to you!'
+    const entry = parseCombatLine(raw, ts, 'test-scram-4')
+    expect(entry.eventType).toBe('warp-scram')
+    expect(entry.tackleDirection).toBe('incoming')
+    expect(entry.tackleSource).toBe('Sabre')
+    expect(entry.tackleTarget).toBeUndefined()
   })
 })
 

@@ -13,8 +13,9 @@ function eventBadge(eventType: EventType): ReactNode {
     case 'damage-dealt':
       return <Badge variant="red">HIT</Badge>;
     case 'damage-received':
-      return <Badge variant="green">LOSS</Badge>;
+      return <Badge variant="cyan">HIT</Badge>;
     case 'miss-incoming':
+    case 'miss-outgoing':
       return <Badge variant="default">MISS</Badge>;
     default:
       return <Badge variant="default">{eventType.toUpperCase()}</Badge>;

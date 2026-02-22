@@ -10,18 +10,18 @@ export interface RepSourceSummary {
   maxRep: number;
 }
 
+export interface RepTimeSeriesPoint {
+  timestamp: Date;
+  repsPerSecond: number; // rolling 10s window
+}
+
 export interface RepWindowPeak {
   windowSeconds: number; // 30 or 60
   maxRepsPerSecond: number;
   peakTimestamp: Date;
 }
 
-export interface RepTimeSeriesPoint {
-  timestamp: Date;
-  repsPerSecond: number; // rolling 10s window
-}
-
-export interface RepAnalysis {
+export interface RepAnalysisResult {
   // Incoming reps (received by you)
   totalRepReceived: number;
   repReceivedSources: RepSourceSummary[]; // bots and ships
@@ -132,7 +132,7 @@ function buildRepSourceSummaries(entries: LogEntry[]): RepSourceSummary[] {
   return summaries;
 }
 
-export function analyzeReps(entries: LogEntry[]): RepAnalysis {
+export function analyzeReps(entries: LogEntry[]): RepAnalysisResult {
   // Incoming reps
   const incomingEntries = entries.filter((e) => e.eventType === "rep-received");
   const totalRepReceived = incomingEntries.reduce(
@@ -158,7 +158,7 @@ export function analyzeReps(entries: LogEntry[]): RepAnalysis {
   const peakRepOutgoing60s = computePeakRepsPerSecond(outgoingEntries, 60);
 
   // Compute incoming rep time series (10s rolling window)
-  const incomingRepTimeSeries = computeRepTimeSeries(incomingEntries);
+  const incomingRepTimeSeries = computeRepTimeSeries(incomingEntries, 10_000);
 
   return {
     totalRepReceived,

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Upload, Sword } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
@@ -25,7 +25,6 @@ const HIT_QUALITY_ORDER: HitQuality[] = [
   'Hits',
   'Glances Off',
   'Grazes',
-  'Barely Scratches',
 ]
 
 function hitQualityColor(hq: HitQuality): string {
@@ -39,8 +38,6 @@ function hitQualityColor(hq: HitQuality): string {
     case 'Glances Off':
     case 'Grazes':
       return 'text-text-muted'
-    case 'Barely Scratches':
-      return 'text-status-kill'
     default:
       return 'text-text-secondary'
   }
@@ -60,9 +57,12 @@ function fmtTime(d: Date): string {
 }
 
 // --- Engagement table row type ---
-type EngagementRow = TargetEngagement & { _maxDps: number }
+type EngagementRow = TargetEngagement & { _maxDps: number; _isZoomed: boolean }
 
-function buildEngagementColumns(maxDps: number): Column<Record<string, unknown>>[] {
+function buildEngagementColumns(
+  maxDps: number,
+  onTargetClick: (engagement: TargetEngagement) => void,
+): Column<Record<string, unknown>>[] {
   return [
     {
       key: 'target',
@@ -71,12 +71,23 @@ function buildEngagementColumns(maxDps: number): Column<Record<string, unknown>>
       render: (_, row) => {
         const r = row as unknown as EngagementRow
         return (
-          <div className="flex flex-col gap-0.5">
-            <span className="text-text-primary font-mono text-xs">{r.target}</span>
-            {r.shipType && r.shipType !== r.target && (
-              <Badge variant="default">{r.shipType}</Badge>
+          <button
+            type="button"
+            className={cn(
+              'flex flex-col gap-0.5 text-left w-full cursor-pointer transition-colors',
+              r._isZoomed
+                ? 'text-cyan-glow'
+                : 'hover:text-cyan-glow',
             )}
-          </div>
+            onClick={() => onTargetClick(r)}
+          >
+            <span className={cn('font-mono text-xs', r._isZoomed ? 'text-cyan-glow font-bold' : 'text-text-primary')}>
+              {r.target}
+            </span>
+            {r.shipType && r.shipType !== r.target && (
+              <Badge variant={r._isZoomed ? 'cyan' : 'default'}>{r.shipType}</Badge>
+            )}
+          </button>
         )
       },
     },
@@ -261,31 +272,51 @@ function WeaponTable({ summaries, emptyMessage }: { summaries: WeaponApplication
 }
 
 export default function DamageDealtPage() {
-  const { activeLogs } = useParsedLogs()
-  const hasLogs = activeLogs.length > 0
+  const { activeLog } = useParsedLogs()
+  const hasLogs = activeLog !== null
+
+  const [zoomedTarget, setZoomedTarget] = useState<TargetEngagement | null>(null)
 
   const analysis = useMemo(() => {
     if (!hasLogs) return null
-    return analyzeDamageDealt(activeLogs[0].entries)
-  }, [activeLogs, hasLogs])
+    return analyzeDamageDealt(activeLog!.entries)
+  }, [activeLog, hasLogs])
 
   const timeSeries: DamageDealtTimeSeries = useMemo(() => {
-    if (!hasLogs) return { points: [], topTargets: [] }
-    return generateDamageDealtTimeSeries(activeLogs[0].entries)
-  }, [activeLogs, hasLogs])
+    if (!hasLogs) return { points: [], tackleWindows: [] }
+    return generateDamageDealtTimeSeries(activeLog!.entries)
+  }, [activeLog, hasLogs])
+
+  const zoomedWindow = zoomedTarget
+    ? { start: zoomedTarget.firstHit, end: zoomedTarget.lastHit }
+    : undefined
 
   const maxDps = useMemo(() => {
     if (!analysis) return 0
     return Math.max(0, ...analysis.engagements.map((e) => e.dps))
   }, [analysis])
 
+  const handleTargetClick = (engagement: TargetEngagement) => {
+    setZoomedTarget((prev) =>
+      prev?.target === engagement.target && prev?.shipType === engagement.shipType
+        ? null
+        : engagement,
+    )
+  }
+
   const engagementRows: Record<string, unknown>[] = useMemo(() => {
     if (!analysis) return []
-    return analysis.engagements.map((e) => ({ ...e, _maxDps: maxDps } as Record<string, unknown>))
-  }, [analysis, maxDps])
+    return analysis.engagements.map((e) => ({
+      ...e,
+      _maxDps: maxDps,
+      _isZoomed:
+        zoomedTarget?.target === e.target && zoomedTarget?.shipType === e.shipType,
+    } as Record<string, unknown>))
+  }, [analysis, maxDps, zoomedTarget])
 
   const engagementColumns = useMemo(
-    () => buildEngagementColumns(maxDps),
+    () => buildEngagementColumns(maxDps, handleTargetClick),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [maxDps],
   )
 
@@ -299,6 +330,20 @@ export default function DamageDealtPage() {
   const avgHit = analysis && analysis.totalHits > 0
     ? analysis.totalDamageDealt / analysis.totalHits
     : 0
+
+  const chartHeaderAction = zoomedTarget ? (
+    <div className="flex items-center gap-2 font-mono text-xs">
+      <span className="text-cyan-glow">{zoomedTarget.target}</span>
+      <span className="text-text-muted">—</span>
+      <button
+        type="button"
+        className="text-text-muted hover:text-text-primary transition-colors uppercase tracking-widest"
+        onClick={() => setZoomedTarget(null)}
+      >
+        RESET
+      </button>
+    </div>
+  ) : null
 
   return (
     <AppLayout title="DAMAGE APPLICATION">
@@ -368,8 +413,8 @@ export default function DamageDealtPage() {
           </div>
 
           {/* Damage dealt time-series chart */}
-          <Panel title="DAMAGE DEALT OVER TIME">
-            <DamageDealtChart series={timeSeries} />
+          <Panel title="DAMAGE DEALT OVER TIME" headerAction={chartHeaderAction}>
+            <DamageDealtChart series={timeSeries} zoomedWindow={zoomedWindow} />
           </Panel>
 
           {/* Section 1 — DPS per target */}

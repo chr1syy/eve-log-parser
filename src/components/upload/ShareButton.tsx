@@ -1,62 +1,42 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { Link as LinkIcon, Check, Loader2 } from 'lucide-react'
-import Button from '@/components/ui/Button'
-import type { ParsedLog } from '@/lib/types'
+import { Link as LinkIcon, Check, Loader2 } from "lucide-react";
+import Button from "@/components/ui/Button";
+import type { ParsedLog } from "@/lib/types";
+import { useShareLog } from "@/hooks/useShareLog";
 
 interface ShareButtonProps {
-  log: ParsedLog
+  log: ParsedLog;
 }
 
-type State = 'idle' | 'loading' | 'copied' | 'error'
-
 export default function ShareButton({ log }: ShareButtonProps) {
-  const [state, setState] = useState<State>('idle')
-
-  const handleShare = async () => {
-    setState('loading')
-    try {
-      const res = await fetch('/api/logs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ log }),
-      })
-
-      if (!res.ok) throw new Error('Upload failed')
-
-      const { uuid } = (await res.json()) as { uuid: string }
-      const shareUrl = `${window.location.origin}/share/${uuid}`
-      await navigator.clipboard.writeText(shareUrl)
-      setState('copied')
-      setTimeout(() => setState('idle'), 3000)
-    } catch {
-      setState('error')
-      setTimeout(() => setState('idle'), 3000)
-    }
-  }
+  const { shareState, handleShare } = useShareLog();
 
   const icon =
-    state === 'loading' ? (
+    shareState === "loading" ? (
       <Loader2 size={12} className="animate-spin" />
-    ) : state === 'copied' ? (
+    ) : shareState === "copied" ? (
       <Check size={12} />
     ) : (
       <LinkIcon size={12} />
-    )
+    );
 
   const label =
-    state === 'copied' ? 'LINK COPIED' : state === 'error' ? 'SHARE FAILED' : 'SHARE'
+    shareState === "copied"
+      ? "LINK COPIED"
+      : shareState === "error"
+        ? "SHARE FAILED"
+        : "SHARE";
 
   return (
     <Button
       variant="secondary"
       size="sm"
       icon={icon}
-      onClick={handleShare}
-      disabled={state === 'loading'}
+      onClick={() => handleShare(log)}
+      disabled={shareState === "loading"}
     >
       {label}
     </Button>
-  )
+  );
 }

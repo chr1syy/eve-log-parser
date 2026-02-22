@@ -1,152 +1,160 @@
-import type { LogEntry, HitQuality } from '../types'
+import type { LogEntry, HitQuality } from "../types";
 
 export interface DpsWindow {
-  windowSeconds: number   // 10, 30, or 60
-  maxDps: number
-  peakTimestamp: Date     // when the peak occurred
+  windowSeconds: number; // 10, 30, or 60
+  maxDps: number;
+  peakTimestamp: Date; // when the peak occurred
 }
 
 export interface FightSegment {
-  start: Date
-  end: Date
-  durationSeconds: number
-  entries: LogEntry[]     // damage-received events in this fight
+  start: Date;
+  end: Date;
+  durationSeconds: number;
+  entries: LogEntry[]; // damage-received events in this fight
 }
 
 export interface TimeSeriesDpsPoint {
-  timestamp: Date
-  dps: number             // rolling 10s window ending at this timestamp
-  fightIndex: number      // which fight segment
+  timestamp: Date;
+  dps: number; // rolling 10s window ending at this timestamp
+  fightIndex: number; // which fight segment
 }
 
 export interface IncomingWeaponSummary {
-  source: string          // attacker name/NPC
-  weapon: string
-  isDrone: boolean
-  hitCount: number
-  missCount: number       // count of miss-incoming events for this weapon
-  totalDamage: number
-  minHit: number
-  maxHit: number
-  hitQualities: Partial<Record<HitQuality, number>>
+  source: string; // attacker name/NPC
+  weapon: string;
+  isDrone: boolean;
+  hitCount: number;
+  missCount: number; // count of miss-incoming events for this weapon
+  totalDamage: number;
+  minHit: number;
+  maxHit: number;
+  hitQualities: Partial<Record<HitQuality, number>>;
 }
 
 export interface DamageTakenAnalysis {
-  totalDamageReceived: number
-  totalIncomingHits: number
-  fights: FightSegment[]
-  dpsTimeSeries: TimeSeriesDpsPoint[]
-  peakDps10s: DpsWindow
-  peakDps30s: DpsWindow
-  peakDps60s: DpsWindow
-  incomingWeaponSummaries: IncomingWeaponSummary[]  // non-drone
-  incomingDroneSummaries: IncomingWeaponSummary[]   // drone only
-  overallHitQualities: Partial<Record<HitQuality, number>>
+  totalDamageReceived: number;
+  totalIncomingHits: number;
+  fights: FightSegment[];
+  dpsTimeSeries: TimeSeriesDpsPoint[];
+  peakDps10s: DpsWindow;
+  peakDps30s: DpsWindow;
+  peakDps60s: DpsWindow;
+  incomingWeaponSummaries: IncomingWeaponSummary[]; // non-drone
+  incomingDroneSummaries: IncomingWeaponSummary[]; // drone only
+  overallHitQualities: Partial<Record<HitQuality, number>>;
 }
 
-const FIGHT_GAP_MS = 60_000  // 60 seconds
+const FIGHT_GAP_MS = 60_000; // 60 seconds
 
 function segmentFights(entries: LogEntry[]): FightSegment[] {
-  const sorted = [...entries].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
-  if (sorted.length === 0) return []
+  const sorted = [...entries].sort(
+    (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
+  );
+  if (sorted.length === 0) return [];
 
-  const segments: FightSegment[] = []
-  let currentGroup: LogEntry[] = [sorted[0]]
+  const segments: FightSegment[] = [];
+  let currentGroup: LogEntry[] = [sorted[0]];
 
   for (let i = 1; i < sorted.length; i++) {
-    const prev = sorted[i - 1].timestamp.getTime()
-    const curr = sorted[i].timestamp.getTime()
+    const prev = sorted[i - 1].timestamp.getTime();
+    const curr = sorted[i].timestamp.getTime();
     if (curr - prev > FIGHT_GAP_MS) {
       // Flush current group
-      const start = currentGroup[0].timestamp
-      const end = currentGroup[currentGroup.length - 1].timestamp
+      const start = currentGroup[0].timestamp;
+      const end = currentGroup[currentGroup.length - 1].timestamp;
       segments.push({
         start,
         end,
         durationSeconds: Math.max(1, (end.getTime() - start.getTime()) / 1000),
         entries: currentGroup,
-      })
-      currentGroup = [sorted[i]]
+      });
+      currentGroup = [sorted[i]];
     } else {
-      currentGroup.push(sorted[i])
+      currentGroup.push(sorted[i]);
     }
   }
 
   // Flush last group
   if (currentGroup.length > 0) {
-    const start = currentGroup[0].timestamp
-    const end = currentGroup[currentGroup.length - 1].timestamp
+    const start = currentGroup[0].timestamp;
+    const end = currentGroup[currentGroup.length - 1].timestamp;
     segments.push({
       start,
       end,
       durationSeconds: Math.max(1, (end.getTime() - start.getTime()) / 1000),
       entries: currentGroup,
-    })
+    });
   }
 
-  return segments
+  return segments;
 }
 
 function computeDpsTimeSeries(
   fights: FightSegment[],
   rollingWindowMs = 10_000,
 ): TimeSeriesDpsPoint[] {
-  const points: TimeSeriesDpsPoint[] = []
+  const points: TimeSeriesDpsPoint[] = [];
 
   for (let fi = 0; fi < fights.length; fi++) {
-    const fight = fights[fi]
-    const sorted = [...fight.entries].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
-    if (sorted.length === 0) continue
+    const fight = fights[fi];
+    const sorted = [...fight.entries].sort(
+      (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
+    );
+    if (sorted.length === 0) continue;
 
     // Collect unique timestamps from fight entries (step through each event timestamp)
-    const timestamps = sorted.map((e) => e.timestamp.getTime())
-    const uniqueTs = Array.from(new Set(timestamps)).sort((a, b) => a - b)
+    const timestamps = sorted.map((e) => e.timestamp.getTime());
+    const uniqueTs = Array.from(new Set(timestamps)).sort((a, b) => a - b);
 
     for (const ts of uniqueTs) {
-      const windowStart = ts - rollingWindowMs
+      const windowStart = ts - rollingWindowMs;
       const windowDamage = sorted
         .filter((e) => {
-          const t = e.timestamp.getTime()
-          return t > windowStart && t <= ts
+          const t = e.timestamp.getTime();
+          return t > windowStart && t <= ts;
         })
-        .reduce((sum, e) => sum + (e.amount ?? 0), 0)
-      const dps = windowDamage / (rollingWindowMs / 1000)
-      points.push({ timestamp: new Date(ts), dps, fightIndex: fi })
+        .reduce((sum, e) => sum + (e.amount ?? 0), 0);
+      const dps = windowDamage / (rollingWindowMs / 1000);
+      points.push({ timestamp: new Date(ts), dps, fightIndex: fi });
     }
   }
 
-  return points
+  return points;
 }
 
 function computePeakDps(entries: LogEntry[], windowSeconds: number): DpsWindow {
-  const windowMs = windowSeconds * 1000
-  const sorted = [...entries].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
+  const windowMs = windowSeconds * 1000;
+  const sorted = [...entries].sort(
+    (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
+  );
 
-  let maxDps = 0
-  let peakTimestamp = sorted.length > 0 ? sorted[0].timestamp : new Date(0)
+  let maxDps = 0;
+  let peakTimestamp = sorted.length > 0 ? sorted[0].timestamp : new Date(0);
 
   for (let i = 0; i < sorted.length; i++) {
-    const ts = sorted[i].timestamp.getTime()
-    const windowStart = ts - windowMs
-    let windowDamage = 0
+    const ts = sorted[i].timestamp.getTime();
+    const windowStart = ts - windowMs;
+    let windowDamage = 0;
     for (let j = i; j >= 0; j--) {
-      const t = sorted[j].timestamp.getTime()
-      if (t < windowStart) break
-      windowDamage += sorted[j].amount ?? 0
+      const t = sorted[j].timestamp.getTime();
+      if (t < windowStart) break;
+      windowDamage += sorted[j].amount ?? 0;
     }
-    const dps = windowDamage / windowSeconds
+    const dps = windowDamage / windowSeconds;
     if (dps > maxDps) {
-      maxDps = dps
-      peakTimestamp = sorted[i].timestamp
+      maxDps = dps;
+      peakTimestamp = sorted[i].timestamp;
     }
   }
 
-  return { windowSeconds, maxDps, peakTimestamp }
+  return { windowSeconds, maxDps, peakTimestamp };
 }
 
 export function analyzeDamageTaken(entries: LogEntry[]): DamageTakenAnalysis {
-  const damageEntries = entries.filter((e) => e.eventType === 'damage-received')
-  const missEntries = entries.filter((e) => e.eventType === 'miss-incoming')
+  const damageEntries = entries.filter(
+    (e) => e.eventType === "damage-received",
+  );
+  const missEntries = entries.filter((e) => e.eventType === "miss-incoming");
 
   const empty: DamageTakenAnalysis = {
     totalDamageReceived: 0,
@@ -159,60 +167,62 @@ export function analyzeDamageTaken(entries: LogEntry[]): DamageTakenAnalysis {
     incomingWeaponSummaries: [],
     incomingDroneSummaries: [],
     overallHitQualities: {},
-  }
+  };
 
-  if (damageEntries.length === 0) return empty
+  if (damageEntries.length === 0) return empty;
 
   // Fight segmentation
-  const fights = segmentFights(damageEntries)
+  const fights = segmentFights(damageEntries);
 
   // DPS time series (10s rolling window)
-  const dpsTimeSeries = computeDpsTimeSeries(fights, 10_000)
+  const dpsTimeSeries = computeDpsTimeSeries(fights, 10_000);
 
   // Peak DPS windows
-  const peakDps10s = computePeakDps(damageEntries, 10)
-  const peakDps30s = computePeakDps(damageEntries, 30)
-  const peakDps60s = computePeakDps(damageEntries, 60)
+  const peakDps10s = computePeakDps(damageEntries, 10);
+  const peakDps30s = computePeakDps(damageEntries, 30);
+  const peakDps60s = computePeakDps(damageEntries, 60);
 
   // Incoming weapon/drone summaries grouped by (source + weapon)
-  const weaponMap = new Map<string, LogEntry[]>()
-  const missMap = new Map<string, number>()  // key -> missCount
-
+  // First, add all damage entries
+  const weaponMap = new Map<
+    string,
+    { damage: LogEntry[]; misses: LogEntry[] }
+  >();
   for (const entry of damageEntries) {
-    const source = entry.pilotName ?? entry.shipType ?? 'Unknown'
-    const weapon = entry.weapon ?? 'Unknown'
-    const key = `${source}||${weapon}`
-    if (!weaponMap.has(key)) weaponMap.set(key, [])
-    weaponMap.get(key)!.push(entry)
+    const source = entry.pilotName ?? entry.shipType ?? "Unknown";
+    const weapon = entry.weapon ?? "Unknown";
+    const key = `${source}||${weapon}`;
+    if (!weaponMap.has(key)) weaponMap.set(key, { damage: [], misses: [] });
+    weaponMap.get(key)!.damage.push(entry);
   }
 
-  // Accumulate miss-incoming entries into missMap (keyed same as weaponMap)
+  // Then, add miss entries
   for (const entry of missEntries) {
-    const source = entry.pilotName ?? entry.shipType ?? 'Unknown'
-    const weapon = entry.weapon ?? 'Unknown'
-    const key = `${source}||${weapon}`
-    missMap.set(key, (missMap.get(key) ?? 0) + 1)
-    // Ensure a hit-group exists for miss-only entries so they appear in summaries
-    if (!weaponMap.has(key)) weaponMap.set(key, [])
+    const source = entry.pilotName ?? entry.shipType ?? "Unknown";
+    const weapon = entry.weapon ?? "Unknown";
+    const key = `${source}||${weapon}`;
+    if (!weaponMap.has(key)) weaponMap.set(key, { damage: [], misses: [] });
+    weaponMap.get(key)!.misses.push(entry);
   }
 
-  const incomingWeaponSummaries: IncomingWeaponSummary[] = []
-  const incomingDroneSummaries: IncomingWeaponSummary[] = []
+  const incomingWeaponSummaries: IncomingWeaponSummary[] = [];
+  const incomingDroneSummaries: IncomingWeaponSummary[] = [];
 
-  for (const [key, group] of weaponMap) {
-    const [source, weapon] = key.split('||')
-    const isDrone = group.some((e) => e.isDrone === true)
-    const amounts = group.map((e) => e.amount ?? 0)
-    const totalDamage = amounts.reduce((a, b) => a + b, 0)
-    const hitCount = group.length
-    const missCount = missMap.get(key) ?? 0
-    const minHit = amounts.length > 0 ? Math.min(...amounts) : 0
-    const maxHit = amounts.length > 0 ? Math.max(...amounts) : 0
+  for (const [key, { damage, misses }] of weaponMap) {
+    const [source, weapon] = key.split("||");
+    const isDrone = damage.some((e) => e.isDrone === true);
+    const amounts = damage.map((e) => e.amount ?? 0);
+    const totalDamage = amounts.reduce((a, b) => a + b, 0);
+    const hitCount = damage.length;
+    const missCount = misses.length;
+    const minHit = amounts.length > 0 ? Math.min(...amounts) : 0;
+    const maxHit = amounts.length > 0 ? Math.max(...amounts) : 0;
 
-    const hitQualities: Partial<Record<HitQuality, number>> = {}
-    for (const entry of group) {
+    const hitQualities: Partial<Record<HitQuality, number>> = {};
+    for (const entry of damage) {
       if (entry.hitQuality) {
-        hitQualities[entry.hitQuality] = (hitQualities[entry.hitQuality] ?? 0) + 1
+        hitQualities[entry.hitQuality] =
+          (hitQualities[entry.hitQuality] ?? 0) + 1;
       }
     }
 
@@ -226,26 +236,30 @@ export function analyzeDamageTaken(entries: LogEntry[]): DamageTakenAnalysis {
       minHit,
       maxHit,
       hitQualities,
-    }
+    };
 
     if (isDrone) {
-      incomingDroneSummaries.push(summary)
+      incomingDroneSummaries.push(summary);
     } else {
-      incomingWeaponSummaries.push(summary)
+      incomingWeaponSummaries.push(summary);
     }
   }
 
-  incomingWeaponSummaries.sort((a, b) => b.totalDamage - a.totalDamage)
-  incomingDroneSummaries.sort((a, b) => b.totalDamage - a.totalDamage)
+  incomingWeaponSummaries.sort((a, b) => b.totalDamage - a.totalDamage);
+  incomingDroneSummaries.sort((a, b) => b.totalDamage - a.totalDamage);
 
   // Overall totals
-  const totalDamageReceived = damageEntries.reduce((a, e) => a + (e.amount ?? 0), 0)
-  const totalIncomingHits = damageEntries.length
+  const totalDamageReceived = damageEntries.reduce(
+    (a, e) => a + (e.amount ?? 0),
+    0,
+  );
+  const totalIncomingHits = damageEntries.length;
 
-  const overallHitQualities: Partial<Record<HitQuality, number>> = {}
+  const overallHitQualities: Partial<Record<HitQuality, number>> = {};
   for (const entry of damageEntries) {
     if (entry.hitQuality) {
-      overallHitQualities[entry.hitQuality] = (overallHitQualities[entry.hitQuality] ?? 0) + 1
+      overallHitQualities[entry.hitQuality] =
+        (overallHitQualities[entry.hitQuality] ?? 0) + 1;
     }
   }
 
@@ -260,5 +274,5 @@ export function analyzeDamageTaken(entries: LogEntry[]): DamageTakenAnalysis {
     incomingWeaponSummaries,
     incomingDroneSummaries,
     overallHitQualities,
-  }
+  };
 }
