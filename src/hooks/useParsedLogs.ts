@@ -30,9 +30,6 @@ function logsReducer(state: LogsState, action: LogsAction): LogsState {
   switch (action.type) {
     case "SET_ACTIVE_LOG": {
       const log = action.payload;
-      console.log(
-        `[useParsedLogs] Reducer: SET_ACTIVE_LOG called with: ${log.fileName} (${log.sessionId})`,
-      );
 
       // Find or append log
       const idx = state.logs.findIndex((l) => l.sessionId === log.sessionId);
@@ -41,17 +38,11 @@ function logsReducer(state: LogsState, action: LogsAction): LogsState {
           ? [...state.logs.slice(0, idx), log, ...state.logs.slice(idx + 1)]
           : [...state.logs, log];
 
-      console.log(
-        `[useParsedLogs] Reducer: Updated logs array, now have ${updatedLogs.length} logs`,
-        updatedLogs.map((l) => l.fileName),
-      );
-
       // Persist both to localStorage atomically
       if (typeof window !== "undefined") {
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedLogs));
           localStorage.setItem(ACTIVE_SESSION_KEY, log.sessionId);
-          console.log(`[useParsedLogs] Reducer: Persisted to localStorage`);
         } catch (err) {
           console.error(`[useParsedLogs] localStorage error:`, err);
         }
@@ -64,9 +55,6 @@ function logsReducer(state: LogsState, action: LogsAction): LogsState {
     }
 
     case "HYDRATE_FROM_STORAGE": {
-      console.log(
-        `[useParsedLogs] Reducer: HYDRATE_FROM_STORAGE with ${action.payload.logs.length} logs`,
-      );
       return {
         logs: action.payload.logs,
         activeSessionId: action.payload.activeSessionId,
@@ -130,24 +118,14 @@ export function useParsedLogs(): UseParsedLogsResult {
 
   // Compute activeLog from state
   const activeLog: ParsedLog | null = useMemo(() => {
-    console.log(
-      `[useParsedLogs] useMemo computing activeLog. logs count: ${state.logs.length}, activeSessionId: ${state.activeSessionId}`,
-    );
-    const result =
+    return (
       state.logs.find((l) => l.sessionId === state.activeSessionId) ??
       state.logs[state.logs.length - 1] ??
-      null;
-    console.log(
-      `[useParsedLogs] activeLog computed:`,
-      result?.fileName ?? "null",
+      null
     );
-    return result;
   }, [state.logs, state.activeSessionId]);
 
   const setActiveLog = useCallback((log: ParsedLog) => {
-    console.log(
-      `[useParsedLogs] setActiveLog called with: ${log.fileName} (${log.sessionId})`,
-    );
     dispatch({ type: "SET_ACTIVE_LOG", payload: log });
   }, []);
 

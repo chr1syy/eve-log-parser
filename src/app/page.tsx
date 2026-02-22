@@ -99,8 +99,6 @@ function formatMinutes(minutes: number): string {
 export default function DashboardPage() {
   const { activeLog } = useParsedLogs();
 
-  console.log(`[Dashboard] Render: activeLog=${activeLog?.fileName ?? "null"}`);
-
   const hasLogs = activeLog !== null;
   const stats = mergeStats(activeLog ? [activeLog] : []);
   const allEntries = mergeEntries(activeLog ? [activeLog] : []);
