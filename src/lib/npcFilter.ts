@@ -3,31 +3,33 @@ import type { LogEntry } from "./types";
 /**
  * Known NPC faction/type prefixes that identify hostile NPCs
  * Format: "Faction Name + NPC Type" (e.g., "Centatis Daemon", "Arch Gistii Rogue")
+ * These are considered hostile because they are pirate factions or rogue entities that attack players on sight.
  */
 const NPC_FACTION_TYPES = [
-  // Sansha's Nation
+  // Sansha's Nation - A pirate faction known for abductions and cybernetic implants, hostile to all capsuleers
   "Centatis",
   "Centus",
   "Sanshas",
   "Sansha",
+  "Sansha's",
 
-  // Serpentis Corporation
+  // Serpentis Corporation - A drug cartel turned pirate corporation, aggressive towards capsuleers
   "Arch Gistii",
   "Gist",
 
-  // Mordu's Legion
+  // Mordu's Legion - A Caldari loyalist faction that attacks without provocation
   "Mordu",
 
-  // Guristas
+  // Guristas - A Minmatar pirate faction infamous for smuggling and raiding
   "Gurista",
 
-  // Blood Raider Covenant
+  // Blood Raider Covenant - A cult-like faction that sacrifices victims in horrific rituals, extremely hostile
   "Blood",
 
-  // Rogue Drones
+  // Rogue Drones - Malfunctioning or wild drone swarms that attack any non-drone entity
   "Rogue",
 
-  // Other Known NPC Types
+  // Other Known NPC Types - Various hostile or neutral entities that can be aggressive
   "Talos",
   "Vigilant",
   "Sentinel",

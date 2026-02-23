@@ -20,6 +20,7 @@ import type {
 interface DamageDealtChartProps {
   series: DamageDealtTimeSeries;
   zoomedWindow?: { start: Date; end: Date };
+  excludeDrones?: boolean;
 }
 
 function formatTime(date: Date): string {
@@ -73,6 +74,7 @@ function CustomTooltip({ active, payload, tackleWindows }: any) {
 export default function DamageDealtChart({
   series,
   zoomedWindow,
+  excludeDrones,
 }: DamageDealtChartProps) {
   const { points, tackleWindows } = series;
 
@@ -226,8 +228,9 @@ export default function DamageDealtChart({
         </ComposedChart>
       </ResponsiveContainer>
       <p className="text-text-muted font-mono text-xs">
-        Cyan line = outgoing DPS (10 s rolling) · Red bars = bad-hit % (Glances
-        Off / Grazes) · Blue shading = tackle window
+        Cyan line = outgoing DPS (10 s rolling,{" "}
+        {excludeDrones ? "weapons only" : "all damage"}) · Red bars = bad-hit %
+        (Glances Off / Grazes) · Blue shading = tackle window
       </p>
     </div>
   );

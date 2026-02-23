@@ -352,6 +352,7 @@ export default function DamageDealtPage() {
   const [zoomedTarget, setZoomedTarget] = useState<TargetEngagement | null>(
     null,
   );
+  const [excludeDrones, setExcludeDrones] = useState(false);
 
   const analysis = useMemo(() => {
     if (!hasLogs) return null;
@@ -360,8 +361,8 @@ export default function DamageDealtPage() {
 
   const timeSeries: DamageDealtTimeSeries = useMemo(() => {
     if (!hasLogs) return { points: [], tackleWindows: [] };
-    return generateDamageDealtTimeSeries(activeLog!.entries);
-  }, [activeLog, hasLogs]);
+    return generateDamageDealtTimeSeries(activeLog!.entries, excludeDrones);
+  }, [activeLog, hasLogs, excludeDrones]);
 
   const zoomedWindow = zoomedTarget
     ? { start: zoomedTarget.firstHit, end: zoomedTarget.lastHit }
@@ -413,19 +414,31 @@ export default function DamageDealtPage() {
       ? analysis.totalDamageDealt / analysis.totalHits
       : 0;
 
-  const chartHeaderAction = zoomedTarget ? (
-    <div className="flex items-center gap-2 font-mono text-xs">
-      <span className="text-cyan-glow">{zoomedTarget.target}</span>
-      <span className="text-text-muted">—</span>
+  const chartHeaderAction = (
+    <div className="flex items-center gap-3 font-mono text-xs">
+      {zoomedTarget && (
+        <>
+          <span className="text-cyan-glow">{zoomedTarget.target}</span>
+          <span className="text-text-muted">—</span>
+          <button
+            type="button"
+            className="text-text-muted hover:text-text-primary transition-colors uppercase tracking-widest"
+            onClick={() => setZoomedTarget(null)}
+          >
+            RESET
+          </button>
+          <span className="text-text-muted">—</span>
+        </>
+      )}
       <button
         type="button"
         className="text-text-muted hover:text-text-primary transition-colors uppercase tracking-widest"
-        onClick={() => setZoomedTarget(null)}
+        onClick={() => setExcludeDrones(!excludeDrones)}
       >
-        RESET
+        {excludeDrones ? "INCLUDE DRONES" : "EXCLUDE DRONES"}
       </button>
     </div>
-  ) : null;
+  );
 
   return (
     <AppLayout title="DAMAGE APPLICATION">
@@ -491,7 +504,11 @@ export default function DamageDealtPage() {
             title="DAMAGE DEALT OVER TIME"
             headerAction={chartHeaderAction}
           >
-            <DamageDealtChart series={timeSeries} zoomedWindow={zoomedWindow} />
+            <DamageDealtChart
+              series={timeSeries}
+              zoomedWindow={zoomedWindow}
+              excludeDrones={excludeDrones}
+            />
           </Panel>
 
           {/* Section 1 — DPS per target */}

@@ -2,6 +2,18 @@ version: "3.8"
 
 services:
   app:
-    build: .
+    build:
+      context: .
+      args:
+        VERSION: 0.1.0
+    environment:
+      NODE_ENV: production
+      VERSION: 0.1.0
     ports:
-      - "3001:3000"
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
