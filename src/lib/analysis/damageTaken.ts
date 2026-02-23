@@ -21,6 +21,7 @@ export interface TimeSeriesDpsPoint {
 
 export interface IncomingWeaponSummary {
   source: string; // attacker name/NPC
+  shipType?: string; // ship type of attacker (auto-detected from first matching entry)
   weapon: string;
   isDrone: boolean;
   hitCount: number;
@@ -228,6 +229,7 @@ export function analyzeDamageTaken(entries: LogEntry[]): DamageTakenAnalysis {
 
     const summary: IncomingWeaponSummary = {
       source,
+      shipType: damage.find((e) => e.shipType)?.shipType,
       weapon,
       isDrone,
       hitCount,
