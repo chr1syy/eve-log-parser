@@ -5,6 +5,7 @@ import {
   parseCombatLine,
 } from '@/lib/parser/eveLogParser'
 import { computeStats } from '@/lib/parser/computeStats'
+import { filterOutHostileNpcs } from '@/lib/npcFilter'
 import { EventType, LogEntry } from '@/lib/types'
 
 // ────────────────────────────────────────────────────────────
@@ -761,5 +762,228 @@ describe('computeStats — capDealtByModule', () => {
     expect(stats.capDealtByModule[0].totalGj).toBe(0)
     expect(stats.capDealtByModule[0].hitCount).toBe(1)
     expect(stats.capDealtByModule[0].zeroHits).toBe(1)
+  })
+})
+
+// ────────────────────────────────────────────────────────────
+// filterOutHostileNpcs
+// ────────────────────────────────────────────────────────────
+describe('filterOutHostileNpcs', () => {
+  const ts = new Date('2026-02-19T05:33:16')
+
+  it('filters out Centatis Wraith from log entries', () => {
+    const entries: LogEntry[] = [
+      {
+        id: '1',
+        timestamp: ts,
+        rawLine: '',
+        eventType: 'damage-received',
+        amount: 50,
+        shipType: 'Centatis Wraith',
+        weapon: 'Nova Rocket',
+        hitQuality: 'Hits',
+        isNpc: true,
+      },
+      {
+        id: '2',
+        timestamp: ts,
+        rawLine: '',
+        eventType: 'damage-dealt',
+        amount: 100,
+        pilotName: 'Player One',
+        shipType: 'Typhoon',
+        weapon: 'Heavy Entropic Disintegrator II',
+        hitQuality: 'Hits',
+        isNpc: false,
+      },
+    ]
+    const filtered = filterOutHostileNpcs(entries)
+    expect(filtered).toHaveLength(1)
+    expect(filtered[0].pilotName).toBe('Player One')
+  })
+
+  it('filters out Centatis Daemon from log entries', () => {
+    const entries: LogEntry[] = [
+      {
+        id: '1',
+        timestamp: ts,
+        rawLine: '',
+        eventType: 'damage-received',
+        amount: 75,
+        shipType: 'Centatis Daemon',
+        weapon: 'Nova Heavy Missile',
+        hitQuality: 'Penetrates',
+        isNpc: true,
+      },
+      {
+        id: '2',
+        timestamp: ts,
+        rawLine: '',
+        eventType: 'damage-dealt',
+        amount: 100,
+        pilotName: 'Player One',
+        shipType: 'Typhoon',
+        weapon: 'Heavy Entropic Disintegrator II',
+        hitQuality: 'Hits',
+        isNpc: false,
+      },
+    ]
+    const filtered = filterOutHostileNpcs(entries)
+    expect(filtered).toHaveLength(1)
+    expect(filtered[0].pilotName).toBe('Player One')
+  })
+
+  it('filters out Centus Tyrant from log entries', () => {
+    const entries: LogEntry[] = [
+      {
+        id: '1',
+        timestamp: ts,
+        rawLine: '',
+        eventType: 'damage-received',
+        amount: 120,
+        shipType: 'Centus Tyrant',
+        weapon: 'Nova Cruise Missile',
+        hitQuality: 'Smashes',
+        isNpc: true,
+      },
+      {
+        id: '2',
+        timestamp: ts,
+        rawLine: '',
+        eventType: 'damage-dealt',
+        amount: 100,
+        pilotName: 'Player One',
+        shipType: 'Typhoon',
+        weapon: 'Heavy Entropic Disintegrator II',
+        hitQuality: 'Hits',
+        isNpc: false,
+      },
+    ]
+    const filtered = filterOutHostileNpcs(entries)
+    expect(filtered).toHaveLength(1)
+    expect(filtered[0].pilotName).toBe('Player One')
+  })
+
+  it('filters out Centus Dread Lord from log entries', () => {
+    const entries: LogEntry[] = [
+      {
+        id: '1',
+        timestamp: ts,
+        rawLine: '',
+        eventType: 'damage-received',
+        amount: 200,
+        shipType: 'Centus Dread Lord',
+        weapon: 'Caldari Navy Mjolnir Heavy Missile',
+        hitQuality: 'Wrecks',
+        isNpc: true,
+      },
+      {
+        id: '2',
+        timestamp: ts,
+        rawLine: '',
+        eventType: 'damage-dealt',
+        amount: 100,
+        pilotName: 'Player One',
+        shipType: 'Typhoon',
+        weapon: 'Heavy Entropic Disintegrator II',
+        hitQuality: 'Hits',
+        isNpc: false,
+      },
+    ]
+    const filtered = filterOutHostileNpcs(entries)
+    expect(filtered).toHaveLength(1)
+    expect(filtered[0].pilotName).toBe('Player One')
+  })
+
+  it('filters out Centatis Behemoth from log entries', () => {
+    const entries: LogEntry[] = [
+      {
+        id: '1',
+        timestamp: ts,
+        rawLine: '',
+        eventType: 'damage-received',
+        amount: 300,
+        shipType: 'Centatis Behemoth',
+        hitQuality: 'Grazes',
+        isNpc: true,
+      },
+      {
+        id: '2',
+        timestamp: ts,
+        rawLine: '',
+        eventType: 'damage-dealt',
+        amount: 100,
+        pilotName: 'Player One',
+        shipType: 'Typhoon',
+        weapon: 'Heavy Entropic Disintegrator II',
+        hitQuality: 'Hits',
+        isNpc: false,
+      },
+    ]
+    const filtered = filterOutHostileNpcs(entries)
+    expect(filtered).toHaveLength(1)
+    expect(filtered[0].pilotName).toBe('Player One')
+  })
+
+  it('filters out Centatis Devil from log entries', () => {
+    const entries: LogEntry[] = [
+      {
+        id: '1',
+        timestamp: ts,
+        rawLine: '',
+        eventType: 'damage-received',
+        amount: 150,
+        shipType: 'Centatis Devil',
+        weapon: 'Heavy Entropic Disintegrator II',
+        hitQuality: 'Hits',
+        isNpc: true,
+      },
+      {
+        id: '2',
+        timestamp: ts,
+        rawLine: '',
+        eventType: 'damage-dealt',
+        amount: 100,
+        pilotName: 'Player One',
+        shipType: 'Typhoon',
+        weapon: 'Heavy Entropic Disintegrator II',
+        hitQuality: 'Hits',
+        isNpc: false,
+      },
+    ]
+    const filtered = filterOutHostileNpcs(entries)
+    expect(filtered).toHaveLength(1)
+    expect(filtered[0].pilotName).toBe('Player One')
+  })
+
+  it('filters out Sansha\'s Horror from log entries', () => {
+    const entries: LogEntry[] = [
+      {
+        id: '1',
+        timestamp: ts,
+        rawLine: '',
+        eventType: 'damage-received',
+        amount: 250,
+        shipType: 'Sansha\'s Horror',
+        weapon: 'Dual Heavy Pulse Laser II',
+        hitQuality: 'Penetrates',
+        isNpc: true,
+      },
+      {
+        id: '2',
+        timestamp: ts,
+        rawLine: '',
+        eventType: 'damage-dealt',
+        amount: 100,
+        pilotName: 'Player One',
+        shipType: 'Typhoon',
+        weapon: 'Heavy Entropic Disintegrator II',
+        hitQuality: 'Hits',
+        isNpc: false,
+      },
+    ]
+    const filtered = filterOutHostileNpcs(entries)
+    expect(filtered).toHaveLength(1)
+    expect(filtered[0].pilotName).toBe('Player One')
   })
 })
