@@ -212,6 +212,7 @@ export function analyzeDamageTaken(entries: LogEntry[]): DamageTakenAnalysis {
   for (const [key, { damage, misses }] of weaponMap) {
     const [source, weapon] = key.split("||");
     const isDrone = damage.some((e) => e.isDrone === true);
+    const shipType = damage.length > 0 ? damage[0]?.shipType : undefined;
     const amounts = damage.map((e) => e.amount ?? 0);
     const totalDamage = amounts.reduce((a, b) => a + b, 0);
     const hitCount = damage.length;
@@ -229,7 +230,7 @@ export function analyzeDamageTaken(entries: LogEntry[]): DamageTakenAnalysis {
 
     const summary: IncomingWeaponSummary = {
       source,
-      shipType: damage.find((e) => e.shipType)?.shipType,
+      shipType,
       weapon,
       isDrone,
       hitCount,
