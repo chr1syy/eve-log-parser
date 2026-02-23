@@ -1,10 +1,21 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Upload, Share2, ChevronDown, FileText, X, Copy, Check } from "lucide-react";
+import {
+  Upload,
+  Share2,
+  ChevronDown,
+  FileText,
+  X,
+  Copy,
+  Check,
+  LogOut,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
+import { signOut } from "next-auth/react";
 import { useParsedLogs } from "@/hooks/useParsedLogs";
 import { useShareLog } from "@/hooks/useShareLog";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface TopbarProps {
   title: string;
@@ -16,14 +27,27 @@ function truncate(name: string, max = 24): string {
 
 export default function Topbar({ title }: TopbarProps) {
   const router = useRouter();
-  const { logs, activeLog, setActiveLog, removeLog, userId, needsRecovery, restoreFromUserId } = useParsedLogs();
+  const {
+    logs,
+    activeLog,
+    setActiveLog,
+    removeLog,
+    userId,
+    needsRecovery,
+    restoreFromUserId,
+  } = useParsedLogs();
+  const { isAuthenticated, character, isLoading: authLoading } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [authMenuOpen, setAuthMenuOpen] = useState(false);
   const { shareState, handleShare } = useShareLog();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const authMenuRef = useRef<HTMLDivElement>(null);
 
   // Recovery banner state
   const [restoreInput, setRestoreInput] = useState("");
-  const [restoreStatus, setRestoreStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [restoreStatus, setRestoreStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
   const [restoredCount, setRestoredCount] = useState(0);
 
   // User ID copy state
@@ -31,20 +55,23 @@ export default function Topbar({ title }: TopbarProps) {
 
   // Close dropdown on outside click
   useEffect(() => {
-    if (!dropdownOpen) return;
+    if (!dropdownOpen && !authMenuOpen) return;
 
     function handleMouseDown(e: MouseEvent) {
       if (
         dropdownRef.current &&
-        !dropdownRef.current.contains(e.target as Node)
+        !dropdownRef.current.contains(e.target as Node) &&
+        authMenuRef.current &&
+        !authMenuRef.current.contains(e.target as Node)
       ) {
         setDropdownOpen(false);
+        setAuthMenuOpen(false);
       }
     }
 
     document.addEventListener("mousedown", handleMouseDown);
     return () => document.removeEventListener("mousedown", handleMouseDown);
-  }, [dropdownOpen]);
+  }, [dropdownOpen, authMenuOpen]);
 
   const shareLabel =
     shareState === "copied"
@@ -53,7 +80,8 @@ export default function Topbar({ title }: TopbarProps) {
         ? "FAILED"
         : "SHARE";
 
-  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const UUID_RE =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
   async function handleRestore() {
     const uuid = restoreInput.trim();
@@ -77,10 +105,21 @@ export default function Topbar({ title }: TopbarProps) {
 
   function handleCopyUserId() {
     if (!userId) return;
-    navigator.clipboard.writeText(userId).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }).catch(() => {});
+    navigator.clipboard
+      .writeText(userId)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(() => {});
+  }
+
+  async function handleLogout() {
+    await signOut({ redirect: true, redirectUrl: "/" });
+  }
+
+  function handleLogin() {
+    router.push("/signin");
   }
 
   return (
@@ -93,6 +132,67 @@ export default function Topbar({ title }: TopbarProps) {
 
         {/* Right: actions */}
         <div className="flex items-center gap-4">
+          {/* Authentication Status and Menu */}
+          <div className="relative" ref={authMenuRef}>
+            {isAuthenticated && character ? (
+              <>
+                {/* Authenticated: Show character info button */}
+                <button
+                  type="button"
+                  onClick={() => setAuthMenuOpen(!authMenuOpen)}
+                  className="flex items-center gap-2 px-3 py-1.5 border border-border text-text-secondary font-mono text-xs rounded-sm hover:border-cyan-dim transition-colors"
+                  aria-label="Character menu"
+                >
+                  <span className="text-cyan-glow">●</span>
+                  <span>{truncate(character.name, 16)}</span>
+                  <ChevronDown className="w-3 h-3 text-text-muted" />
+                </button>
+
+                {/* Dropdown Menu */}
+                {authMenuOpen && (
+                  <div className="absolute right-0 top-full mt-1 z-50 bg-panel border border-border rounded-sm shadow-lg min-w-[200px]">
+                    <div className="px-3 py-2 border-b border-border/50">
+                      <p className="text-xs text-text-muted font-mono">
+                        Character
+                      </p>
+                      <p className="text-sm text-text-primary font-ui font-semibold">
+                        {character.name}
+                      </p>
+                      {character.corporationId && (
+                        <p className="text-xs text-text-muted font-mono mt-1">
+                          Corp ID: {character.corporationId}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setAuthMenuOpen(false);
+                        await handleLogout();
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left text-text-secondary hover:bg-elevated hover:text-text-primary transition-colors text-xs font-ui"
+                    >
+                      <LogOut className="w-3 h-3" />
+                      <span>Logout</span>
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : !authLoading ? (
+              <>
+                {/* Unauthenticated: Show login button */}
+                <button
+                  type="button"
+                  onClick={handleLogin}
+                  className="flex items-center gap-2 px-3 py-1.5 border border-border text-text-secondary font-ui font-semibold uppercase tracking-wider text-xs rounded-sm transition-all duration-150 hover:border-cyan-dim hover:text-text-primary"
+                >
+                  Sign In
+                </button>
+              </>
+            ) : null}
+            {/* Loading state: show nothing while auth is initializing */}
+          </div>
+
           {/* User ID indicator (Scenario B — shown when session is normal) */}
           {!needsRecovery && userId && (
             <button
@@ -102,10 +202,11 @@ export default function Topbar({ title }: TopbarProps) {
               className="flex items-center gap-1.5 text-text-muted hover:text-text-secondary transition-colors"
               aria-label="Copy User ID"
             >
-              {copied
-                ? <Check className="w-3 h-3 text-status-safe flex-shrink-0" />
-                : <Copy className="w-3 h-3 flex-shrink-0" />
-              }
+              {copied ? (
+                <Check className="w-3 h-3 text-status-safe flex-shrink-0" />
+              ) : (
+                <Copy className="w-3 h-3 flex-shrink-0" />
+              )}
               <span className="font-mono text-xs">{userId.slice(0, 8)}…</span>
             </button>
           )}
@@ -198,7 +299,8 @@ export default function Topbar({ title }: TopbarProps) {
         <div className="flex-shrink-0 px-6 py-3 bg-amber-950/40 border-b border-amber-500/30">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2">
             <p className="text-amber-400 font-mono text-xs uppercase tracking-wider flex-shrink-0">
-              SESSION DATA LOST OR NEW USER — Enter a previous User ID to restore logs
+              SESSION DATA LOST OR NEW USER — Enter a previous User ID to
+              restore logs
             </p>
             <div className="flex items-center gap-2 sm:ml-auto">
               <input
