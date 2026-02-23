@@ -108,6 +108,18 @@ function WeaponTable({
         ]
       : []),
     {
+      key: "shipType",
+      label: "Ship",
+      sortable: true,
+      render: (v) => {
+        return v ? (
+          <Badge variant="default">{String(v)}</Badge>
+        ) : (
+          <span className="text-text-muted">—</span>
+        );
+      },
+    } as Column<Record<string, unknown>>,
+    {
       key: "weapon",
       label: "Weapon / Ammo",
       sortable: true,
