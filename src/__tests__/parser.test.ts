@@ -148,7 +148,91 @@ describe('parseCombatLine — damage-received (NPC)', () => {
     expect(entry.weapon).toBeUndefined()
     expect(entry.isNpc).toBe(true)
   })
-})
+
+  it('parses Centatis Wraith damage-received with weapon', () => {
+    const raw =
+      '<color=0xffcc0000><b>50</b> <color=0x77ffffff><font size=10>from</font> <b><color=0xffffffff>Centatis Wraith</b><font size=10><color=0x77ffffff> - Nova Rocket - Hits'
+    const entry = parseCombatLine(raw, ts, 'test-centatis-wraith')
+    expect(entry.eventType).toBe('damage-received')
+    expect(entry.amount).toBe(50)
+    expect(entry.shipType).toBe('Centatis Wraith')
+    expect(entry.weapon).toBe('Nova Rocket')
+    expect(entry.hitQuality).toBe('Hits')
+    expect(entry.isNpc).toBe(true)
+    expect(entry.pilotName).toBeUndefined()
+  })
+
+  it('parses Centatis Daemon damage-received with weapon', () => {
+    const raw =
+      '<color=0xffcc0000><b>75</b> <color=0x77ffffff><font size=10>from</font> <b><color=0xffffffff>Centatis Daemon</b><font size=10><color=0x77ffffff> - Nova Heavy Missile - Penetrates'
+    const entry = parseCombatLine(raw, ts, 'test-centatis-daemon')
+    expect(entry.eventType).toBe('damage-received')
+    expect(entry.amount).toBe(75)
+    expect(entry.shipType).toBe('Centatis Daemon')
+    expect(entry.weapon).toBe('Nova Heavy Missile')
+    expect(entry.hitQuality).toBe('Penetrates')
+    expect(entry.isNpc).toBe(true)
+  })
+
+  it('parses Centus Tyrant damage-received with weapon', () => {
+    const raw =
+      '<color=0xffcc0000><b>120</b> <color=0x77ffffff><font size=10>from</font> <b><color=0xffffffff>Centus Tyrant</b><font size=10><color=0x77ffffff> - Nova Cruise Missile - Smashes'
+    const entry = parseCombatLine(raw, ts, 'test-centus-tyrant')
+    expect(entry.eventType).toBe('damage-received')
+    expect(entry.amount).toBe(120)
+    expect(entry.shipType).toBe('Centus Tyrant')
+    expect(entry.weapon).toBe('Nova Cruise Missile')
+    expect(entry.hitQuality).toBe('Smashes')
+    expect(entry.isNpc).toBe(true)
+  })
+
+  it('parses Centus Dread Lord damage-received with weapon', () => {
+    const raw =
+      '<color=0xffcc0000><b>200</b> <color=0x77ffffff><font size=10>from</font> <b><color=0xffffffff>Centus Dread Lord</b><font size=10><color=0x77ffffff> - Caldari Navy Mjolnir Heavy Missile - Wrecks'
+    const entry = parseCombatLine(raw, ts, 'test-centus-dread-lord')
+    expect(entry.eventType).toBe('damage-received')
+    expect(entry.amount).toBe(200)
+    expect(entry.shipType).toBe('Centus Dread Lord')
+    expect(entry.weapon).toBe('Caldari Navy Mjolnir Heavy Missile')
+    expect(entry.hitQuality).toBe('Wrecks')
+    expect(entry.isNpc).toBe(true)
+  })
+
+  it('parses Centatis Behemoth damage-received without weapon', () => {
+    const raw =
+      '<color=0xffcc0000><b>300</b> <color=0x77ffffff><font size=10>from</font> <b><color=0xffffffff>Centatis Behemoth</b><font size=10><color=0x77ffffff> - Grazes'
+    const entry = parseCombatLine(raw, ts, 'test-centatis-behemoth')
+    expect(entry.eventType).toBe('damage-received')
+    expect(entry.amount).toBe(300)
+    expect(entry.shipType).toBe('Centatis Behemoth')
+    expect(entry.hitQuality).toBe('Grazes')
+    expect(entry.weapon).toBeUndefined()
+    expect(entry.isNpc).toBe(true)
+  })
+
+  it('parses Centatis Devil damage-received with weapon', () => {
+    const raw =
+      '<color=0xffcc0000><b>150</b> <color=0x77ffffff><font size=10>from</font> <b><color=0xffffffff>Centatis Devil</b><font size=10><color=0x77ffffff> - Heavy Entropic Disintegrator II - Hits'
+    const entry = parseCombatLine(raw, ts, 'test-centatis-devil')
+    expect(entry.eventType).toBe('damage-received')
+    expect(entry.amount).toBe(150)
+    expect(entry.shipType).toBe('Centatis Devil')
+    expect(entry.weapon).toBe('Heavy Entropic Disintegrator II')
+    expect(entry.hitQuality).toBe('Hits')
+    expect(entry.isNpc).toBe(true)
+  })
+
+  it('parses Sansha\'s Horror damage-received with weapon', () => {
+    const raw =
+      '<color=0xffcc0000><b>250</b> <color=0x77ffffff><font size=10>from</font> <b><color=0xffffffff>Sansha\'s Horror</b><font size=10><color=0x77ffffff> - Dual Heavy Pulse Laser II - Penetrates'
+    const entry = parseCombatLine(raw, ts, 'test-sanshas-horror')
+    expect(entry.eventType).toBe('damage-received')
+    expect(entry.amount).toBe(250)
+    expect(entry.shipType).toBe('Sansha\'s Horror')
+    expect(entry.weapon).toBe('Dual Heavy Pulse Laser II')
+    expect(entry.hitQuality).toBe('Penetrates')
+    expect(entry.isNpc).toBe(true)
+  })
 
 // ────────────────────────────────────────────────────────────
 // parseCombatLine — miss
