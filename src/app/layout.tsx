@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Rajdhani, JetBrains_Mono } from "next/font/google";
+import { SessionProvider } from "next-auth/react";
 import { LogsProvider } from "@/contexts/LogsContext";
+import { AuthProvider } from "@/contexts/AuthContext";
 import "./globals.css";
 
 const rajdhani = Rajdhani({
@@ -36,9 +38,11 @@ export default function RootLayout({
       <body
         className={`${rajdhani.variable} ${jetbrainsMono.variable} bg-void text-text-primary font-ui antialiased`}
       >
-        <LogsProvider>
-          {children}
-        </LogsProvider>
+        <SessionProvider>
+          <AuthProvider>
+            <LogsProvider>{children}</LogsProvider>
+          </AuthProvider>
+        </SessionProvider>
       </body>
     </html>
   );
