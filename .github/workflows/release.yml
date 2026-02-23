@@ -37,3 +37,19 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64
+      - name: Generate job summary
+        run: |
+          cat << EOF >> \$GITHUB_STEP_SUMMARY
+          ## Release Summary
+
+          **Image URL:** \`ghcr.io/${{ github.repository }}:${{ github.ref_name }}\`
+
+          **Version Tag:** \`${{ github.ref_name }}\`
+
+          **Docker Pull Command:**
+          \`\`\`bash
+          docker pull ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+          \`\`\`
+
+          **Changelog:** [View Release Notes](https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }})
+          EOF
