@@ -33,11 +33,19 @@ export interface FleetParticipant {
   logId: string;
 }
 
+export interface EnemyStats {
+  name: string;
+  corp?: string;
+  damageDealt: number;
+  damageReceived: number;
+  kills: number;
+}
+
 export interface FleetCombatAnalysis {
   totalDamageDealt: number;
   totalDamageTaken: number;
   totalRepsGiven: number;
   participants: FleetParticipant[];
-  enemies: string[];
-  fightDuration: number; // in minutes
+  enemies: EnemyStats[];
+  fightDuration: number; // in seconds
 }
