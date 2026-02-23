@@ -10,9 +10,11 @@ import {
   Sword,
   ShieldAlert,
   Zap,
+  History,
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
-const navItems = [
+const baseNavItems = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
   { label: "Upload", href: "/upload", icon: Upload },
   { label: "Raw Data", href: "/kills", icon: Database },
@@ -21,8 +23,18 @@ const navItems = [
   { label: "Cap Pressure", href: "/cap-pressure", icon: Zap },
 ];
 
+const authenticatedNavItems = [
+  { label: "History", href: "/history", icon: History },
+];
+
 export default function Sidebar() {
   const pathname = usePathname();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  // Combine nav items based on authentication state
+  const navItems = isAuthenticated
+    ? [...baseNavItems, ...authenticatedNavItems]
+    : baseNavItems;
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-[240px] bg-void border-r border-border flex flex-col z-sticky">
