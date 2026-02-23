@@ -4,15 +4,11 @@ import { execSync } from "child_process";
 import { getVersion, getVersionInfo } from "../lib/version";
 import { GET as getVersionRoute } from "../app/api/version/route";
 import { GET as getChangelogRoute } from "../app/api/changelog/route";
+import { NextRequest } from "next/server";
 
 // Mock fs and child_process
-vi.mock("fs", () => ({
-  readFileSync: vi.fn(),
-}));
-
-vi.mock("child_process", () => ({
-  execSync: vi.fn(),
-}));
+const mockedReadFileSync = vi.mocked(readFileSync);
+const mockedExecSync = vi.mocked(execSync);
 
 describe("Version Management", () => {
   beforeEach(() => {
@@ -22,7 +18,7 @@ describe("Version Management", () => {
   describe("getVersion", () => {
     it("should parse version from package.json", () => {
       const mockPackageJson = JSON.stringify({ version: "1.2.3" });
-      (readFileSync as any).mockReturnValue(mockPackageJson);
+      mockedReadFileSync.mockReturnValue(mockPackageJson);
 
       const version = getVersion();
       expect(version).toBe("1.2.3");
@@ -30,13 +26,13 @@ describe("Version Management", () => {
 
     it("should handle missing version in package.json", () => {
       const mockPackageJson = JSON.stringify({ name: "test" });
-      (readFileSync as any).mockReturnValue(mockPackageJson);
+      mockedReadFileSync.mockReturnValue(mockPackageJson);
 
       expect(() => getVersion()).toThrow();
     });
 
     it("should handle invalid JSON in package.json", () => {
-      (readFileSync as any).mockReturnValue("invalid json");
+      mockedReadFileSync.mockReturnValue("invalid json");
 
       expect(() => getVersion()).toThrow();
     });
@@ -45,8 +41,8 @@ describe("Version Management", () => {
   describe("getVersionInfo", () => {
     it("should return version info with git data", () => {
       const mockPackageJson = JSON.stringify({ version: "1.2.3" });
-      (readFileSync as any).mockReturnValue(mockPackageJson);
-      (execSync as any)
+      mockedReadFileSync.mockReturnValue(mockPackageJson);
+      mockedExecSync
         .mockReturnValueOnce("abc123def456\n")
         .mockReturnValueOnce("v1.2.3\n");
 
@@ -62,8 +58,8 @@ describe("Version Management", () => {
 
     it("should handle missing git data", () => {
       const mockPackageJson = JSON.stringify({ version: "1.2.3" });
-      (readFileSync as any).mockReturnValue(mockPackageJson);
-      (execSync as any).mockImplementation(() => {
+      mockedReadFileSync.mockReturnValue(mockPackageJson);
+      mockedExecSync.mockImplementation(() => {
         throw new Error("git not found");
       });
 
@@ -80,12 +76,12 @@ describe("Version Management", () => {
   describe("Version API Route", () => {
     it("should return version info JSON", async () => {
       const mockPackageJson = JSON.stringify({ version: "1.2.3" });
-      (readFileSync as any).mockReturnValue(mockPackageJson);
-      (execSync as any).mockImplementation(() => {
+      mockedReadFileSync.mockReturnValue(mockPackageJson);
+      mockedExecSync.mockImplementation(() => {
         throw new Error("git not found");
       });
 
-      const request = new Request("http://localhost/api/version");
+      const request = new NextRequest("http://localhost/api/version");
       const response = await getVersionRoute(request);
       const data = await response.json();
 
@@ -102,7 +98,7 @@ describe("Version Management", () => {
 
   describe("Changelog API Route", () => {
     it("should return changelog JSON structure", async () => {
-      const request = new Request("http://localhost/api/changelog");
+      const request = new NextRequest("http://localhost/api/changelog");
       const response = await getChangelogRoute(request);
       const data = await response.json();
 
@@ -118,7 +114,7 @@ describe("Version Management", () => {
     });
 
     it("should handle query parameters (mocked)", async () => {
-      const request = new Request(
+      const request = new NextRequest(
         "http://localhost/api/changelog?from=v1.0&to=v1.1&limit=10",
       );
       const response = await getChangelogRoute(request);

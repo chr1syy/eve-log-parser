@@ -8,7 +8,7 @@ export interface VersionInfo {
   gitTag?: string;
 }
 
-function getVersion(): string {
+export function getVersion(): string {
   const packageJson = JSON.parse(readFileSync("./package.json", "utf-8"));
   return packageJson.version;
 }
