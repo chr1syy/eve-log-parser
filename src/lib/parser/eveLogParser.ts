@@ -228,21 +228,24 @@ export function parseCombatLine(
           repShipType?.toLowerCase().includes("repair drone") ||
           false;
 
-        if (clean.includes("repaired by")) {
+        if (clean.includes("repaired by") || clean.includes("boosted by")) {
           base.eventType = "rep-received";
           base.direction = "incoming";
           const m = clean.match(
-            /^(\d+)\s+remote armor repaired by\s+.+\s+-\s+(.+)$/,
+            /^(\d+)\s+remote (?:armor repaired|shield boosted) by\s+.+\s+-\s+(.+)$/,
           );
           if (m) {
             base.amount = parseInt(m[1], 10);
             base.repModule = m[2].trim();
           }
-        } else if (clean.includes("repaired to")) {
+        } else if (
+          clean.includes("repaired to") ||
+          clean.includes("boosted to")
+        ) {
           base.eventType = "rep-outgoing";
           base.direction = "outgoing";
           const m = clean.match(
-            /^(\d+)\s+remote armor repaired to\s+.+\s+-\s+(.+)$/,
+            /^(\d+)\s+remote (?:armor repaired|shield boosted) to\s+.+\s+-\s+(.+)$/,
           );
           if (m) {
             base.amount = parseInt(m[1], 10);
@@ -299,7 +302,8 @@ export function parseCombatLine(
       }
 
       case "0xffffffff": {
-        const isScram = clean.includes("Warp scram") || clean.includes("Warp disrupt");
+        const isScram =
+          clean.includes("Warp scram") || clean.includes("Warp disrupt");
         if (!isScram) {
           base.eventType = "other";
           break;
@@ -307,14 +311,15 @@ export function parseCombatLine(
         base.eventType = "warp-scram";
 
         // Extract all <u>...</u> targets from the raw line
-        const uMatches = [...raw.matchAll(/<u>([\s\S]*?)<\/u>/gi)].map(
-          (m) => stripTags(m[1]).trim()
+        const uMatches = [...raw.matchAll(/<u>([\s\S]*?)<\/u>/gi)].map((m) =>
+          stripTags(m[1]).trim(),
         );
 
         // Detect direction by checking if "you" is the source
         const fromYou = /from\s+(?:<[^>]+>)*you(?:<[^>]+>)*\s+to/i.test(raw);
-        const toYou = /to\s+(?:<[^>]+>)*you[!]?(?:<[^>]+>)*\s*$/i.test(raw) ||
-                      clean.toLowerCase().includes("to you");
+        const toYou =
+          /to\s+(?:<[^>]+>)*you[!]?(?:<[^>]+>)*\s*$/i.test(raw) ||
+          clean.toLowerCase().includes("to you");
 
         if (fromYou) {
           base.tackleDirection = "outgoing";
@@ -334,7 +339,7 @@ export function parseCombatLine(
       case null: {
         // Outgoing miss: "Your WeaponName misses TargetName completely - WeaponName"
         const outgoingMiss = clean.match(
-          /^Your (.+?) misses (.+?) completely(?:\s+-\s+(.+))?$/
+          /^Your (.+?) misses (.+?) completely(?:\s+-\s+(.+))?$/,
         );
         if (outgoingMiss) {
           base.eventType = "miss-outgoing";
@@ -346,19 +351,19 @@ export function parseCombatLine(
 
         // Incoming drone miss: "DroneName belonging to PilotName misses you completely - DroneName"
         const droneMiss = clean.match(
-          /^(.+?) belonging to (.+?) misses you completely(?:\s+-\s+(.+))?$/
+          /^(.+?) belonging to (.+?) misses you completely(?:\s+-\s+(.+))?$/,
         );
         if (droneMiss) {
           base.eventType = "miss-incoming";
-          base.weapon = droneMiss[1].trim();       // drone type
-          base.pilotName = droneMiss[2].trim();    // owner pilot
+          base.weapon = droneMiss[1].trim(); // drone type
+          base.pilotName = droneMiss[2].trim(); // owner pilot
           base.isDrone = true;
           break;
         }
 
         // Incoming player/NPC miss: "PilotName misses you completely - WeaponName"
         const incomingMiss = clean.match(
-          /^(.+?) misses you completely(?:\s+-\s+(.+))?$/
+          /^(.+?) misses you completely(?:\s+-\s+(.+))?$/,
         );
         if (incomingMiss) {
           base.eventType = "miss-incoming";
