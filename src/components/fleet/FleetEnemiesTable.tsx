@@ -70,6 +70,8 @@ export default function FleetEnemiesTable({ enemies }: FleetEnemiesTableProps) {
       data={enemies as unknown as Record<string, unknown>[]}
       searchable={false}
       rowKey={(row) => String((row as unknown as EnemyStats).name)}
+      defaultSortKey="damageDealt"
+      defaultSortDirection="desc"
     />
   );
 }

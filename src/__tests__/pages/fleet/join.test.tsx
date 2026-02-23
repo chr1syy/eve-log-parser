@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import JoinFleetSessionPage from "@/app/fleet/join/page";
 import { FleetProvider } from "@/contexts/FleetContext";
+import { LogsProvider } from "@/contexts/LogsContext";
 
 // Mock fetch globally
 const mockFetch = vi.fn();
@@ -14,11 +15,18 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({
     push: mockPush,
   }),
+  usePathname: () => "/",
+  useSearchParams: () => new URLSearchParams(),
+  useParams: () => ({}),
 }));
 
 // Test wrapper component
 function TestWrapper({ children }: { children: React.ReactNode }) {
-  return <FleetProvider>{children}</FleetProvider>;
+  return (
+    <LogsProvider>
+      <FleetProvider>{children}</FleetProvider>
+    </LogsProvider>
+  );
 }
 
 describe("JoinFleetSessionPage", () => {

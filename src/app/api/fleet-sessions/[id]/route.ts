@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/fleet/sessionStore";
+import { getSession, deleteSession } from "@/lib/fleet/sessionStore";
 import type { FleetSession, FleetParticipant, FleetLog } from "@/types/fleet";
 
 function isAnalysisReady(logs: FleetLog[]): boolean {
@@ -72,6 +72,26 @@ export async function GET(
     console.error("Error retrieving fleet session:", error);
     return NextResponse.json(
       { error: "Failed to retrieve session" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const { id } = params;
+    const deleted = deleteSession(id);
+    if (!deleted) {
+      return NextResponse.json({ error: "Session not found" }, { status: 404 });
+    }
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting fleet session:", error);
+    return NextResponse.json(
+      { error: "Failed to delete session" },
       { status: 500 },
     );
   }

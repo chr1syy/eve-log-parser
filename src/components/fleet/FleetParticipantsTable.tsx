@@ -98,6 +98,8 @@ export default function FleetParticipantsTable({
       data={participants as unknown as Record<string, unknown>[]}
       searchable={false}
       rowKey={(row) => String((row as unknown as FleetParticipant).pilotName)}
+      defaultSortKey="damageDealt"
+      defaultSortDirection="desc"
     />
   );
 }

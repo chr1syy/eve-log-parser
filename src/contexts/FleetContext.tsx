@@ -20,6 +20,7 @@ type FleetAction =
       type: "UPDATE_PARTICIPANT_STATUS";
       payload: { sessionId: string; participant: FleetParticipant };
     }
+  | { type: "DELETE_SESSION"; payload: string }
   | { type: "SET_LOADING"; payload: boolean }
   | { type: "SET_ERROR"; payload: string | null };
 
@@ -92,6 +93,15 @@ function fleetReducer(state: FleetState, action: FleetAction): FleetState {
       return { ...state, loading: action.payload };
     case "SET_ERROR":
       return { ...state, error: action.payload, loading: false };
+    case "DELETE_SESSION":
+      return {
+        ...state,
+        sessions: state.sessions.filter((s) => s.id !== action.payload),
+        currentSession:
+          state.currentSession?.id === action.payload
+            ? null
+            : state.currentSession,
+      };
     default:
       return state;
   }
