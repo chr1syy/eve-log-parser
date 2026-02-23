@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import AppLayout from "@/components/layout/AppLayout";
 import Button from "@/components/ui/Button";
 
 export default function JoinFleetSessionPage() {
@@ -45,40 +46,42 @@ export default function JoinFleetSessionPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-ui uppercase tracking-wider text-text-primary">
-        Join Fleet Session
-      </h1>
+    <AppLayout title="JOIN FLEET SESSION">
+      <div className="space-y-6">
+        <h1 className="text-2xl font-ui uppercase tracking-wider text-text-primary">
+          Join Fleet Session
+        </h1>
 
-      <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
-        <div>
-          <label
-            htmlFor="code"
-            className="block text-sm font-medium text-text-primary mb-2"
-          >
-            Fleet Session Code
-          </label>
-          <input
-            id="code"
-            type="text"
-            value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-            className="w-full px-3 py-2 bg-bg-secondary border border-border rounded text-text-primary placeholder-text-muted font-mono"
-            placeholder="FLEET-XXXXXX"
-            required
-          />
-        </div>
-
-        {error && (
-          <div className="bg-red-900/20 border border-red-500/50 rounded p-3">
-            <p className="text-red-400 text-sm">{error}</p>
+        <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
+          <div>
+            <label
+              htmlFor="code"
+              className="block text-sm font-medium text-text-primary mb-2"
+            >
+              Fleet Session Code
+            </label>
+            <input
+              id="code"
+              type="text"
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              className="w-full px-3 py-2 bg-bg-secondary border border-border rounded text-text-primary placeholder-text-muted font-mono"
+              placeholder="FLEET-XXXXXX"
+              required
+            />
           </div>
-        )}
 
-        <Button type="submit" disabled={loading || !code}>
-          {loading ? "Joining..." : "Join Session"}
-        </Button>
-      </form>
-    </div>
+          {error && (
+            <div className="bg-red-900/20 border border-red-500/50 rounded p-3">
+              <p className="text-red-400 text-sm">{error}</p>
+            </div>
+          )}
+
+          <Button type="submit" disabled={loading || !code}>
+            {loading ? "Joining..." : "Join Session"}
+          </Button>
+        </form>
+      </div>
+    </AppLayout>
   );
 }

@@ -10,10 +10,12 @@ import {
   Sword,
   ShieldAlert,
   Zap,
+  Users,
 } from "lucide-react";
 
 const navItems = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
+  { label: "Fleet", href: "/fleet", icon: Users },
   { label: "Upload", href: "/upload", icon: Upload },
   { label: "Raw Data", href: "/kills", icon: Database },
   { label: "Damage Out", href: "/damage-dealt", icon: Sword },
