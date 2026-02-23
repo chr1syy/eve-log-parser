@@ -14,6 +14,7 @@ import type { Column } from "@/components/ui/DataTable";
 import { useParsedLogs } from "@/hooks/useParsedLogs";
 import { analyzeDamageTaken } from "@/lib/analysis/damageTaken";
 import { analyzeReps } from "@/lib/analysis/repAnalysis";
+import { filterOutHostileNpcs } from "@/lib/npcFilter";
 import type {
   IncomingWeaponSummary,
   TimeSeriesDpsPoint,
@@ -309,7 +310,7 @@ export default function DamageTakenPage() {
 
   const entries = useMemo(() => {
     const raw = activeLog?.entries ?? [];
-    return hideNpcs ? raw.filter((e) => !e.isNpc) : raw;
+    return hideNpcs ? filterOutHostileNpcs(raw) : raw;
   }, [activeLog, hideNpcs]);
 
   const damageAnalysis = useMemo(() => {
@@ -371,14 +372,12 @@ export default function DamageTakenPage() {
             >
               {hideNpcs ? "SHOW NPCs" : "HIDE NPCs"}
             </Button>
-            {hideNpcs &&
-              activeLog &&
-              activeLog.entries.some((e) => e.isNpc) && (
-                <span className="text-text-muted font-mono text-xs">
-                  {activeLog.entries.filter((e) => e.isNpc).length} NPC sources
-                  hidden
-                </span>
-              )}
+            {hideNpcs && activeLog && (
+              <span className="text-text-muted font-mono text-xs">
+                {filterOutHostileNpcs(activeLog.entries).length} /
+                {activeLog.entries.length} sources shown (hostile NPCs hidden)
+              </span>
+            )}
           </div>
 
           {/* Section 1 — DPS Over Time */}
