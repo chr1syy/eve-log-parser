@@ -3,6 +3,32 @@ import { render, screen, waitFor } from "@testing-library/react";
 import ChangelogPage from "../../app/changelog/page";
 import { VersionResponse, ChangelogResponse } from "../../lib/types";
 
+// Mock next/navigation
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    back: vi.fn(),
+  }),
+  usePathname: () => "/",
+  useSearchParams: () => new URLSearchParams(),
+}));
+
+// Mock LogsContext
+vi.mock("../../contexts/LogsContext", () => ({
+  LogsProvider: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
+  useLogsContext: () => ({
+    logs: [],
+    activeLog: null,
+    setActiveLog: vi.fn(),
+    removeLog: vi.fn(),
+    userId: "test",
+    needsRecovery: false,
+  }),
+}));
+
 // Mock fetch globally
 const mockFetch = vi.fn();
 global.fetch = mockFetch;

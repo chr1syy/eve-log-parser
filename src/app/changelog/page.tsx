@@ -41,7 +41,7 @@ export default function ChangelogPage() {
 
   return (
     <AppLayout title="CHANGELOG">
-      <div className="space-y-8">
+      <div className="flex flex-col gap-6 md:gap-8">
         <VersionHeader
           versionInfo={versionInfo}
           loading={loading}
@@ -49,7 +49,7 @@ export default function ChangelogPage() {
         />
 
         {/* Changelog Section */}
-        <div className="bg-space border border-border-default border-t-2 border-t-cyan-dim rounded-sm p-6">
+        <div className="bg-space border border-border-default border-t-2 border-t-cyan-dim rounded-sm p-4 md:p-6">
           <h2 className="font-ui text-lg font-semibold text-text-primary uppercase tracking-wide mb-4">
             COMMIT HISTORY
           </h2>

@@ -16,7 +16,7 @@ export default function VersionHeader({
   };
 
   return (
-    <div className="bg-space border border-border-default border-t-2 border-t-cyan-dim rounded-sm p-6">
+    <div className="bg-space border border-border-default border-t-2 border-t-cyan-dim rounded-sm p-4 md:p-6">
       <h2 className="font-ui text-lg font-semibold text-text-primary uppercase tracking-wide mb-4">
         CURRENT VERSION
       </h2>
