@@ -3,6 +3,7 @@
 import { createContext, useContext, useReducer, type ReactNode } from "react";
 
 import type { FleetSession, FleetLog, FleetParticipant } from "@/types/fleet";
+import { EXAMPLE_FLEET_SESSIONS } from "@/lib/fleet/constants";
 
 interface FleetState {
   currentSession: FleetSession | null;
@@ -109,7 +110,7 @@ const FleetContext = createContext<FleetContextType | null>(null);
 export function FleetProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(fleetReducer, {
     currentSession: null,
-    sessions: [],
+    sessions: EXAMPLE_FLEET_SESSIONS,
     loading: false,
     error: null,
   });
