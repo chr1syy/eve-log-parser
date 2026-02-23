@@ -1,21 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { randomUUID } from "crypto";
 import type { FleetSession, FleetSessionCode } from "@/types/fleet";
-
-// In-memory store for sessions (temporary - will be replaced by dedicated store)
-const sessionStore = new Map<string, FleetSession>();
-
-function generateUniqueCode(): FleetSessionCode {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let code: string;
-  do {
-    code = "FLEET-";
-    for (let i = 0; i < 6; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-  } while (Array.from(sessionStore.values()).some((s) => s.code === code));
-  return code as FleetSessionCode;
-}
+import { createSession, listUserSessions } from "@/lib/fleet/sessionStore";
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,30 +10,13 @@ export async function POST(request: NextRequest) {
       tags?: string[];
     };
 
-    const id = randomUUID();
-    const code = generateUniqueCode();
-    const creator = "anonymous"; // TODO: Get from auth context
-    const createdAt = new Date();
-
-    const session: FleetSession = {
-      id,
-      code,
-      creator,
-      createdAt,
-      participants: [],
-      logs: [],
-      fightName,
-      tags,
-      status: "PENDING",
-    };
-
-    sessionStore.set(id, session);
+    const session = createSession(fightName, tags);
 
     return NextResponse.json({
-      id,
-      code,
-      createdAt,
-      creator,
+      id: session.id,
+      code: session.code,
+      createdAt: session.createdAt,
+      creator: session.creator,
     });
   } catch (error) {
     console.error("Error creating fleet session:", error);
@@ -61,7 +29,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
-    const userSessions = Array.from(sessionStore.values()).map((session) => ({
+    const userSessions = listUserSessions().map((session) => ({
       ...session,
       participantCount: session.participants.length,
       logCount: session.logs.length,

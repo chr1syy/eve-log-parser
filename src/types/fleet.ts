@@ -29,7 +29,7 @@ export interface FleetParticipant {
   damageTaken: number;
   repsGiven: number;
   repsTaken: number;
-  status: "active" | "inactive";
+  status: "pending" | "ready" | "active" | "inactive";
   logId: string;
 }
 
