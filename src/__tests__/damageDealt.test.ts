@@ -52,7 +52,7 @@ describe("generateDamageDealtTimeSeries", () => {
         ),
       ];
 
-      const result = generateDamageDealtTimeSeries(entries, undefined, false);
+      const result = generateDamageDealtTimeSeries(entries, false);
 
       expect(result.points.length).toBeGreaterThan(0);
       // Verify DPS includes all damage (100 + 50 + 100)
@@ -80,7 +80,7 @@ describe("generateDamageDealtTimeSeries", () => {
         ),
       ];
 
-      const result = generateDamageDealtTimeSeries(entries, undefined, false);
+      const result = generateDamageDealtTimeSeries(entries, false);
 
       expect(result.points.length).toBeGreaterThan(0);
       // At least one point should show bad hit percentage > 0 (1 bad hit out of 3)
@@ -104,16 +104,8 @@ describe("generateDamageDealtTimeSeries", () => {
         ),
       ];
 
-      const resultWithDrones = generateDamageDealtTimeSeries(
-        entries,
-        undefined,
-        false,
-      );
-      const resultWithoutDrones = generateDamageDealtTimeSeries(
-        entries,
-        undefined,
-        true,
-      );
+      const resultWithDrones = generateDamageDealtTimeSeries(entries, false);
+      const resultWithoutDrones = generateDamageDealtTimeSeries(entries, true);
 
       // Both should have points
       expect(resultWithDrones.points.length).toBeGreaterThan(0);
@@ -150,16 +142,8 @@ describe("generateDamageDealtTimeSeries", () => {
         ),
       ];
 
-      const resultWithDrones = generateDamageDealtTimeSeries(
-        entries,
-        undefined,
-        false,
-      );
-      const resultWithoutDrones = generateDamageDealtTimeSeries(
-        entries,
-        undefined,
-        true,
-      );
+      const resultWithDrones = generateDamageDealtTimeSeries(entries, false);
+      const resultWithoutDrones = generateDamageDealtTimeSeries(entries, true);
 
       // With drones: 2 bad hits out of 3 = ~66.7%
       // Without drones: 1 bad hit out of 2 = 50%
@@ -180,7 +164,7 @@ describe("generateDamageDealtTimeSeries", () => {
         createDamageEntry(baseTime + 1000, 50, true, "Hits", "Infiltrator II"),
       ];
 
-      const result = generateDamageDealtTimeSeries(entries, undefined, true);
+      const result = generateDamageDealtTimeSeries(entries, true);
 
       expect(result.points.length).toBe(0);
     });
@@ -199,7 +183,7 @@ describe("generateDamageDealtTimeSeries", () => {
         ),
       ];
 
-      const result = generateDamageDealtTimeSeries(entries, undefined, true);
+      const result = generateDamageDealtTimeSeries(entries, true);
 
       // Should have points, and the damage should only be from weapons (100 + 120 = 220)
       expect(result.points.length).toBeGreaterThan(0);
@@ -225,7 +209,7 @@ describe("generateDamageDealtTimeSeries", () => {
         ),
       ];
 
-      const result = generateDamageDealtTimeSeries(entries, undefined, false);
+      const result = generateDamageDealtTimeSeries(entries, false);
 
       expect(result.points.length).toBeGreaterThan(0);
       // Should have some non-zero bad hit percentage due to the miss
@@ -247,16 +231,8 @@ describe("generateDamageDealtTimeSeries", () => {
         ),
       ];
 
-      const resultWithFilter = generateDamageDealtTimeSeries(
-        entries,
-        undefined,
-        true,
-      );
-      const resultWithoutFilter = generateDamageDealtTimeSeries(
-        entries,
-        undefined,
-        false,
-      );
+      const resultWithFilter = generateDamageDealtTimeSeries(entries, true);
+      const resultWithoutFilter = generateDamageDealtTimeSeries(entries, false);
 
       // With filter, drone miss is excluded, so bad hit % should be 0% (only hits)
       // Without filter, drone miss is included
@@ -275,7 +251,7 @@ describe("generateDamageDealtTimeSeries", () => {
 
   describe("edge cases", () => {
     it("handles empty entries array", () => {
-      const result = generateDamageDealtTimeSeries([], undefined, true);
+      const result = generateDamageDealtTimeSeries([], true);
       expect(result.points).toEqual([]);
       expect(result.tackleWindows).toEqual([]);
     });
@@ -284,7 +260,7 @@ describe("generateDamageDealtTimeSeries", () => {
       const entries: LogEntry[] = [
         createMissEntry(new Date("2026-01-01T12:00:00").getTime(), false),
       ];
-      const result = generateDamageDealtTimeSeries(entries, undefined, true);
+      const result = generateDamageDealtTimeSeries(entries, true);
       expect(result.points).toEqual([]);
     });
 
@@ -295,16 +271,8 @@ describe("generateDamageDealtTimeSeries", () => {
         createDamageEntry(baseTime + 1000, 50, true, "Hits", "Infiltrator II"),
       ];
 
-      const resultWithFilter = generateDamageDealtTimeSeries(
-        entries,
-        undefined,
-        true,
-      );
-      const resultWithoutFilter = generateDamageDealtTimeSeries(
-        entries,
-        undefined,
-        false,
-      );
+      const resultWithFilter = generateDamageDealtTimeSeries(entries, true);
+      const resultWithoutFilter = generateDamageDealtTimeSeries(entries, false);
 
       // Both should have the same tackle windows (doesn't matter if drones are excluded)
       expect(resultWithFilter.tackleWindows.length).toBe(

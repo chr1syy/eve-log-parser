@@ -361,11 +361,7 @@ export default function DamageDealtPage() {
 
   const timeSeries: DamageDealtTimeSeries = useMemo(() => {
     if (!hasLogs) return { points: [], tackleWindows: [] };
-    return generateDamageDealtTimeSeries(
-      activeLog!.entries,
-      undefined,
-      excludeDrones,
-    );
+    return generateDamageDealtTimeSeries(activeLog!.entries, excludeDrones);
   }, [activeLog, hasLogs, excludeDrones]);
 
   const zoomedWindow = zoomedTarget

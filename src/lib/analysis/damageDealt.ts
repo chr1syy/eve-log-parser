@@ -273,7 +273,6 @@ export function computeTackleWindows(entries: LogEntry[]): TackleWindow[] {
 
 export function generateDamageDealtTimeSeries(
   entries: LogEntry[],
-  zoomedWindow?: { start: Date; end: Date },
   excludeDrones?: boolean,
 ): DamageDealtTimeSeries {
   const dealtEntries = entries
