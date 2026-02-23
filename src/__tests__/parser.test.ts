@@ -346,6 +346,18 @@ describe("parseCombatLine — rep-received", () => {
     const entry = parseCombatLine(raw, ts, "test-6c");
     expect(entry.isRepBot).toBe(true);
   });
+
+  it("parses shield maintenance bot rep-received", () => {
+    const raw =
+      "<color=0xffccff66><b>85</b><color=0x77ffffff><font size=10> remote shield boosted by </font><b><color=0xffffffff><fontsize=12><color=0xFFFFFF00><b> <u>Light Shield Maintenance Bot II</u></b></color></fontsize></b></fontsize></b><color=0x77ffffff><font size=10> - Light Shield Maintenance Bot II</font>";
+    const entry = parseCombatLine(raw, ts, "test-shield-bot");
+    expect(entry.eventType).toBe("rep-received");
+    expect(entry.direction).toBe("incoming");
+    expect(entry.amount).toBe(85);
+    expect(entry.repShipType).toBe("Light Shield Maintenance Bot II");
+    expect(entry.repModule).toBe("Light Shield Maintenance Bot II");
+    expect(entry.isRepBot).toBe(true);
+  });
 });
 
 // ────────────────────────────────────────────────────────────
