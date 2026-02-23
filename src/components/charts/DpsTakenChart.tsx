@@ -32,15 +32,26 @@ function formatTime(date: Date): string {
   });
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function CustomTooltip({ active, payload, label }: any) {
+interface TooltipPayload {
+  dataKey: string;
+  payload: TimeSeriesDpsPoint | RepTimeSeriesPoint;
+}
+
+function CustomTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: TooltipPayload[];
+}) {
   if (!active || !payload?.length) return null;
 
   // Find the DPS point (from the first line)
-  const dpsPoint = payload.find((p: any) => p.dataKey === "dps")
+  const dpsPoint = payload.find((p: TooltipPayload) => p.dataKey === "dps")
     ?.payload as TimeSeriesDpsPoint;
-  const repPoint = payload.find((p: any) => p.dataKey === "repsPerSecond")
-    ?.payload as RepTimeSeriesPoint;
+  const repPoint = payload.find(
+    (p: TooltipPayload) => p.dataKey === "repsPerSecond",
+  )?.payload as RepTimeSeriesPoint;
 
   if (!dpsPoint && !repPoint) return null;
 

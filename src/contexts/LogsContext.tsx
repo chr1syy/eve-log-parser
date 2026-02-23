@@ -190,6 +190,7 @@ export function LogsProvider({ children }: { children: ReactNode }) {
       const newUserId = generateUUID();
       localStorage.setItem(USER_ID_KEY, newUserId);
       userIdRef.current = newUserId;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setUserId(newUserId);
       setNeedsRecovery(true);
       return;
@@ -202,6 +203,7 @@ export function LogsProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(USER_ID_KEY, resolvedUserId);
     }
     userIdRef.current = resolvedUserId;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setUserId(resolvedUserId);
 
     if (parsedLogsRaw) {
@@ -222,9 +224,7 @@ export function LogsProvider({ children }: { children: ReactNode }) {
       // Silently re-fetch all user logs from the server in the background.
       void (async () => {
         try {
-          const res = await fetch(
-            `/api/user-logs?userId=${resolvedUserId}`
-          );
+          const res = await fetch(`/api/user-logs?userId=${resolvedUserId}`);
           if (!res.ok) return;
           const { logs: metas } = (await res.json()) as {
             logs: Array<{ sessionId: string }>;
@@ -234,7 +234,7 @@ export function LogsProvider({ children }: { children: ReactNode }) {
           for (const meta of metas) {
             try {
               const logRes = await fetch(
-                `/api/user-logs/${meta.sessionId}?userId=${resolvedUserId}`
+                `/api/user-logs/${meta.sessionId}?userId=${resolvedUserId}`,
               );
               if (!logRes.ok) continue;
               const { log } = (await logRes.json()) as { log: ParsedLog };
@@ -303,7 +303,7 @@ export function LogsProvider({ children }: { children: ReactNode }) {
       for (const meta of metas) {
         try {
           const logRes = await fetch(
-            `/api/user-logs/${meta.sessionId}?userId=${uuid}`
+            `/api/user-logs/${meta.sessionId}?userId=${uuid}`,
           );
           if (!logRes.ok) continue;
           const { log } = (await logRes.json()) as { log: ParsedLog };
@@ -317,7 +317,7 @@ export function LogsProvider({ children }: { children: ReactNode }) {
       setNeedsRecovery(false);
       return count;
     },
-    []
+    [],
   );
 
   const value: LogsContextValue = useMemo(
@@ -340,7 +340,7 @@ export function LogsProvider({ children }: { children: ReactNode }) {
       removeLog,
       clearLogs,
       restoreFromUserId,
-    ]
+    ],
   );
 
   return <LogsContext.Provider value={value}>{children}</LogsContext.Provider>;

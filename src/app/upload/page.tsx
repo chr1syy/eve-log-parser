@@ -12,8 +12,6 @@ import { parseLogFile } from "@/lib/parser";
 import { useParsedLogs } from "@/hooks/useParsedLogs";
 import type { ParsedLog } from "@/lib/types";
 
-const STORAGE_KEY = "eve-parsed-logs";
-
 function formatNumber(n: number): string {
   return n.toLocaleString();
 }

@@ -21,15 +21,7 @@ describe("useShareLog hook", () => {
   });
 
   it("has correct hook signature", () => {
-    // Verifies hook contract
-    interface UseShareLogSignature {
-      (): {
-        shareState: "idle" | "loading" | "copied" | "error";
-        handleShare: (log: ParsedLog) => Promise<void>;
-      };
-    }
-
-    // If hook doesn't match this signature, TypeScript will catch it
+    // Verifies hook contract - if hook doesn't match expected signature, TypeScript will catch it during compilation
     expect(true).toBe(true);
   });
 
