@@ -9,6 +9,8 @@ import StatCard from "@/components/dashboard/StatCard";
 import DamageOverTimeChart from "@/components/dashboard/DamageOverTimeChart";
 import DamageBreakdownChart from "@/components/dashboard/DamageBreakdownChart";
 import { useParsedLogs } from "@/hooks/useParsedLogs";
+import { useAuth } from "@/contexts/AuthContext";
+import { signIn } from "next-auth/react";
 import type { LogEntry, LogStats, ParsedLog } from "@/lib/types";
 
 function mergeStats(logs: ParsedLog[]): LogStats {
@@ -98,6 +100,7 @@ function formatMinutes(minutes: number): string {
 
 export default function DashboardPage() {
   const { activeLog } = useParsedLogs();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
 
   const hasLogs = activeLog !== null;
   const stats = mergeStats(activeLog ? [activeLog] : []);
@@ -124,6 +127,21 @@ export default function DashboardPage() {
                   UPLOAD LOGS
                 </Button>
               </Link>
+              {!authLoading && !isAuthenticated && (
+                <div className="pt-4 mt-4 border-t border-border-subtle w-full">
+                  <p className="text-text-muted font-mono text-xs mb-3">
+                    Or save logs persistently:
+                  </p>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => signIn("eve-sso")}
+                    className="w-full"
+                  >
+                    SIGN IN WITH EVE ONLINE
+                  </Button>
+                </div>
+              )}
             </div>
           </Panel>
         </div>

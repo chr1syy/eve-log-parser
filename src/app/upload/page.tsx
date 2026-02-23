@@ -2,7 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Loader2, ChevronRight, AlertTriangle } from "lucide-react";
+import {
+  Loader2,
+  ChevronRight,
+  AlertTriangle,
+  LogIn,
+  Lock,
+} from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 import Panel from "@/components/ui/Panel";
 import Button from "@/components/ui/Button";
@@ -10,6 +16,8 @@ import DropZone from "@/components/upload/DropZone";
 import ShareButton from "@/components/upload/ShareButton";
 import { parseLogFile } from "@/lib/parser";
 import { useParsedLogs } from "@/hooks/useParsedLogs";
+import { useAuth } from "@/contexts/AuthContext";
+import { signIn } from "next-auth/react";
 import type { ParsedLog } from "@/lib/types";
 
 const STORAGE_KEY = "eve-parsed-logs";
@@ -27,6 +35,7 @@ function formatMinutes(minutes: number): string {
 
 export default function UploadPage() {
   const { setActiveLog } = useParsedLogs();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [files, setFiles] = useState<File[]>([]);
   const [parsedLogs, setParsedLogs] = useState<ParsedLog[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -73,9 +82,47 @@ export default function UploadPage() {
   return (
     <AppLayout title="UPLOAD LOGS">
       <div className="max-w-3xl mx-auto space-y-6">
+        {/* Authentication info banner for unauthenticated users */}
+        {!authLoading && !isAuthenticated && (
+          <Panel variant="default" className="border-t-cyan-glow bg-opacity-50">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3 flex-1">
+                <Lock
+                  size={18}
+                  className="text-cyan-glow flex-shrink-0 mt-0.5"
+                />
+                <div>
+                  <p className="text-cyan-glow font-ui font-semibold uppercase tracking-wider text-sm mb-1">
+                    Sign in to Save Logs
+                  </p>
+                  <p className="text-text-muted font-mono text-sm">
+                    Authenticate with EVE Online to save logs across devices and
+                    manage multiple character logs.
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="primary"
+                size="sm"
+                icon={<LogIn size={14} />}
+                onClick={() => signIn("eve-sso")}
+                className="flex-shrink-0 whitespace-nowrap"
+              >
+                SIGN IN
+              </Button>
+            </div>
+          </Panel>
+        )}
+
         {/* Drop zone panel */}
         <Panel title="SELECT LOG FILES">
           <DropZone onFilesAccepted={handleFilesAccepted} />
+          {!authLoading && !isAuthenticated && (
+            <p className="text-text-muted font-mono text-xs mt-4 pt-4 border-t border-border-subtle">
+              📝 Uploading without signing in? Your current log will be replaced
+              by the next upload.
+            </p>
+          )}
         </Panel>
 
         {/* Parse button */}
@@ -185,6 +232,20 @@ export default function UploadPage() {
                 </div>
               </Panel>
             ))}
+            {isAuthenticated && (
+              <Panel className="bg-opacity-50">
+                <p className="text-text-secondary font-mono text-xs text-center">
+                  ✓ Log saved to your account. View all your logs in{" "}
+                  <Link
+                    href="/history"
+                    className="text-cyan-glow hover:text-cyan-mid"
+                  >
+                    History
+                  </Link>
+                  .
+                </p>
+              </Panel>
+            )}
           </div>
         )}
       </div>
