@@ -316,6 +316,18 @@ describe("parseCombatLine — rep-received", () => {
     expect(entry.isRepBot).toBe(false);
   });
 
+  it("parses incoming shield booster repairs", () => {
+    const raw =
+      "<color=0xffccff66><b>300</b><color=0x77ffffff><font size=10> remote shield boosted by </font><b><color=0xffffffff><fontsize=12><color=0xFFFFFF00><b> <u>SourceShip</u></b></color></fontsize></b></fontsize></b><color=0x77ffffff><font size=10> - Shield Booster II</font>";
+    const entry = parseCombatLine(raw, ts, "test-shield-booster");
+    expect(entry.eventType).toBe("rep-received");
+    expect(entry.direction).toBe("incoming");
+    expect(entry.amount).toBe(300);
+    expect(entry.repShipType).toBe("SourceShip");
+    expect(entry.repModule).toBe("Shield Booster II");
+    expect(entry.isRepBot).toBe(false);
+  });
+
   it("parses a shield rep-received line", () => {
     const raw =
       "<color=0xffccff66><b>256</b><color=0x77ffffff><font size=10> remote shield boosted by </font><b><color=0xffffffff><fontsize=12><color=0xFFFFFF00><b> <u>Vedmak</u></b></color></fontsize></b></fontsize></b><color=0x77ffffff><font size=10> - Medium Remote Shield Booster II</font>";
