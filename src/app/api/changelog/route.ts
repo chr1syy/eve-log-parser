@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { readFileSync } from "fs";
+import { join } from "path";
 
 export interface CommitEntry {
   hash: string;
@@ -21,30 +23,18 @@ export async function GET(
   const limit = parseInt(searchParams.get("limit") || "50", 10);
 
   try {
-    // Fetch commits from GitHub API
-    const response = await fetch(
-      `https://api.github.com/repos/chr1syy/eve-log-parser/commits?per_page=${limit}`,
-      {
-        headers: {
-          Accept: "application/vnd.github.v3+json",
-          "User-Agent": "EVE-Log-Parser/1.0",
-        },
-      },
-    );
+    // Read baked changelog data from build time
+    const changelogPath = join(process.cwd(), "public", "changelog.json");
+    const changelogData = JSON.parse(readFileSync(changelogPath, "utf-8"));
 
-    if (!response.ok) {
-      throw new Error(`GitHub API error: ${response.status}`);
+    let commits = changelogData.commits || [];
+
+    // Apply limit
+    if (limit > 0) {
+      commits = commits.slice(0, limit);
     }
 
-    const githubCommits = await response.json();
-
-    const commits: CommitEntry[] = githubCommits.map((commit: any) => ({
-      hash: commit.sha,
-      message: commit.commit.message,
-      author: commit.commit.author.name,
-      timestamp: commit.commit.author.date,
-      url: commit.html_url,
-    }));
+    // For now, ignore from/to filtering - can be added later if needed
 
     return NextResponse.json(
       { commits },
@@ -55,25 +45,10 @@ export async function GET(
       },
     );
   } catch (error) {
-    console.error("Error fetching changelog:", error);
-    // Fallback to mock data if GitHub API fails
-    const commits: CommitEntry[] = [
-      {
-        hash: "abc123def456",
-        message: "Initial commit",
-        author: "John Doe",
-        timestamp: "2023-01-01T00:00:00Z",
-      },
-      {
-        hash: "def456ghi789",
-        message: "Add changelog API",
-        author: "Jane Smith",
-        timestamp: "2023-01-02T00:00:00Z",
-      },
-    ];
-
+    console.error("Error reading changelog:", error);
+    // Fallback to empty if file not found
     return NextResponse.json(
-      { commits },
+      { commits: [] },
       {
         headers: {
           "Cache-Control": "public, max-age=300",

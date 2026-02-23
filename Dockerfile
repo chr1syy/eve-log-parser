@@ -13,6 +13,8 @@ COPY . .
 
 RUN npm run build
 
+RUN npm run generate-changelog
+
 # Runtime stage
 FROM node:20-alpine AS runtime
 
