@@ -5,6 +5,7 @@ import {
   parseCombatLine,
 } from '@/lib/parser/eveLogParser'
 import { computeStats } from '@/lib/parser/computeStats'
+import { filterOutHostileNpcs } from '@/lib/npcFilter'
 import { EventType, LogEntry } from '@/lib/types'
 
 // ────────────────────────────────────────────────────────────
@@ -148,7 +149,91 @@ describe('parseCombatLine — damage-received (NPC)', () => {
     expect(entry.weapon).toBeUndefined()
     expect(entry.isNpc).toBe(true)
   })
-})
+
+  it('parses Centatis Wraith damage-received with weapon', () => {
+    const raw =
+      '<color=0xffcc0000><b>50</b> <color=0x77ffffff><font size=10>from</font> <b><color=0xffffffff>Centatis Wraith</b><font size=10><color=0x77ffffff> - Nova Rocket - Hits'
+    const entry = parseCombatLine(raw, ts, 'test-centatis-wraith')
+    expect(entry.eventType).toBe('damage-received')
+    expect(entry.amount).toBe(50)
+    expect(entry.shipType).toBe('Centatis Wraith')
+    expect(entry.weapon).toBe('Nova Rocket')
+    expect(entry.hitQuality).toBe('Hits')
+    expect(entry.isNpc).toBe(true)
+    expect(entry.pilotName).toBeUndefined()
+  })
+
+  it('parses Centatis Daemon damage-received with weapon', () => {
+    const raw =
+      '<color=0xffcc0000><b>75</b> <color=0x77ffffff><font size=10>from</font> <b><color=0xffffffff>Centatis Daemon</b><font size=10><color=0x77ffffff> - Nova Heavy Missile - Penetrates'
+    const entry = parseCombatLine(raw, ts, 'test-centatis-daemon')
+    expect(entry.eventType).toBe('damage-received')
+    expect(entry.amount).toBe(75)
+    expect(entry.shipType).toBe('Centatis Daemon')
+    expect(entry.weapon).toBe('Nova Heavy Missile')
+    expect(entry.hitQuality).toBe('Penetrates')
+    expect(entry.isNpc).toBe(true)
+  })
+
+  it('parses Centus Tyrant damage-received with weapon', () => {
+    const raw =
+      '<color=0xffcc0000><b>120</b> <color=0x77ffffff><font size=10>from</font> <b><color=0xffffffff>Centus Tyrant</b><font size=10><color=0x77ffffff> - Nova Cruise Missile - Smashes'
+    const entry = parseCombatLine(raw, ts, 'test-centus-tyrant')
+    expect(entry.eventType).toBe('damage-received')
+    expect(entry.amount).toBe(120)
+    expect(entry.shipType).toBe('Centus Tyrant')
+    expect(entry.weapon).toBe('Nova Cruise Missile')
+    expect(entry.hitQuality).toBe('Smashes')
+    expect(entry.isNpc).toBe(true)
+  })
+
+  it('parses Centus Dread Lord damage-received with weapon', () => {
+    const raw =
+      '<color=0xffcc0000><b>200</b> <color=0x77ffffff><font size=10>from</font> <b><color=0xffffffff>Centus Dread Lord</b><font size=10><color=0x77ffffff> - Caldari Navy Mjolnir Heavy Missile - Wrecks'
+    const entry = parseCombatLine(raw, ts, 'test-centus-dread-lord')
+    expect(entry.eventType).toBe('damage-received')
+    expect(entry.amount).toBe(200)
+    expect(entry.shipType).toBe('Centus Dread Lord')
+    expect(entry.weapon).toBe('Caldari Navy Mjolnir Heavy Missile')
+    expect(entry.hitQuality).toBe('Wrecks')
+    expect(entry.isNpc).toBe(true)
+  })
+
+  it('parses Centatis Behemoth damage-received without weapon', () => {
+    const raw =
+      '<color=0xffcc0000><b>300</b> <color=0x77ffffff><font size=10>from</font> <b><color=0xffffffff>Centatis Behemoth</b><font size=10><color=0x77ffffff> - Grazes'
+    const entry = parseCombatLine(raw, ts, 'test-centatis-behemoth')
+    expect(entry.eventType).toBe('damage-received')
+    expect(entry.amount).toBe(300)
+    expect(entry.shipType).toBe('Centatis Behemoth')
+    expect(entry.hitQuality).toBe('Grazes')
+    expect(entry.weapon).toBeUndefined()
+    expect(entry.isNpc).toBe(true)
+  })
+
+  it('parses Centatis Devil damage-received with weapon', () => {
+    const raw =
+      '<color=0xffcc0000><b>150</b> <color=0x77ffffff><font size=10>from</font> <b><color=0xffffffff>Centatis Devil</b><font size=10><color=0x77ffffff> - Heavy Entropic Disintegrator II - Hits'
+    const entry = parseCombatLine(raw, ts, 'test-centatis-devil')
+    expect(entry.eventType).toBe('damage-received')
+    expect(entry.amount).toBe(150)
+    expect(entry.shipType).toBe('Centatis Devil')
+    expect(entry.weapon).toBe('Heavy Entropic Disintegrator II')
+    expect(entry.hitQuality).toBe('Hits')
+    expect(entry.isNpc).toBe(true)
+  })
+
+  it('parses Sansha\'s Horror damage-received with weapon', () => {
+    const raw =
+      '<color=0xffcc0000><b>250</b> <color=0x77ffffff><font size=10>from</font> <b><color=0xffffffff>Sansha\'s Horror</b><font size=10><color=0x77ffffff> - Dual Heavy Pulse Laser II - Penetrates'
+    const entry = parseCombatLine(raw, ts, 'test-sanshas-horror')
+    expect(entry.eventType).toBe('damage-received')
+    expect(entry.amount).toBe(250)
+    expect(entry.shipType).toBe('Sansha\'s Horror')
+    expect(entry.weapon).toBe('Dual Heavy Pulse Laser II')
+    expect(entry.hitQuality).toBe('Penetrates')
+    expect(entry.isNpc).toBe(true)
+  })
 
 // ────────────────────────────────────────────────────────────
 // parseCombatLine — miss
@@ -677,5 +762,228 @@ describe('computeStats — capDealtByModule', () => {
     expect(stats.capDealtByModule[0].totalGj).toBe(0)
     expect(stats.capDealtByModule[0].hitCount).toBe(1)
     expect(stats.capDealtByModule[0].zeroHits).toBe(1)
+  })
+})
+
+// ────────────────────────────────────────────────────────────
+// filterOutHostileNpcs
+// ────────────────────────────────────────────────────────────
+describe('filterOutHostileNpcs', () => {
+  const ts = new Date('2026-02-19T05:33:16')
+
+  it('filters out Centatis Wraith from log entries', () => {
+    const entries: LogEntry[] = [
+      {
+        id: '1',
+        timestamp: ts,
+        rawLine: '',
+        eventType: 'damage-received',
+        amount: 50,
+        shipType: 'Centatis Wraith',
+        weapon: 'Nova Rocket',
+        hitQuality: 'Hits',
+        isNpc: true,
+      },
+      {
+        id: '2',
+        timestamp: ts,
+        rawLine: '',
+        eventType: 'damage-dealt',
+        amount: 100,
+        pilotName: 'Player One',
+        shipType: 'Typhoon',
+        weapon: 'Heavy Entropic Disintegrator II',
+        hitQuality: 'Hits',
+        isNpc: false,
+      },
+    ]
+    const filtered = filterOutHostileNpcs(entries)
+    expect(filtered).toHaveLength(1)
+    expect(filtered[0].pilotName).toBe('Player One')
+  })
+
+  it('filters out Centatis Daemon from log entries', () => {
+    const entries: LogEntry[] = [
+      {
+        id: '1',
+        timestamp: ts,
+        rawLine: '',
+        eventType: 'damage-received',
+        amount: 75,
+        shipType: 'Centatis Daemon',
+        weapon: 'Nova Heavy Missile',
+        hitQuality: 'Penetrates',
+        isNpc: true,
+      },
+      {
+        id: '2',
+        timestamp: ts,
+        rawLine: '',
+        eventType: 'damage-dealt',
+        amount: 100,
+        pilotName: 'Player One',
+        shipType: 'Typhoon',
+        weapon: 'Heavy Entropic Disintegrator II',
+        hitQuality: 'Hits',
+        isNpc: false,
+      },
+    ]
+    const filtered = filterOutHostileNpcs(entries)
+    expect(filtered).toHaveLength(1)
+    expect(filtered[0].pilotName).toBe('Player One')
+  })
+
+  it('filters out Centus Tyrant from log entries', () => {
+    const entries: LogEntry[] = [
+      {
+        id: '1',
+        timestamp: ts,
+        rawLine: '',
+        eventType: 'damage-received',
+        amount: 120,
+        shipType: 'Centus Tyrant',
+        weapon: 'Nova Cruise Missile',
+        hitQuality: 'Smashes',
+        isNpc: true,
+      },
+      {
+        id: '2',
+        timestamp: ts,
+        rawLine: '',
+        eventType: 'damage-dealt',
+        amount: 100,
+        pilotName: 'Player One',
+        shipType: 'Typhoon',
+        weapon: 'Heavy Entropic Disintegrator II',
+        hitQuality: 'Hits',
+        isNpc: false,
+      },
+    ]
+    const filtered = filterOutHostileNpcs(entries)
+    expect(filtered).toHaveLength(1)
+    expect(filtered[0].pilotName).toBe('Player One')
+  })
+
+  it('filters out Centus Dread Lord from log entries', () => {
+    const entries: LogEntry[] = [
+      {
+        id: '1',
+        timestamp: ts,
+        rawLine: '',
+        eventType: 'damage-received',
+        amount: 200,
+        shipType: 'Centus Dread Lord',
+        weapon: 'Caldari Navy Mjolnir Heavy Missile',
+        hitQuality: 'Wrecks',
+        isNpc: true,
+      },
+      {
+        id: '2',
+        timestamp: ts,
+        rawLine: '',
+        eventType: 'damage-dealt',
+        amount: 100,
+        pilotName: 'Player One',
+        shipType: 'Typhoon',
+        weapon: 'Heavy Entropic Disintegrator II',
+        hitQuality: 'Hits',
+        isNpc: false,
+      },
+    ]
+    const filtered = filterOutHostileNpcs(entries)
+    expect(filtered).toHaveLength(1)
+    expect(filtered[0].pilotName).toBe('Player One')
+  })
+
+  it('filters out Centatis Behemoth from log entries', () => {
+    const entries: LogEntry[] = [
+      {
+        id: '1',
+        timestamp: ts,
+        rawLine: '',
+        eventType: 'damage-received',
+        amount: 300,
+        shipType: 'Centatis Behemoth',
+        hitQuality: 'Grazes',
+        isNpc: true,
+      },
+      {
+        id: '2',
+        timestamp: ts,
+        rawLine: '',
+        eventType: 'damage-dealt',
+        amount: 100,
+        pilotName: 'Player One',
+        shipType: 'Typhoon',
+        weapon: 'Heavy Entropic Disintegrator II',
+        hitQuality: 'Hits',
+        isNpc: false,
+      },
+    ]
+    const filtered = filterOutHostileNpcs(entries)
+    expect(filtered).toHaveLength(1)
+    expect(filtered[0].pilotName).toBe('Player One')
+  })
+
+  it('filters out Centatis Devil from log entries', () => {
+    const entries: LogEntry[] = [
+      {
+        id: '1',
+        timestamp: ts,
+        rawLine: '',
+        eventType: 'damage-received',
+        amount: 150,
+        shipType: 'Centatis Devil',
+        weapon: 'Heavy Entropic Disintegrator II',
+        hitQuality: 'Hits',
+        isNpc: true,
+      },
+      {
+        id: '2',
+        timestamp: ts,
+        rawLine: '',
+        eventType: 'damage-dealt',
+        amount: 100,
+        pilotName: 'Player One',
+        shipType: 'Typhoon',
+        weapon: 'Heavy Entropic Disintegrator II',
+        hitQuality: 'Hits',
+        isNpc: false,
+      },
+    ]
+    const filtered = filterOutHostileNpcs(entries)
+    expect(filtered).toHaveLength(1)
+    expect(filtered[0].pilotName).toBe('Player One')
+  })
+
+  it('filters out Sansha\'s Horror from log entries', () => {
+    const entries: LogEntry[] = [
+      {
+        id: '1',
+        timestamp: ts,
+        rawLine: '',
+        eventType: 'damage-received',
+        amount: 250,
+        shipType: 'Sansha\'s Horror',
+        weapon: 'Dual Heavy Pulse Laser II',
+        hitQuality: 'Penetrates',
+        isNpc: true,
+      },
+      {
+        id: '2',
+        timestamp: ts,
+        rawLine: '',
+        eventType: 'damage-dealt',
+        amount: 100,
+        pilotName: 'Player One',
+        shipType: 'Typhoon',
+        weapon: 'Heavy Entropic Disintegrator II',
+        hitQuality: 'Hits',
+        isNpc: false,
+      },
+    ]
+    const filtered = filterOutHostileNpcs(entries)
+    expect(filtered).toHaveLength(1)
+    expect(filtered[0].pilotName).toBe('Player One')
   })
 })
