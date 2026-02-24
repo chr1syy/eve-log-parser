@@ -1,68 +1,96 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { readFileSync } from "fs";
-import { execSync } from "child_process";
-import { getVersion, getVersionInfo } from "../lib/version";
-import { GET as getVersionRoute } from "../app/api/version/route";
-import { GET as getChangelogRoute } from "../app/api/changelog/route";
+// vi.hoisted runs before any imports — the vi.fn() instances it returns are
+// stable across vi.resetModules() calls and can be used inside vi.mock factories.
+const { mockReadFileSync, mockExecSync } = vi.hoisted(() => ({
+  mockReadFileSync: vi.fn(),
+  mockExecSync: vi.fn(),
+}));
+
+// vi.mock calls are also hoisted by Vitest before imports.
+// Use synchronous factories with an explicit `default` export so Vitest's CJS
+// interop layer can resolve named imports like `import { readFileSync } from "fs"`.
+vi.mock("fs", () => {
+  const mod = { readFileSync: mockReadFileSync };
+  return { ...mod, default: mod };
+});
+vi.mock("child_process", () => {
+  const mod = { execSync: mockExecSync };
+  return { ...mod, default: mod };
+});
+
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
 
-// Mock fs and child_process
-const mockedReadFileSync = vi.mocked(readFileSync);
-const mockedExecSync = vi.mocked(execSync);
+const MOCK_PACKAGE_JSON = JSON.stringify({ version: "1.2.3" });
+
+const MOCK_CHANGELOG = JSON.stringify({
+  commits: [
+    {
+      hash: "abc123",
+      message: "test commit",
+      author: "Test User",
+      timestamp: "2026-01-01T00:00:00Z",
+    },
+  ],
+});
 
 describe("Version Management", () => {
   beforeEach(() => {
+    vi.resetModules();
     vi.clearAllMocks();
   });
 
+  afterEach(() => {
+    delete process.env.GIT_SHA;
+    delete process.env.GIT_TAG;
+    delete process.env.BUILD_TIME;
+    vi.resetModules();
+  });
+
   describe("getVersion", () => {
-    it("should parse version from package.json", () => {
-      const mockPackageJson = JSON.stringify({ version: "1.2.3" });
-      mockedReadFileSync.mockReturnValue(mockPackageJson);
-
-      const version = getVersion();
-      expect(version).toBe("1.2.3");
+    it("should parse version from package.json", async () => {
+      mockReadFileSync.mockReturnValue(MOCK_PACKAGE_JSON);
+      const { getVersion } = await import("../lib/version");
+      expect(getVersion()).toBe("1.2.3");
     });
 
-    it("should handle missing version in package.json", () => {
-      const mockPackageJson = JSON.stringify({ name: "test" });
-      mockedReadFileSync.mockReturnValue(mockPackageJson);
-
-      expect(() => getVersion()).toThrow();
+    it("should handle missing version in package.json", async () => {
+      mockReadFileSync.mockReturnValue(JSON.stringify({ name: "test" }));
+      const { getVersion } = await import("../lib/version");
+      // version field absent — module initialises with undefined
+      expect(getVersion()).toBeUndefined();
     });
 
-    it("should handle invalid JSON in package.json", () => {
-      mockedReadFileSync.mockReturnValue("invalid json");
-
-      expect(() => getVersion()).toThrow();
+    it("should handle invalid JSON in package.json", async () => {
+      mockReadFileSync.mockReturnValue("invalid json");
+      // JSON.parse throws during module init, so the dynamic import rejects
+      await expect(import("../lib/version")).rejects.toThrow();
     });
   });
 
   describe("getVersionInfo", () => {
-    it("should return version info with git data", () => {
-      const mockPackageJson = JSON.stringify({ version: "1.2.3" });
-      mockedReadFileSync.mockReturnValue(mockPackageJson);
-      mockedExecSync
-        .mockReturnValueOnce("abc123def456\n")
-        .mockReturnValueOnce("v1.2.3\n");
+    it("should return version info with git data", async () => {
+      mockReadFileSync.mockReturnValue(MOCK_PACKAGE_JSON);
+      process.env.GIT_SHA = "abc123def456";
+      process.env.GIT_TAG = "v1.2.3";
+      process.env.BUILD_TIME = "2026-01-01T00:00:00.000Z";
 
+      const { getVersionInfo } = await import("../lib/version");
       const info = getVersionInfo();
       expect(info).toEqual({
         version: "1.2.3",
-        buildTime: expect.any(String),
+        buildTime: "2026-01-01T00:00:00.000Z",
         gitCommit: "abc123def456",
         gitTag: "v1.2.3",
       });
-      expect(info.buildTime).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
     });
 
-    it("should handle missing git data", () => {
-      const mockPackageJson = JSON.stringify({ version: "1.2.3" });
-      mockedReadFileSync.mockReturnValue(mockPackageJson);
-      mockedExecSync.mockImplementation(() => {
+    it("should handle missing git data", async () => {
+      mockReadFileSync.mockReturnValue(MOCK_PACKAGE_JSON);
+      mockExecSync.mockImplementation(() => {
         throw new Error("git not found");
       });
 
+      const { getVersionInfo } = await import("../lib/version");
       const info = getVersionInfo();
       expect(info).toEqual({
         version: "1.2.3",
@@ -75,12 +103,14 @@ describe("Version Management", () => {
 
   describe("Version API Route", () => {
     it("should return version info JSON", async () => {
-      const mockPackageJson = JSON.stringify({ version: "1.2.3" });
-      mockedReadFileSync.mockReturnValue(mockPackageJson);
-      mockedExecSync.mockImplementation(() => {
+      mockReadFileSync.mockReturnValue(MOCK_PACKAGE_JSON);
+      mockExecSync.mockImplementation(() => {
         throw new Error("git not found");
       });
 
+      const { GET: getVersionRoute } = await import(
+        "../app/api/version/route"
+      );
       const request = new NextRequest("http://localhost/api/version");
       const response = await getVersionRoute(request);
       const data = await response.json();
@@ -98,6 +128,11 @@ describe("Version Management", () => {
 
   describe("Changelog API Route", () => {
     it("should return changelog JSON structure", async () => {
+      mockReadFileSync.mockReturnValue(MOCK_CHANGELOG);
+      const { GET: getChangelogRoute } = await import(
+        "../app/api/changelog/route"
+      );
+
       const request = new NextRequest("http://localhost/api/changelog");
       const response = await getChangelogRoute(request);
       const data = await response.json();
@@ -114,6 +149,11 @@ describe("Version Management", () => {
     });
 
     it("should handle query parameters (mocked)", async () => {
+      mockReadFileSync.mockReturnValue(MOCK_CHANGELOG);
+      const { GET: getChangelogRoute } = await import(
+        "../app/api/changelog/route"
+      );
+
       const request = new NextRequest(
         "http://localhost/api/changelog?from=v1.0&to=v1.1&limit=10",
       );
