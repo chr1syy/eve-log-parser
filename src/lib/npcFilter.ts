@@ -87,8 +87,12 @@ export function isHostileNpc(shipType?: string): boolean {
  */
 export function filterOutHostileNpcs(entries: LogEntry[]): LogEntry[] {
   return entries.filter((entry) => {
-    // Keep player sources (has pilotName)
-    if (entry.pilotName) return true;
+    if (entry.isNpc) return false;
+
+    if (entry.pilotName) {
+      if (!entry.corpTicker && isHostileNpc(entry.pilotName)) return false;
+      return true;
+    }
 
     // Filter out hostile NPCs by shipType
     if (entry.shipType && isHostileNpc(entry.shipType)) return false;
@@ -103,7 +107,11 @@ export function filterOutHostileNpcs(entries: LogEntry[]): LogEntry[] {
  */
 export function filterOnlyHostileNpcs(entries: LogEntry[]): LogEntry[] {
   return entries.filter((entry) => {
-    if (!entry.shipType) return false;
-    return isHostileNpc(entry.shipType);
+    if (entry.isNpc) return true;
+    if (entry.shipType && isHostileNpc(entry.shipType)) return true;
+    if (entry.pilotName && !entry.corpTicker && isHostileNpc(entry.pilotName)) {
+      return true;
+    }
+    return false;
   });
 }

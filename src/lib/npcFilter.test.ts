@@ -72,6 +72,7 @@ describe("npcFilter", () => {
       const entries: LogEntry[] = [
         createEntry("Centatis Daemon"),
         createEntry("Arch Gistii Rogue"),
+        createEntry(undefined, "Gist Cherubim"),
         createEntry("Typhoon", "Kasa Habalu"),
       ];
       const filtered = filterOutHostileNpcs(entries);
@@ -92,6 +93,15 @@ describe("npcFilter", () => {
       const entries: LogEntry[] = [
         createEntry("Erolissi Merr", undefined),
         createEntry("QRNDU", undefined),
+      ];
+      const filtered = filterOutHostileNpcs(entries);
+      expect(filtered).toHaveLength(0);
+    });
+
+    it("removes entries with hostile NPC pilotName and no corp", () => {
+      const entries: LogEntry[] = [
+        createEntry(undefined, "Erolissi Merr"),
+        createEntry(undefined, "QRNDU"),
       ];
       const filtered = filterOutHostileNpcs(entries);
       expect(filtered).toHaveLength(0);
@@ -119,10 +129,11 @@ describe("npcFilter", () => {
       const entries: LogEntry[] = [
         createEntry("Centatis Daemon"),
         createEntry("Arch Gistii Rogue"),
+        createEntry(undefined, "Erolissi Merr"),
         createEntry("Typhoon", "Kasa Habalu"),
       ];
       const filtered = filterOnlyHostileNpcs(entries);
-      expect(filtered).toHaveLength(2);
+      expect(filtered).toHaveLength(3);
       expect(filtered[0].shipType).toBe("Centatis Daemon");
       expect(filtered[1].shipType).toBe("Arch Gistii Rogue");
     });

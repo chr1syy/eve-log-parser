@@ -18,6 +18,7 @@ RUN npm run generate-changelog
 # Runtime stage
 FROM node:20-alpine AS runtime
 
+ARG VERSION
 ARG GIT_SHA
 ARG GIT_TAG
 ARG BUILD_TIME
