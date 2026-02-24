@@ -11,7 +11,9 @@ const FIXTURE_PATH = path.resolve(
 function fileFromDisk(filePath: string): File {
   const buffer = readFileSync(filePath);
   const blob = new Blob([buffer], { type: "text/plain" });
-  return new File([blob], filePath.split("/").pop()!, { type: "text/plain" });
+  // Use the full absolute path as the file name so that readLogText's
+  // Node.js fallback can locate the file when jsdom's Blob lacks text().
+  return new File([blob], filePath, { type: "text/plain" });
 }
 
 test("parse shield reps log", async () => {
