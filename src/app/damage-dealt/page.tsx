@@ -372,17 +372,14 @@ export default function DamageDealtPage() {
     return Math.max(0, ...analysis.engagements.map((e) => e.dps));
   }, [analysis]);
 
-  const handleTargetClick = useCallback(
-    (engagement: TargetEngagement) => {
-      setZoomedTarget((prev) =>
-        prev?.target === engagement.target &&
-        prev?.shipType === engagement.shipType
-          ? null
-          : engagement,
-      );
-    },
-    [],
-  );
+  const handleTargetClick = useCallback((engagement: TargetEngagement) => {
+    setZoomedTarget((prev) =>
+      prev?.target === engagement.target &&
+      prev?.shipType === engagement.shipType
+        ? null
+        : engagement,
+    );
+  }, []);
 
   const engagementRows: Record<string, unknown>[] = useMemo(() => {
     if (!analysis) return [];

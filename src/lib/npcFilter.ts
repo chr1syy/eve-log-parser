@@ -46,7 +46,6 @@ const INDIVIDUAL_NPC_NAMES = [
   "Kuikkatoh Kun Saisima",
   "QRNDU",
   "Aria L",
-  "HenrySolo",
   "Macgunner Tivianne",
 ];
 

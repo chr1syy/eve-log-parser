@@ -203,6 +203,7 @@ export function LogsProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(USER_ID_KEY, resolvedUserId);
     }
     userIdRef.current = resolvedUserId;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setUserId(resolvedUserId);
 
     if (parsedLogsRaw) {

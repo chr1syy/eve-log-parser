@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:integration": "vitest run src/__tests__/integration/"
+    "test:integration": "vitest run src/__tests__/integration/",
+    "generate-changelog": "node scripts/generate-changelog.mjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -24,11 +25,14 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^6.1.5",
+    "@testing-library/react": "^16.0.0",
     "@types/node": "^20.19.33",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "jsdom": "^23.0.1",
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "tailwindcss": "^4",
