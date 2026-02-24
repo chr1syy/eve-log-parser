@@ -9,6 +9,8 @@ export interface VersionInfo {
 }
 
 function _readVersion(): string {
+  if (process.env.VERSION) return process.env.VERSION;
+  if (process.env.GIT_TAG) return process.env.GIT_TAG;
   const pkg = JSON.parse(readFileSync("./package.json", "utf-8"));
   return pkg.version;
 }
