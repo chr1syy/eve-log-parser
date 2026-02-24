@@ -111,7 +111,18 @@ export default function DamageDealtChart({
     );
   }
 
-  // Filter to zoomed window if provided
+  // Keep full data for the chart so Brush always operates over the entire
+  // timeline. When a zoomedWindow is provided we narrow the X axis domain to
+  // the requested window but still render from the full dataset. This avoids
+  // the brush "jumping" behavior caused by rendering the brush against a
+  // filtered (shortened) data array.
+  const fullPoints = points;
+  const data = fullPoints.map((pt) => ({
+    ...pt,
+    timestampMs: pt.timestamp.getTime(),
+  }));
+
+  // Filter to zoomed window if provided for other UI bits (tooltips / labels)
   const visiblePoints = zoomedWindow
     ? points.filter((p) => {
         const t = p.timestamp.getTime();
@@ -123,11 +134,6 @@ export default function DamageDealtChart({
 
   // Expand window slightly so chart doesn't look empty if only 1 point is visible
   const displayPoints = visiblePoints.length > 0 ? visiblePoints : points;
-
-  const data = displayPoints.map((pt) => ({
-    ...pt,
-    timestampMs: pt.timestamp.getTime(),
-  }));
 
   const handleBrushChange = (range?: {
     startIndex?: number;
@@ -146,8 +152,14 @@ export default function DamageDealtChart({
     }
   };
 
-  const domainMin = data[0]?.timestampMs ?? 0;
-  const domainMax = data[data.length - 1]?.timestampMs ?? 0;
+  const fullDomainMin = data[0]?.timestampMs ?? 0;
+  const fullDomainMax = data[data.length - 1]?.timestampMs ?? 0;
+
+  // If a zoomedWindow is active, use that as the visible domain. Otherwise use
+  // the full data domain. Keeping `data` as the full dataset ensures the
+  // Brush indexes map consistently to timestamps.
+  const domainMin = zoomedWindow ? zoomedWindow.start.getTime() : fullDomainMin;
+  const domainMax = zoomedWindow ? zoomedWindow.end.getTime() : fullDomainMax;
 
   // Clip tackle windows to the visible domain
   const visibleTackleWindows = tackleWindows
