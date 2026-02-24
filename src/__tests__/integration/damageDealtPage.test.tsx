@@ -158,6 +158,11 @@ describe("DamageDealtPage integration", () => {
 
     render(<DamageDealtPage />);
 
+    expect(mockGenerateDamageDealtTimeSeries).toHaveBeenCalledWith(
+      mockLog.entries,
+      false,
+    );
+
     expect(screen.getByTestId("zoom-window")).toHaveTextContent("none");
 
     fireEvent.click(screen.getByRole("button", { name: "select-range" }));

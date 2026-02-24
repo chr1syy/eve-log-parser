@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { TargetEngagement } from "../lib/analysis/damageDealt";
-import { resolveZoomedWindow } from "../app/damage-dealt/page";
+import { resolveZoomedWindow } from "../lib/zoom";
 
 const baseTarget: TargetEngagement = {
   target: "Rhea Ormand",

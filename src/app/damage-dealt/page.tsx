@@ -23,6 +23,7 @@ import type {
 import DamageDealtChart from "@/components/charts/DamageDealtChart";
 import type { HitQuality } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { resolveZoomedWindow } from "@/lib/zoom";
 
 // Hit quality ordered display config
 const HIT_QUALITY_ORDER: HitQuality[] = [
@@ -73,15 +74,6 @@ function fmtTime(d: Date): string {
 
 // --- Engagement table row type ---
 type EngagementRow = TargetEngagement & { _maxDps: number; _isZoomed: boolean };
-
-export function resolveZoomedWindow(
-  zoomedWindow: { start: Date; end: Date } | undefined,
-  zoomedTarget: TargetEngagement | null,
-): { start: Date; end: Date } | undefined {
-  if (zoomedWindow) return zoomedWindow;
-  if (!zoomedTarget) return undefined;
-  return { start: zoomedTarget.firstHit, end: zoomedTarget.lastHit };
-}
 
 function buildEngagementColumns(
   maxDps: number,

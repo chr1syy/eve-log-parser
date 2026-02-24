@@ -267,13 +267,15 @@ export default function DamageDealtChart({
             animationDuration={600}
             animationEasing="ease-out"
           />
-          <Brush
-            dataKey="timestampMs"
-            height={32}
-            stroke="#00d4ff"
-            travellerWidth={8}
-            onChange={handleBrushChange}
-          />
+          {onRangeSelect && (
+            <Brush
+              dataKey="timestampMs"
+              height={32}
+              stroke="#00d4ff"
+              travellerWidth={8}
+              onChange={handleBrushChange}
+            />
+          )}
         </ComposedChart>
       </ResponsiveContainer>
       <p className="text-text-muted font-mono text-xs">
