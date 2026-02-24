@@ -1,5 +1,8 @@
-const fs = require("fs");
-const path = require("path");
+import { writeFileSync, existsSync, mkdirSync } from "fs";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const REPO =
   process.env.CHANGELOG_REPO ||
@@ -37,13 +40,13 @@ async function generateChangelog() {
     const changelogData = { commits };
 
     // Ensure public directory exists
-    const publicDir = path.join(__dirname, "..", "public");
-    if (!fs.existsSync(publicDir)) {
-      fs.mkdirSync(publicDir, { recursive: true });
+    const publicDir = join(__dirname, "..", "public");
+    if (!existsSync(publicDir)) {
+      mkdirSync(publicDir, { recursive: true });
     }
 
-    fs.writeFileSync(
-      path.join(publicDir, "changelog.json"),
+    writeFileSync(
+      join(publicDir, "changelog.json"),
       JSON.stringify(changelogData, null, 2),
     );
 

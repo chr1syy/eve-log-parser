@@ -11,6 +11,8 @@ function createDamageEntry(
   weapon?: string,
 ): LogEntry {
   return {
+    id: `entry-${timestamp}`,
+    rawLine: "",
     timestamp: new Date(timestamp),
     eventType: "damage-dealt",
     pilotName: "Test Pilot",
@@ -29,6 +31,8 @@ function createDamageEntry(
 
 function createMissEntry(timestamp: number, isDrone: boolean): LogEntry {
   return {
+    id: `miss-${timestamp}`,
+    rawLine: "",
     timestamp: new Date(timestamp),
     eventType: "miss-outgoing",
     isDrone,

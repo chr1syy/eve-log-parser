@@ -351,9 +351,18 @@ export function generateDamageDealtTimeSeries(
     // Count bad hits in [shotStart, shotEnd)
     let badHits = 0;
     for (let i = shotStart; i < shotEnd; i++) {
+      const shot = allShots[i];
+      if (shot.eventType === "miss-outgoing") {
+        badHits++;
+        continue;
+      }
+      if (shot.hitQuality === "misses") {
+        badHits++;
+        continue;
+      }
       if (
-        allShots[i].hitQuality != null &&
-        BAD_HIT_QUALITIES.has(allShots[i].hitQuality as HitQuality)
+        shot.hitQuality != null &&
+        BAD_HIT_QUALITIES.has(shot.hitQuality as HitQuality)
       ) {
         badHits++;
       }

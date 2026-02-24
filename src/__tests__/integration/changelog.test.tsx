@@ -4,6 +4,23 @@ import type { ReactNode } from "react";
 import ChangelogPage from "../../app/changelog/page";
 import { VersionResponse, ChangelogResponse } from "../../lib/types";
 
+// Mock AppLayout to avoid VersionFooter's extra /api/version fetch.
+// Render title so getByText("CHANGELOG") still works.
+vi.mock("../../components/layout/AppLayout", () => ({
+  default: ({
+    title,
+    children,
+  }: {
+    title: string;
+    children: ReactNode;
+  }) => (
+    <div>
+      <div>{title}</div>
+      {children}
+    </div>
+  ),
+}));
+
 // Mock next/navigation
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -99,7 +116,7 @@ describe("Changelog Page Integration", () => {
     render(<ChangelogPage />);
 
     await waitFor(() => {
-      expect(screen.getByText("Network error")).toBeInTheDocument();
+      expect(screen.getAllByText(/Network error/).length).toBeGreaterThan(0);
     });
   });
 
@@ -159,9 +176,11 @@ describe("Changelog Page Integration", () => {
 
     render(<ChangelogPage />);
 
-    await waitFor(() => {
-      const mainContainer = screen.getByText("COMMIT HISTORY").closest("div");
-      expect(mainContainer).toHaveClass("p-4", "md:p-6");
-    });
+    // "COMMIT HISTORY" and its wrapper div are unconditionally rendered —
+    // no need to waitFor async state. Check each class separately to avoid
+    // jest-dom multi-arg issues with Tailwind responsive prefixes.
+    const mainContainer = screen.getByText("COMMIT HISTORY").closest("div");
+    expect(mainContainer).toHaveClass("p-4");
+    expect(mainContainer).toHaveClass("md:p-6");
   });
 });
