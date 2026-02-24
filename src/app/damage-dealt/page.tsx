@@ -166,7 +166,6 @@ function buildEngagementColumns(
       numeric: true,
       render: (v, row) => {
         const dps = v as number;
-        const r = row as unknown as EngagementRow;
         const pct = maxDps > 0 && dps > 0 ? (dps / maxDps) * 100 : 0;
         return (
           <div className="flex flex-col gap-1 min-w-[80px]">

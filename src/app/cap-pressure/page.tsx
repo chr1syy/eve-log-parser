@@ -12,10 +12,6 @@ import DataTable from "@/components/ui/DataTable";
 import type { Column } from "@/components/ui/DataTable";
 import { useParsedLogs } from "@/hooks/useParsedLogs";
 import { analyzeCapPressure } from "@/lib/analysis/capAnalysis";
-import type {
-  CapModuleSummary,
-  CapShipTypeSummary,
-} from "@/lib/analysis/capAnalysis";
 import CapTimelineChart from "@/components/charts/CapTimelineChart";
 
 function fmt(n: number): string {

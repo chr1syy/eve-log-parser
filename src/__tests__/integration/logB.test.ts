@@ -2,7 +2,6 @@ import { readFileSync } from "fs";
 import { resolve } from "path";
 import { describe, it, expect, beforeAll } from "vitest";
 import { parseLogFile } from "../../lib/parser";
-import { analyzeDamageDealt } from "../../lib/analysis/damageDealt";
 import { analyzeDamageTaken } from "../../lib/analysis/damageTaken";
 import { analyzeReps } from "../../lib/analysis/repAnalysis";
 import { analyzeCapPressure } from "../../lib/analysis/capAnalysis";

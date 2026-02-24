@@ -1,4 +1,4 @@
-import { EventType, HitQuality, LogEntry, ParsedLog } from "@/lib/types";
+import { HitQuality, LogEntry, ParsedLog } from "@/lib/types";
 import { computeStats } from "./computeStats";
 
 /**
