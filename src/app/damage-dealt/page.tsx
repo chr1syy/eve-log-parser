@@ -23,6 +23,7 @@ import type {
 import DamageDealtChart from "@/components/charts/DamageDealtChart";
 import type { HitQuality } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { resolveZoomedWindow } from "@/lib/zoom";
 
 // Hit quality ordered display config
 const HIT_QUALITY_ORDER: HitQuality[] = [
@@ -351,6 +352,9 @@ export default function DamageDealtPage() {
   const [zoomedTarget, setZoomedTarget] = useState<TargetEngagement | null>(
     null,
   );
+  const [zoomedWindow, setZoomedWindow] = useState<
+    { start: Date; end: Date } | undefined
+  >(undefined);
   const [excludeDrones, setExcludeDrones] = useState(false);
 
   const analysis = useMemo(() => {
@@ -363,9 +367,7 @@ export default function DamageDealtPage() {
     return generateDamageDealtTimeSeries(activeLog!.entries, excludeDrones);
   }, [activeLog, hasLogs, excludeDrones]);
 
-  const zoomedWindow = zoomedTarget
-    ? { start: zoomedTarget.firstHit, end: zoomedTarget.lastHit }
-    : undefined;
+  const effectiveZoomedWindow = resolveZoomedWindow(zoomedWindow, zoomedTarget);
 
   const maxDps = useMemo(() => {
     if (!analysis) return 0;
@@ -373,12 +375,18 @@ export default function DamageDealtPage() {
   }, [analysis]);
 
   const handleTargetClick = useCallback((engagement: TargetEngagement) => {
+    setZoomedWindow(undefined);
     setZoomedTarget((prev) =>
       prev?.target === engagement.target &&
       prev?.shipType === engagement.shipType
         ? null
         : engagement,
     );
+  }, []);
+
+  const handleRangeSelect = useCallback((start: Date, end: Date) => {
+    setZoomedTarget(null);
+    setZoomedWindow({ start, end });
   }, []);
 
   const engagementRows: Record<string, unknown>[] = useMemo(() => {
@@ -413,16 +421,26 @@ export default function DamageDealtPage() {
       ? analysis.totalDamageDealt / analysis.totalHits
       : 0;
 
+  const hasZoom = Boolean(zoomedTarget || zoomedWindow);
+  const zoomLabel = zoomedTarget
+    ? zoomedTarget.target
+    : zoomedWindow
+      ? `${fmtTime(zoomedWindow.start)}–${fmtTime(zoomedWindow.end)}`
+      : null;
+
   const chartHeaderAction = (
     <div className="flex items-center gap-3 font-mono text-xs">
-      {zoomedTarget && (
+      {hasZoom && (
         <>
-          <span className="text-cyan-glow">{zoomedTarget.target}</span>
+          {zoomLabel && <span className="text-cyan-glow">{zoomLabel}</span>}
           <span className="text-text-muted">—</span>
           <button
             type="button"
             className="text-text-muted hover:text-text-primary transition-colors uppercase tracking-widest"
-            onClick={() => setZoomedTarget(null)}
+            onClick={() => {
+              setZoomedTarget(null);
+              setZoomedWindow(undefined);
+            }}
           >
             RESET
           </button>
@@ -505,8 +523,9 @@ export default function DamageDealtPage() {
           >
             <DamageDealtChart
               series={timeSeries}
-              zoomedWindow={zoomedWindow}
+              zoomedWindow={effectiveZoomedWindow}
               excludeDrones={excludeDrones}
+              onRangeSelect={handleRangeSelect}
             />
           </Panel>
 
