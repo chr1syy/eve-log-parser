@@ -58,12 +58,18 @@ jobs:
           ## Release Summary
 
           **Image URL:** \`ghcr.io/${{ github.repository }}:${{ github.ref_name }}\`
+          **Image URL (latest):** \`ghcr.io/${{ github.repository }}:latest\`
 
           **Version Tag:** \`${{ github.ref_name }}\`
 
           **Docker Pull Command:**
           \`\`\`bash
           docker pull ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+          \`\`\`
+
+          **Docker Pull Command (latest):**
+          \`\`\`bash
+          docker pull ghcr.io/${{ github.repository }}:latest
           \`\`\`
 
           **Changelog:** [View Release Notes](https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }})
