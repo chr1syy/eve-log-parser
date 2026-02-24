@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+import type { ReactNode } from "react";
 import ChangelogPage from "../../app/changelog/page";
 import { VersionResponse, ChangelogResponse } from "../../lib/types";
 
@@ -16,7 +17,7 @@ vi.mock("next/navigation", () => ({
 
 // Mock LogsContext
 vi.mock("../../contexts/LogsContext", () => ({
-  LogsProvider: ({ children }: { children: React.ReactNode }) => (
+  LogsProvider: ({ children }: { children: ReactNode }) => (
     <div>{children}</div>
   ),
   useLogsContext: () => ({

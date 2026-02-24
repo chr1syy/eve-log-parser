@@ -1,18 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readFileSync } from "fs";
 import { join } from "path";
-
-export interface CommitEntry {
-  hash: string;
-  message: string;
-  author: string;
-  timestamp: string;
-  url?: string;
-}
-
-export interface ChangelogResponse {
-  commits: CommitEntry[];
-}
+import type { CommitEntry, ChangelogResponse } from "../../../lib/types";
 
 export async function GET(
   request: NextRequest,

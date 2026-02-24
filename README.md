@@ -472,17 +472,6 @@ Interested in contributing? Start with:
 
 _Last updated: 2026-02-23_
 
-# Install dependencies
-
-npm install
-
-# Start development server
-
-npm run dev
-
-````
-
-<<<<<<< HEAD
 Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 ### Production Deployment
@@ -493,7 +482,7 @@ docker-compose up -d
 
 # With auto-updates (production)
 docker-compose -f docker-compose.prod.yml up -d
-````
+```
 
 ## API Endpoints
 
@@ -736,13 +725,9 @@ npm run type-check
 
 ---
 
-> > > > > > > origin/main
-
 ## Configuration
 
 ### Environment Variables
-
-<<<<<<< HEAD
 
 - `NODE_ENV` - Environment (development/production)
 - `PORT` - Server port (default: 3000)

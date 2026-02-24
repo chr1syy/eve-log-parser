@@ -28,6 +28,8 @@ COPY --from=builder /app/.next ./.next
 
 COPY --from=builder /app/public ./public
 
+RUN apk add --no-cache curl
+
 EXPOSE 3000
 
 ENV NODE_ENV=production
