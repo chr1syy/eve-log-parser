@@ -1,13 +1,24 @@
+import { readFileSync } from "fs";
+import path from "path";
+import { test, expect } from "vitest";
 import { parseLogFile } from "../lib/parser";
-import fs from "fs";
 
-test("parse shield reps log", () => {
-  const log = fs.readFileSync(
-    "/home/chris/code/eve-log-parser/data/test_shield_reps.txt",
-    "utf8",
+const FIXTURE_PATH = path.resolve(
+  __dirname,
+  "../../data/test_shield_reps.txt",
+);
+
+function fileFromDisk(filePath: string): File {
+  const buffer = readFileSync(filePath);
+  const blob = new Blob([buffer], { type: "text/plain" });
+  return new File([blob], filePath.split("/").pop()!, { type: "text/plain" });
+}
+
+test("parse shield reps log", async () => {
+  const parsed = await parseLogFile(fileFromDisk(FIXTURE_PATH));
+  const repEntries = parsed.entries.filter(
+    (e) => e.eventType === "rep-received",
   );
-  const entries = parseLogFile(log);
-  const repEntries = entries.filter((e) => e.eventType === "rep-received");
   expect(repEntries.length).toBe(4);
 
   // Incoming armor repair from player
