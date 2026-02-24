@@ -10,6 +10,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceArea,
+  Brush,
 } from "recharts";
 import type {
   DamageDealtTimeSeries,
@@ -21,6 +22,7 @@ interface DamageDealtChartProps {
   series: DamageDealtTimeSeries;
   zoomedWindow?: { start: Date; end: Date };
   excludeDrones?: boolean;
+  onRangeSelect?: (start: Date, end: Date) => void;
 }
 
 function formatTime(date: Date): string {
@@ -40,6 +42,28 @@ function isInTackleWindow(
     windows.find((w) => ts >= w.start.getTime() && ts <= w.end.getTime()) ??
     null
   );
+}
+
+export function resolveBrushRange(
+  data: Array<{ timestamp: Date }>,
+  startIndex?: number,
+  endIndex?: number,
+): { start: Date; end: Date } | null {
+  if (!data.length || startIndex === undefined || endIndex === undefined) {
+    return null;
+  }
+
+  const lastIndex = data.length - 1;
+  const clampedStart = Math.max(0, Math.min(startIndex, lastIndex));
+  const clampedEnd = Math.max(0, Math.min(endIndex, lastIndex));
+  const safeStart = Math.min(clampedStart, clampedEnd);
+  const safeEnd = Math.max(clampedStart, clampedEnd);
+  const start = data[safeStart]?.timestamp;
+  const end = data[safeEnd]?.timestamp;
+
+  if (!start || !end) return null;
+
+  return { start, end };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -75,6 +99,7 @@ export default function DamageDealtChart({
   series,
   zoomedWindow,
   excludeDrones,
+  onRangeSelect,
 }: DamageDealtChartProps) {
   const { points, tackleWindows } = series;
 
@@ -103,6 +128,23 @@ export default function DamageDealtChart({
     ...pt,
     timestampMs: pt.timestamp.getTime(),
   }));
+
+  const handleBrushChange = (range?: {
+    startIndex?: number;
+    endIndex?: number;
+  }) => {
+    if (!onRangeSelect) return;
+
+    const resolved = resolveBrushRange(
+      data,
+      range?.startIndex,
+      range?.endIndex,
+    );
+
+    if (resolved) {
+      onRangeSelect(resolved.start, resolved.end);
+    }
+  };
 
   const domainMin = data[0]?.timestampMs ?? 0;
   const domainMax = data[data.length - 1]?.timestampMs ?? 0;
@@ -224,6 +266,13 @@ export default function DamageDealtChart({
             name="DPS"
             animationDuration={600}
             animationEasing="ease-out"
+          />
+          <Brush
+            dataKey="timestampMs"
+            height={32}
+            stroke="#00d4ff"
+            travellerWidth={8}
+            onChange={handleBrushChange}
           />
         </ComposedChart>
       </ResponsiveContainer>
