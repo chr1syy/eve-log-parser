@@ -1,0 +1,66 @@
+MIT License
+
+Copyright (c) 2026 EVE Log Parser Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+## THIRD-PARTY LICENSES
+
+This project uses the following open-source libraries (see package.json):
+
+- **Next.js** (MIT) - https://github.com/vercel/next.js
+- **React** (MIT) - https://github.com/facebook/react
+- **TypeScript** (Apache-2.0) - https://github.com/microsoft/TypeScript
+- **Recharts** (MIT) - https://github.com/recharts/recharts
+- **Tailwind CSS** (MIT) - https://github.com/tailwindlabs/tailwindcss
+- **Lucide React** (ISC) - https://github.com/lucide-icons/lucide
+- **date-fns** (MIT) - https://github.com/date-fns/date-fns
+- **react-countup** (MIT) - https://github.com/glennreyes/react-countup
+- **react-dropzone** (MIT) - https://github.com/react-dropzone/react-dropzone
+- **Vitest** (MIT) - https://github.com/vitest-dev/vitest
+- **ESLint** (MIT) - https://github.com/eslint/eslint
+- **Prettier** (MIT) - https://github.com/prettier/prettier
+
+Full license texts are available in node_modules/ or at their respective repositories.
+
+---
+
+## EVE ONLINE TRADEMARK & FAN WORK NOTICE
+
+EVE Online is a trademark of CCP Games ehf.
+
+EVE Log Parser is an unofficial, fan-made tool and is not affiliated with,
+endorsed by, or connected to CCP Games in any way. All EVE Online imagery,
+lore, game mechanics, and related content are the property of CCP Games.
+
+This tool is provided as-is for personal use by EVE Online players. Use at
+your own discretion and in accordance with CCP Games' End User License
+Agreement (EULA) and Terms of Service.
+
+---
+
+## WARRANTY DISCLAIMER
+
+This software is provided on an "AS-IS" basis without any warranty, express or
+implied. The authors are not responsible for any loss of data, ISK, ships,
+damage, or other harm resulting from the use or misuse of this tool.
+
+---

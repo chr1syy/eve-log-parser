@@ -273,12 +273,17 @@ export function computeTackleWindows(entries: LogEntry[]): TackleWindow[] {
 
 export function generateDamageDealtTimeSeries(
   entries: LogEntry[],
+  excludeDrones?: boolean,
 ): DamageDealtTimeSeries {
   const dealtEntries = entries
-    .filter((e) => e.eventType === "damage-dealt")
+    .filter(
+      (e) => e.eventType === "damage-dealt" && (!excludeDrones || !e.isDrone),
+    )
     .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
-  const missEntries = entries.filter((e) => e.eventType === "miss-outgoing");
+  const missEntries = entries.filter(
+    (e) => e.eventType === "miss-outgoing" && (!excludeDrones || !e.isDrone),
+  );
 
   const tackleWindows = computeTackleWindows(entries);
 
@@ -346,9 +351,18 @@ export function generateDamageDealtTimeSeries(
     // Count bad hits in [shotStart, shotEnd)
     let badHits = 0;
     for (let i = shotStart; i < shotEnd; i++) {
+      const shot = allShots[i];
+      if (shot.eventType === "miss-outgoing") {
+        badHits++;
+        continue;
+      }
+      if (shot.hitQuality === "misses") {
+        badHits++;
+        continue;
+      }
       if (
-        allShots[i].hitQuality != null &&
-        BAD_HIT_QUALITIES.has(allShots[i].hitQuality as HitQuality)
+        shot.hitQuality != null &&
+        BAD_HIT_QUALITIES.has(shot.hitQuality as HitQuality)
       ) {
         badHits++;
       }

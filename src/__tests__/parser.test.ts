@@ -328,13 +328,20 @@ describe("parseCombatLine — rep-received", () => {
     expect(entry.isRepBot).toBe(false);
   });
 
+  it("detects repair bot", () => {
+    const raw =
+      "<color=0xffccff66><b>120</b><color=0x77ffffff><font size=10> remote armor repaired by </font><b><color=0xffffffff><fontsize=12><color=0xFFFFFF00><b> <u>Medium Armor Maintenance Bot I</u></b></color></fontsize></b></fontsize></b><color=0x77ffffff><font size=10> - Medium Armor Maintenance Bot I</font>";
+    const entry = parseCombatLine(raw, ts, "test-6b");
+    expect(entry.isRepBot).toBe(true);
+  });
+
   it("parses a shield rep-received line", () => {
     const raw =
-      "<color=0xffccff66><b>256</b><color=0x77ffffff><font size=10> remote shield boosted by </font><b><color=0xffffffff><fontsize=12><color=0xFFFFFF00><b> <u>Vedmak</u></b></color></fontsize></b></fontsize></b><color=0x77ffffff><font size=10> - Medium Remote Shield Booster II</font>";
-    const entry = parseCombatLine(raw, ts, "test-6-shield");
+      "<color=0xffccff66><b>300</b><color=0x77ffffff><font size=10> remote shield boosted by </font><b><color=0xffffffff><fontsize=12><color=0xFFFFFF00><b> <u>Vedmak</u></b></color></fontsize></b></fontsize></b><color=0x77ffffff><font size=10> - Medium Remote Shield Booster II</font>";
+    const entry = parseCombatLine(raw, ts, "test-6c");
     expect(entry.eventType).toBe("rep-received");
     expect(entry.direction).toBe("incoming");
-    expect(entry.amount).toBe(256);
+    expect(entry.amount).toBe(300);
     expect(entry.repShipType).toBe("Vedmak");
     expect(entry.repModule).toBe("Medium Remote Shield Booster II");
     expect(entry.isRepBot).toBe(false);
@@ -342,8 +349,8 @@ describe("parseCombatLine — rep-received", () => {
 
   it("detects shield repair bot", () => {
     const raw =
-      "<color=0xffccff66><b>120</b><color=0x77ffffff><font size=10> remote shield boosted by </font><b><color=0xffffffff><fontsize=12><color=0xFFFFFF00><b> <u>Medium Shield Maintenance Bot I</u></b></color></fontsize></b></fontsize></b><color=0x77ffffff><font size=10> - Medium Shield Maintenance Bot I</font>";
-    const entry = parseCombatLine(raw, ts, "test-6c");
+      "<color=0xffccff66><b>150</b><color=0x77ffffff><font size=10> remote shield boosted by </font><b><color=0xffffffff><fontsize=12><color=0xFFFFFF00><b> <u>Medium Shield Maintenance Bot I</u></b></color></fontsize></b></fontsize></b><color=0x77ffffff><font size=10> - Medium Shield Maintenance Bot I</font>";
+    const entry = parseCombatLine(raw, ts, "test-6d");
     expect(entry.isRepBot).toBe(true);
   });
 
@@ -379,11 +386,11 @@ describe("parseCombatLine — rep-outgoing", () => {
 
   it("parses a shield rep-outgoing line", () => {
     const raw =
-      "<color=0xffccff66><b>256</b><color=0x77ffffff><font size=10> remote shield boosted to </font><b><color=0xffffffff><fontsize=12><color=0xFFFFFF00><b> <u>Vedmak</u></b></color></fontsize></b></fontsize></b><color=0x77ffffff><font size=10> - Medium Remote Shield Booster II</font>";
-    const entry = parseCombatLine(raw, ts, "test-7-shield");
+      "<color=0xffccff66><b>300</b><color=0x77ffffff><font size=10> remote shield boosted to </font><b><color=0xffffffff><fontsize=12><color=0xFFFFFF00><b> <u>Vedmak</u></b></color></fontsize></b></fontsize></b><color=0x77ffffff><font size=10> - Medium Remote Shield Booster II</font>";
+    const entry = parseCombatLine(raw, ts, "test-7b");
     expect(entry.eventType).toBe("rep-outgoing");
     expect(entry.direction).toBe("outgoing");
-    expect(entry.amount).toBe(256);
+    expect(entry.amount).toBe(300);
     expect(entry.repShipType).toBe("Vedmak");
     expect(entry.repModule).toBe("Medium Remote Shield Booster II");
   });

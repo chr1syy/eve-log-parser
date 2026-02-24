@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  app:
+    image: ghcr.io/chr1syy/eve-log-parser:latest
+    container_name: eve-log-parser
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: eve-log-parser-watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 300 --cleanup
+    restart: unless-stopped

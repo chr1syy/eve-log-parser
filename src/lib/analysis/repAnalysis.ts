@@ -101,15 +101,15 @@ function buildRepSourceSummaries(entries: LogEntry[]): RepSourceSummary[] {
 
   for (const entry of entries) {
     const shipType = entry.repShipType ?? "Unknown";
-    const module = entry.repModule ?? "Unknown";
-    const key = `${shipType}||${module}`;
+    const repModule = entry.repModule ?? "Unknown";
+    const key = `${shipType}||${repModule}`;
     if (!map.has(key)) map.set(key, []);
     map.get(key)!.push(entry);
   }
 
   const summaries: RepSourceSummary[] = [];
   for (const [key, group] of map) {
-    const [shipType, module] = key.split("||");
+    const [shipType, repModule] = key.split("||");
     const isBot = group.some((e) => e.isRepBot === true);
     const amounts = group.map((e) => e.amount ?? 0);
     const totalRepaired = amounts.reduce((a, b) => a + b, 0);
@@ -119,7 +119,7 @@ function buildRepSourceSummaries(entries: LogEntry[]): RepSourceSummary[] {
 
     summaries.push({
       shipType,
-      module,
+      module: repModule,
       isBot,
       totalRepaired,
       repCount,
