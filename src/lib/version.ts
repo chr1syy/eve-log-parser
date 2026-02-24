@@ -8,12 +8,13 @@ export interface VersionInfo {
   gitTag?: string;
 }
 
-export function getVersion(): string {
-  const packageJson = JSON.parse(readFileSync("./package.json", "utf-8"));
-  return packageJson.version;
+function _readVersion(): string {
+  const pkg = JSON.parse(readFileSync("./package.json", "utf-8"));
+  return pkg.version;
 }
 
-function getGitCommit(): string | undefined {
+function _readGitCommit(): string | undefined {
+  if (process.env.GIT_SHA) return process.env.GIT_SHA;
   try {
     return execSync("git rev-parse HEAD").toString().trim();
   } catch {
@@ -21,7 +22,8 @@ function getGitCommit(): string | undefined {
   }
 }
 
-function getGitTag(): string | undefined {
+function _readGitTag(): string | undefined {
+  if (process.env.GIT_TAG) return process.env.GIT_TAG;
   try {
     return execSync("git describe --tags --abbrev=0").toString().trim();
   } catch {
@@ -29,15 +31,21 @@ function getGitTag(): string | undefined {
   }
 }
 
-function getBuildTime(): string {
-  return new Date().toISOString();
+// Computed once at module init
+const _version = _readVersion();
+const _gitCommit = _readGitCommit();
+const _gitTag = _readGitTag();
+const _buildTime = process.env.BUILD_TIME ?? new Date().toISOString();
+
+export function getVersion(): string {
+  return _version;
 }
 
 export function getVersionInfo(): VersionInfo {
   return {
-    version: getVersion(),
-    buildTime: getBuildTime(),
-    gitCommit: getGitCommit(),
-    gitTag: getGitTag(),
+    version: _version,
+    buildTime: _buildTime,
+    gitCommit: _gitCommit,
+    gitTag: _gitTag,
   };
 }

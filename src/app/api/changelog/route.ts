@@ -9,7 +9,14 @@ export async function GET(
   const { searchParams } = new URL(request.url);
   const from = searchParams.get("from");
   const to = searchParams.get("to");
-  const limit = parseInt(searchParams.get("limit") || "50", 10);
+  const limitParam = searchParams.get("limit");
+  let limit = 50;
+  if (limitParam !== null) {
+    const parsed = parseInt(limitParam, 10);
+    if (!Number.isNaN(parsed)) {
+      limit = parsed;
+    }
+  }
 
   try {
     // Read baked changelog data from build time

@@ -1,17 +1,24 @@
 const fs = require("fs");
 const path = require("path");
 
+const REPO =
+  process.env.CHANGELOG_REPO ||
+  process.env.GITHUB_REPOSITORY ||
+  "chr1syy/eve-log-parser";
+
+const COMMITS_URL = `https://api.github.com/repos/${REPO}/commits?per_page=100`;
+
 async function generateChangelog() {
   try {
-    const response = await fetch(
-      "https://api.github.com/repos/chr1syy/eve-log-parser/commits?per_page=100",
-      {
-        headers: {
-          Accept: "application/vnd.github.v3+json",
-          "User-Agent": "EVE-Log-Parser/1.0",
-        },
-      },
-    );
+    const headers = {
+      Accept: "application/vnd.github.v3+json",
+      "User-Agent": "EVE-Log-Parser/1.0",
+    };
+    if (process.env.GITHUB_TOKEN) {
+      headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
+    }
+
+    const response = await fetch(COMMITS_URL, { headers });
 
     if (!response.ok) {
       throw new Error(`GitHub API error: ${response.status}`);
