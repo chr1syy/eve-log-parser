@@ -13,11 +13,11 @@ function _normalizeVersion(value?: string): string | undefined {
   return value.startsWith("v") ? value.slice(1) : value;
 }
 
-function _readVersion(): string {
+function _readVersion(): string | undefined {
   if (process.env.VERSION) return _normalizeVersion(process.env.VERSION);
   if (process.env.GIT_TAG) return _normalizeVersion(process.env.GIT_TAG);
   const pkg = JSON.parse(readFileSync("./package.json", "utf-8"));
-  return _normalizeVersion(pkg.version) ?? "";
+  return _normalizeVersion(pkg.version);
 }
 
 function _readGitCommit(): string | undefined {
@@ -44,7 +44,7 @@ const _gitCommit = _readGitCommit();
 const _gitTag = _readGitTag();
 const _buildTime = process.env.BUILD_TIME ?? new Date().toISOString();
 
-export function getVersion(): string {
+export function getVersion(): string | undefined {
   return _version;
 }
 
