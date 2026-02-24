@@ -44,9 +44,20 @@ describe("analyzeDamageTaken", () => {
     ];
     const result = analyzeDamageTaken(entries);
     expect(result.incomingWeaponSummaries.length).toBe(3);
-    expect(result.incomingWeaponSummaries[0].shipType).toBe("Typhoon");
-    expect(result.incomingWeaponSummaries[1].shipType).toBe("Proteus");
-    expect(result.incomingWeaponSummaries[2].shipType).toBe("Arch Gistii Thug");
+
+    const typhoonSummary = result.incomingWeaponSummaries.find(
+      (summary) => summary.shipType === "Typhoon",
+    );
+    const proteusSummary = result.incomingWeaponSummaries.find(
+      (summary) => summary.shipType === "Proteus",
+    );
+    const archGistiiThugSummary = result.incomingWeaponSummaries.find(
+      (summary) => summary.shipType === "Arch Gistii Thug",
+    );
+
+    expect(typhoonSummary?.shipType).toBe("Typhoon");
+    expect(proteusSummary?.shipType).toBe("Proteus");
+    expect(archGistiiThugSummary?.shipType).toBe("Arch Gistii Thug");
   });
 
   it("includes shipType in incoming drone summaries", () => {

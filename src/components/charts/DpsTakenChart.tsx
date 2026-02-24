@@ -48,10 +48,10 @@ function CustomTooltip({
 
   // Find the DPS point (from the first line)
   const dpsPoint = payload.find((p: TooltipPayload) => p.dataKey === "dps")
-    ?.payload as TimeSeriesDpsPoint;
+    ?.payload as TimeSeriesDpsPoint | undefined;
   const repPoint = payload.find(
     (p: TooltipPayload) => p.dataKey === "repsPerSecond",
-  )?.payload as RepTimeSeriesPoint;
+  )?.payload as RepTimeSeriesPoint | undefined;
 
   if (!dpsPoint && !repPoint) return null;
 
