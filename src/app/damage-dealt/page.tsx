@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { Upload, Sword } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
@@ -166,7 +166,6 @@ function buildEngagementColumns(
       numeric: true,
       render: (v, row) => {
         const dps = v as number;
-        const r = row as unknown as EngagementRow;
         const pct = maxDps > 0 && dps > 0 ? (dps / maxDps) * 100 : 0;
         return (
           <div className="flex flex-col gap-1 min-w-[80px]">
@@ -373,14 +372,17 @@ export default function DamageDealtPage() {
     return Math.max(0, ...analysis.engagements.map((e) => e.dps));
   }, [analysis]);
 
-  const handleTargetClick = (engagement: TargetEngagement) => {
-    setZoomedTarget((prev) =>
-      prev?.target === engagement.target &&
-      prev?.shipType === engagement.shipType
-        ? null
-        : engagement,
-    );
-  };
+  const handleTargetClick = useCallback(
+    (engagement: TargetEngagement) => {
+      setZoomedTarget((prev) =>
+        prev?.target === engagement.target &&
+        prev?.shipType === engagement.shipType
+          ? null
+          : engagement,
+      );
+    },
+    [],
+  );
 
   const engagementRows: Record<string, unknown>[] = useMemo(() => {
     if (!analysis) return [];
@@ -398,8 +400,7 @@ export default function DamageDealtPage() {
 
   const engagementColumns = useMemo(
     () => buildEngagementColumns(maxDps, handleTargetClick),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [maxDps],
+    [maxDps, handleTargetClick],
   );
 
   // Stat card values
