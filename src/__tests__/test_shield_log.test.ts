@@ -5,7 +5,7 @@ import { parseLogFile } from "../lib/parser";
 
 const FIXTURE_PATH = path.resolve(
   __dirname,
-  "../../data/test_shield_reps.txt",
+  "fixtures/test_shield_reps.txt",
 );
 
 function fileFromDisk(filePath: string): File {
