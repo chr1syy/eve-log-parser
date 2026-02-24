@@ -2,7 +2,7 @@ import { readFileSync } from "fs";
 import { execSync } from "child_process";
 
 export interface VersionInfo {
-  version: string;
+  version?: string;
   buildTime: string;
   gitCommit?: string;
   gitTag?: string;

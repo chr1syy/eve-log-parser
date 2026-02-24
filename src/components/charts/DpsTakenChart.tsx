@@ -23,7 +23,15 @@ interface DpsTakenChartProps {
   repTimeSeries?: RepTimeSeriesPoint[];
 }
 
-function formatTime(date: Date): string {
+type TimeValue = Date | string | number;
+
+function toDate(value: TimeValue): Date {
+  return value instanceof Date ? value : new Date(value);
+}
+
+function formatTime(value: TimeValue): string {
+  const date = toDate(value);
+  if (Number.isNaN(date.getTime())) return "--:--:--";
   return date.toLocaleTimeString(undefined, {
     hour: "2-digit",
     minute: "2-digit",
@@ -53,9 +61,8 @@ function CustomTooltip({
     (p: TooltipPayload) => p.dataKey === "repsPerSecond",
   )?.payload as RepTimeSeriesPoint | undefined;
 
-  if (!dpsPoint && !repPoint) return null;
-
-  const point = dpsPoint || repPoint;
+  const point = dpsPoint ?? repPoint;
+  if (!point) return null;
 
   return (
     <div className="bg-overlay border border-[#00d4ff40] px-3 py-2 rounded-sm font-mono text-xs backdrop-blur">
@@ -113,7 +120,7 @@ export default function DpsTakenChart({
     repsPerSecond?: number;
   }> = timeSeries.map((point) => ({
     ...point,
-    timestampMs: point.timestamp.getTime(),
+    timestampMs: toDate(point.timestamp).getTime(),
     timeLabel: formatTime(point.timestamp),
   }));
 
