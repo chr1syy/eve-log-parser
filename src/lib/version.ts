@@ -8,7 +8,8 @@ export interface VersionInfo {
   gitTag?: string;
 }
 
-function _normalizeVersion(value: string): string {
+function _normalizeVersion(value?: string): string | undefined {
+  if (!value) return value;
   return value.startsWith("v") ? value.slice(1) : value;
 }
 
@@ -16,7 +17,7 @@ function _readVersion(): string {
   if (process.env.VERSION) return _normalizeVersion(process.env.VERSION);
   if (process.env.GIT_TAG) return _normalizeVersion(process.env.GIT_TAG);
   const pkg = JSON.parse(readFileSync("./package.json", "utf-8"));
-  return _normalizeVersion(pkg.version);
+  return _normalizeVersion(pkg.version) ?? "";
 }
 
 function _readGitCommit(): string | undefined {
