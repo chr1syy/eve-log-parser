@@ -228,7 +228,7 @@ export function parseCombatLine(
           repShipType?.toLowerCase().includes("repair drone") ||
           false;
 
-        if (clean.includes("repaired by")) {
+        if (clean.includes("remote armor repaired by")) {
           base.eventType = "rep-received";
           base.direction = "incoming";
           const m = clean.match(
@@ -238,11 +238,31 @@ export function parseCombatLine(
             base.amount = parseInt(m[1], 10);
             base.repModule = m[2].trim();
           }
-        } else if (clean.includes("repaired to")) {
+        } else if (clean.includes("remote shield boosted by")) {
+          base.eventType = "rep-received";
+          base.direction = "incoming";
+          const m = clean.match(
+            /^(\d+)\s+remote shield boosted by\s+.+\s+-\s+(.+)$/,
+          );
+          if (m) {
+            base.amount = parseInt(m[1], 10);
+            base.repModule = m[2].trim();
+          }
+        } else if (clean.includes("remote armor repaired to")) {
           base.eventType = "rep-outgoing";
           base.direction = "outgoing";
           const m = clean.match(
             /^(\d+)\s+remote armor repaired to\s+.+\s+-\s+(.+)$/,
+          );
+          if (m) {
+            base.amount = parseInt(m[1], 10);
+            base.repModule = m[2].trim();
+          }
+        } else if (clean.includes("remote shield boosted to")) {
+          base.eventType = "rep-outgoing";
+          base.direction = "outgoing";
+          const m = clean.match(
+            /^(\d+)\s+remote shield boosted to\s+.+\s+-\s+(.+)$/,
           );
           if (m) {
             base.amount = parseInt(m[1], 10);
