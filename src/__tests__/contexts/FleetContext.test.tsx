@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, act } from "@testing-library/react";
 import { renderHook } from "@testing-library/react";
 import {
   FleetProvider,
@@ -24,7 +25,7 @@ describe("FleetProvider", () => {
       render(
         <FleetProvider>
           <div>Test Child</div>
-        </FleetProvider>
+        </FleetProvider>,
       );
     }).not.toThrow();
   });
@@ -65,7 +66,7 @@ describe("FleetContext reducer", () => {
         sessions: useFleetSessions(),
         dispatch: useFleetSessionDispatch(),
       }),
-      { wrapper: FleetProvider }
+      { wrapper: FleetProvider },
     );
 
     const newSession: FleetSession = {
@@ -79,7 +80,9 @@ describe("FleetContext reducer", () => {
       status: "PENDING",
     };
 
-    result.current.dispatch({ type: "CREATE_SESSION", payload: newSession });
+    act(() => {
+      result.current.dispatch({ type: "CREATE_SESSION", payload: newSession });
+    });
 
     expect(result.current.session).toEqual(newSession);
     expect(result.current.sessions).toContain(newSession);
@@ -91,12 +94,14 @@ describe("FleetContext reducer", () => {
         session: useFleetSession(),
         dispatch: useFleetSessionDispatch(),
       }),
-      { wrapper: FleetProvider }
+      { wrapper: FleetProvider },
     );
 
     const session = EXAMPLE_FLEET_SESSIONS[0];
 
-    result.current.dispatch({ type: "JOIN_SESSION", payload: session });
+    act(() => {
+      result.current.dispatch({ type: "JOIN_SESSION", payload: session });
+    });
 
     expect(result.current.session).toEqual(session);
   });
@@ -107,7 +112,7 @@ describe("FleetContext reducer", () => {
         sessions: useFleetSessions(),
         dispatch: useFleetSessionDispatch(),
       }),
-      { wrapper: FleetProvider }
+      { wrapper: FleetProvider },
     );
 
     const sessionId = EXAMPLE_FLEET_SESSIONS[0].id;
@@ -121,9 +126,16 @@ describe("FleetContext reducer", () => {
       pilotId: "pilot-new",
     };
 
-    result.current.dispatch({ type: "UPLOAD_LOG", payload: { sessionId, log } });
+    act(() => {
+      result.current.dispatch({
+        type: "UPLOAD_LOG",
+        payload: { sessionId, log },
+      });
+    });
 
-    const updatedSession = result.current.sessions.find(s => s.id === sessionId);
+    const updatedSession = result.current.sessions.find(
+      (s) => s.id === sessionId,
+    );
     expect(updatedSession?.logs).toContain(log);
   });
 
@@ -134,7 +146,7 @@ describe("FleetContext reducer", () => {
         sessions: useFleetSessions(),
         dispatch: useFleetSessionDispatch(),
       }),
-      { wrapper: FleetProvider }
+      { wrapper: FleetProvider },
     );
 
     // Create a session
@@ -149,12 +161,19 @@ describe("FleetContext reducer", () => {
       status: "PENDING",
     };
 
-    result.current.dispatch({ type: "CREATE_SESSION", payload: newSession });
+    act(() => {
+      result.current.dispatch({ type: "CREATE_SESSION", payload: newSession });
+    });
     expect(result.current.session).toEqual(newSession);
 
     // Join another session
     const anotherSession = EXAMPLE_FLEET_SESSIONS[1];
-    result.current.dispatch({ type: "JOIN_SESSION", payload: anotherSession });
+    act(() => {
+      result.current.dispatch({
+        type: "JOIN_SESSION",
+        payload: anotherSession,
+      });
+    });
     expect(result.current.session).toEqual(anotherSession);
 
     // Upload a log to the current session
@@ -168,7 +187,12 @@ describe("FleetContext reducer", () => {
       pilotId: "pilot-test",
     };
 
-    result.current.dispatch({ type: "UPLOAD_LOG", payload: { sessionId: anotherSession.id, log } });
+    act(() => {
+      result.current.dispatch({
+        type: "UPLOAD_LOG",
+        payload: { sessionId: anotherSession.id, log },
+      });
+    });
     expect(result.current.session?.logs).toContain(log);
   });
 });

@@ -66,14 +66,14 @@ describe("FleetEnemiesTable", () => {
 
     expect(screen.getByText("2")).toBeInTheDocument(); // Alpha kills
     expect(screen.getByText("1")).toBeInTheDocument(); // Beta kills
-    expect(screen.getByText("0")).toBeInTheDocument(); // Gamma and Epsilon kills (appears twice)
+    expect(screen.getAllByText("0")).toHaveLength(2); // Gamma and Epsilon kills
     expect(screen.getByText("3")).toBeInTheDocument(); // Delta kills
 
     expect(screen.getByText("1.5B")).toBeInTheDocument(); // Alpha damage
     expect(screen.getByText("1.2B")).toBeInTheDocument(); // Beta damage
     expect(screen.getByText("1.0B")).toBeInTheDocument(); // Gamma damage
-    expect(screen.getByText("800M")).toBeInTheDocument(); // Delta damage
-    expect(screen.getByText("500M")).toBeInTheDocument(); // Epsilon damage
+    expect(screen.getByText("800.0M")).toBeInTheDocument(); // Delta damage
+    expect(screen.getByText("500.0M")).toBeInTheDocument(); // Epsilon damage
   });
 
   it("sorts by damage dealt descending by default", () => {
@@ -141,6 +141,6 @@ describe("FleetEnemiesTable", () => {
     expect(alphaDamage).toHaveTextContent("1.5B");
 
     const epsilonDamage = screen.getByTitle("(raw: 500000000)");
-    expect(epsilonDamage).toHaveTextContent("500M");
+    expect(epsilonDamage).toHaveTextContent("500.0M");
   });
 });

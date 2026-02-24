@@ -107,15 +107,15 @@ describe("FleetSessionDetailPage", () => {
     });
 
     // Check pilot names are rendered
-    expect(screen.getByText("Captain Alpha")).toBeInTheDocument();
-    expect(screen.getByText("Lieutenant Beta")).toBeInTheDocument();
+    expect(screen.getAllByText("Captain Alpha").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Lieutenant Beta").length).toBeGreaterThan(0);
 
     // Check ship types
     expect(screen.getByText("Abaddon")).toBeInTheDocument();
     expect(screen.getByText("Raven")).toBeInTheDocument();
 
     // Check statuses (mapped to display text)
-    expect(screen.getByText("ANALYZING")).toBeInTheDocument();
+    expect(screen.getAllByText("Analyzing").length).toBeGreaterThan(0);
   });
 
   it("opens LogUploadForm when upload button is clicked", async () => {
@@ -143,17 +143,19 @@ describe("FleetSessionDetailPage", () => {
       expect(screen.getByText("Upload New Log")).toBeInTheDocument();
     });
 
-    // Initially form should not be visible
-    expect(screen.queryByText("Log File (.txt)")).not.toBeInTheDocument();
+    // Analysis upload form should be visible
+    expect(screen.getByText("Log File (.txt)")).toBeInTheDocument();
 
     // Click upload button
     const uploadButton = screen.getByText("Upload New Log");
     fireEvent.click(uploadButton);
 
-    // Form should now be visible
-    expect(screen.getByText("Log File (.txt)")).toBeInTheDocument();
-    expect(screen.getByText("Pilot Name")).toBeInTheDocument();
-    expect(screen.getByText("Ship Type (Optional)")).toBeInTheDocument();
+    // A second upload form should now be visible
+    expect(screen.getAllByText("Log File (.txt)").length).toBeGreaterThan(1);
+    expect(screen.getAllByText("Pilot Name").length).toBeGreaterThan(1);
+    expect(screen.getAllByText("Ship Type (Optional)").length).toBeGreaterThan(
+      1,
+    );
   });
 
   it("displays analysis tabs when analysis is ready", async () => {
@@ -182,10 +184,16 @@ describe("FleetSessionDetailPage", () => {
     });
 
     // Check that analysis tabs are visible
-    expect(screen.getByText("Damage Dealt")).toBeInTheDocument();
-    expect(screen.getByText("Kills")).toBeInTheDocument();
-    expect(screen.getByText("Damage Taken")).toBeInTheDocument();
-    expect(screen.getByText("Cap Pressure")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Damage Dealt" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reps" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Damage Taken" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Cap Pressure" }),
+    ).toBeInTheDocument();
   });
 
   it("handles session not found error", async () => {

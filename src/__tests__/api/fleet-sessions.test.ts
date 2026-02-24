@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   POST as createSession,
@@ -11,14 +12,10 @@ import {
   getSession as getSessionStore,
   listUserSessions,
   updateSession,
+  sessionStore,
 } from "@/lib/fleet/sessionStore";
 
 // Mock NextRequest and NextResponse
-const mockJson = vi.fn();
-const mockNextResponse = {
-  json: mockJson,
-};
-
 vi.mock("next/server", () => ({
   NextRequest: class MockNextRequest {
     constructor(input: RequestInfo | URL, init?: RequestInit) {
@@ -26,10 +23,7 @@ vi.mock("next/server", () => ({
     }
   },
   NextResponse: {
-    json: vi.fn((data, options) => ({
-      ...data,
-      status: options?.status || 200,
-    })),
+    json: vi.fn((data, options) => data),
   },
 }));
 
@@ -37,7 +31,6 @@ describe("POST /api/fleet-sessions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Clear the session store
-    const { sessionStore } = require("@/lib/fleet/sessionStore");
     sessionStore.clear();
   });
 
@@ -48,15 +41,13 @@ describe("POST /api/fleet-sessions", () => {
         .mockResolvedValue({ fightName: "Test Fight", tags: ["tag1"] }),
     } as any;
 
-    await createSession(mockRequest);
+    const response = await createSession(mockRequest);
 
-    expect(mockJson).toHaveBeenCalled();
-    const response = mockJson.mock.calls[0][0];
-    expect(response).toHaveProperty("id");
-    expect(response).toHaveProperty("code");
-    expect(response.code).toMatch(/^FLEET-[A-Z0-9]{6}$/);
-    expect(response).toHaveProperty("createdAt");
-    expect(response).toHaveProperty("creator");
+    expect(response as any).toHaveProperty("id");
+    expect(response as any).toHaveProperty("code");
+    expect((response as any).code).toMatch(/^FLEET-[A-Z0-9]{6}$/);
+    expect(response as any).toHaveProperty("createdAt");
+    expect(response as any).toHaveProperty("creator");
   });
 
   it("generates unique codes (no duplicates)", async () => {
@@ -67,13 +58,10 @@ describe("POST /api/fleet-sessions", () => {
       json: vi.fn().mockResolvedValue({}),
     } as any;
 
-    await createSession(mockRequest1);
-    await createSession(mockRequest2);
+    const response1 = await createSession(mockRequest1);
+    const response2 = await createSession(mockRequest2);
 
-    const response1 = mockJson.mock.calls[0][0];
-    const response2 = mockJson.mock.calls[1][0];
-
-    expect(response1.code).not.toBe(response2.code);
+    expect((response1 as any).code).not.toBe((response2 as any).code);
   });
 });
 
@@ -83,7 +71,6 @@ describe("POST /api/fleet-sessions/[id]/join", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    const { sessionStore } = require("@/lib/fleet/sessionStore");
     sessionStore.clear();
 
     // Create a session
@@ -97,11 +84,11 @@ describe("POST /api/fleet-sessions/[id]/join", () => {
       json: vi.fn().mockResolvedValue({ code: sessionCode }),
     } as any;
 
-    await joinSession(mockRequest, { params: { id: sessionId } } as any);
+    const response = await joinSession(mockRequest, {
+      params: { id: sessionId },
+    } as any);
 
-    expect(mockJson).toHaveBeenCalled();
-    const response = mockJson.mock.calls[0][0];
-    expect(response.success).toBe(true);
+    expect((response as any).success).toBe(true);
   });
 
   it("rejects incorrect code", async () => {
@@ -109,12 +96,12 @@ describe("POST /api/fleet-sessions/[id]/join", () => {
       json: vi.fn().mockResolvedValue({ code: "WRONG-CODE" }),
     } as any;
 
-    await joinSession(mockRequest, { params: { id: sessionId } } as any);
+    const response = await joinSession(mockRequest, {
+      params: { id: sessionId },
+    } as any);
 
-    expect(mockJson).toHaveBeenCalled();
-    const response = mockJson.mock.calls[0][0];
-    expect(response.success).toBe(false);
-    expect(response.message).toBe("Invalid code or session not found");
+    expect((response as any).success).toBe(false);
+    expect((response as any).message).toBe("Invalid code or session not found");
   });
 });
 
@@ -123,7 +110,6 @@ describe("POST /api/fleet-sessions/[id]/upload", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    const { sessionStore } = require("@/lib/fleet/sessionStore");
     sessionStore.clear();
 
     // Create a session
@@ -141,12 +127,12 @@ describe("POST /api/fleet-sessions/[id]/upload", () => {
       formData: vi.fn().mockResolvedValue(mockFormData),
     } as any;
 
-    await uploadLog(mockRequest, { params: { id: sessionId } } as any);
+    const response = await uploadLog(mockRequest, {
+      params: { id: sessionId },
+    } as any);
 
-    expect(mockJson).toHaveBeenCalled();
-    const response = mockJson.mock.calls[0][0];
-    expect(response.success).toBe(true);
-    expect(response).toHaveProperty("fleetLog");
+    expect((response as any).success).toBe(true);
+    expect(response as any).toHaveProperty("fleetLog");
   });
 
   it("rejects invalid files", async () => {
@@ -157,18 +143,17 @@ describe("POST /api/fleet-sessions/[id]/upload", () => {
       formData: vi.fn().mockResolvedValue(mockFormData),
     } as any;
 
-    await uploadLog(mockRequest, { params: { id: sessionId } } as any);
+    const response = await uploadLog(mockRequest, {
+      params: { id: sessionId },
+    } as any);
 
-    expect(mockJson).toHaveBeenCalled();
-    const response = mockJson.mock.calls[0][0];
-    expect(response.success).toBe(false);
+    expect((response as any).success).toBe(false);
   });
 });
 
 describe("GET /api/fleet-sessions", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
-    const { sessionStore } = require("@/lib/fleet/sessionStore");
     sessionStore.clear();
 
     // Create a session
@@ -176,14 +161,12 @@ describe("GET /api/fleet-sessions", () => {
   });
 
   it("returns user's sessions", async () => {
-    await listSessions();
+    const response = await listSessions();
 
-    expect(mockJson).toHaveBeenCalled();
-    const response = mockJson.mock.calls[0][0];
     expect(Array.isArray(response)).toBe(true);
-    expect(response.length).toBe(1);
-    expect(response[0]).toHaveProperty("participantCount");
-    expect(response[0]).toHaveProperty("logCount");
+    expect((response as any).length).toBe(1);
+    expect((response as any)[0]).toHaveProperty("participantCount");
+    expect((response as any)[0]).toHaveProperty("logCount");
   });
 });
 
@@ -192,7 +175,6 @@ describe("GET /api/fleet-sessions/[id]", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    const { sessionStore } = require("@/lib/fleet/sessionStore");
     sessionStore.clear();
 
     // Create a session
@@ -201,13 +183,14 @@ describe("GET /api/fleet-sessions/[id]", () => {
   });
 
   it("returns full session data", async () => {
-    await getSession({} as any, { params: { id: sessionId } } as any);
+    const response = await getSession(
+      {} as any,
+      { params: { id: sessionId } } as any,
+    );
 
-    expect(mockJson).toHaveBeenCalled();
-    const response = mockJson.mock.calls[0][0];
-    expect(response).toHaveProperty("session");
-    expect(response).toHaveProperty("participants");
-    expect(response).toHaveProperty("logs");
-    expect(response).toHaveProperty("analysisReady");
+    expect(response as any).toHaveProperty("session");
+    expect(response as any).toHaveProperty("participants");
+    expect(response as any).toHaveProperty("logs");
+    expect(response as any).toHaveProperty("analysisReady");
   });
 });

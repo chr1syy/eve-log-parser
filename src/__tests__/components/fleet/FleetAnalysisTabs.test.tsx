@@ -5,7 +5,7 @@ import type { FleetSession } from "@/types/fleet";
 describe("FleetAnalysisTabs", () => {
   const mockSession: FleetSession = {
     id: "session-1",
-    code: "FLEET-ABC123" as any,
+    code: "FLEET-ABC123",
     creator: "user-1",
     createdAt: new Date(),
     participants: [
@@ -44,12 +44,22 @@ describe("FleetAnalysisTabs", () => {
       <FleetAnalysisTabs sessionData={mockSession} analysisReady={true} />,
     );
 
-    expect(screen.getByText("Overview")).toBeInTheDocument();
-    expect(screen.getByText("Damage Dealt")).toBeInTheDocument();
-    expect(screen.getByText("Damage Taken")).toBeInTheDocument();
-    expect(screen.getByText("Reps")).toBeInTheDocument();
-    expect(screen.getByText("Cap Pressure")).toBeInTheDocument();
-    expect(screen.getByText("Composition")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Overview" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Damage Dealt" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Damage Taken" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reps" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Cap Pressure" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Composition" }),
+    ).toBeInTheDocument();
   });
 
   it("shows Overview tab as active by default", () => {
@@ -57,7 +67,7 @@ describe("FleetAnalysisTabs", () => {
       <FleetAnalysisTabs sessionData={mockSession} analysisReady={true} />,
     );
 
-    const overviewTab = screen.getByText("Overview");
+    const overviewTab = screen.getByRole("button", { name: "Overview" });
     expect(overviewTab).toHaveClass("border-b-2", "border-accent");
   });
 
@@ -70,7 +80,7 @@ describe("FleetAnalysisTabs", () => {
     expect(screen.getByText("Fleet Participants")).toBeInTheDocument();
 
     // Click Damage Dealt
-    fireEvent.click(screen.getByText("Damage Dealt"));
+    fireEvent.click(screen.getByRole("button", { name: "Damage Dealt" }));
 
     // Should show placeholder
     expect(screen.getByText("Coming in Phase 2")).toBeInTheDocument();
@@ -81,7 +91,7 @@ describe("FleetAnalysisTabs", () => {
       <FleetAnalysisTabs sessionData={mockSession} analysisReady={true} />,
     );
 
-    fireEvent.click(screen.getByText("Damage Dealt"));
+    fireEvent.click(screen.getByRole("button", { name: "Damage Dealt" }));
 
     expect(screen.queryByText("Fleet Participants")).not.toBeInTheDocument();
   });

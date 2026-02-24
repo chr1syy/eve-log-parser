@@ -140,7 +140,20 @@ describe("FleetCombatAnalysis", () => {
           logId: "log-123",
         },
       ],
-      enemies: ["Angel Frigate", "Angel Cruiser"],
+      enemies: [
+        {
+          name: "Angel Frigate",
+          damageDealt: 1200,
+          damageReceived: 600,
+          kills: 1,
+        },
+        {
+          name: "Angel Cruiser",
+          damageDealt: 800,
+          damageReceived: 400,
+          kills: 0,
+        },
+      ],
       fightDuration: 45,
     };
 
@@ -148,7 +161,10 @@ describe("FleetCombatAnalysis", () => {
     expect(analysis.totalDamageTaken).toBe(1500);
     expect(analysis.totalRepsGiven).toBe(1000);
     expect(analysis.participants).toHaveLength(1);
-    expect(analysis.enemies).toEqual(["Angel Frigate", "Angel Cruiser"]);
+    expect(analysis.enemies.map((e) => e.name)).toEqual([
+      "Angel Frigate",
+      "Angel Cruiser",
+    ]);
     expect(analysis.fightDuration).toBe(45);
   });
 });

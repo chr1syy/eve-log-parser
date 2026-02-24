@@ -66,6 +66,7 @@ describe("fleetAnalysis", () => {
       amount: 200,
       pilotName: "Pilot1",
       shipType: "Typhoon",
+      repShipType: "Tempest",
       repModule: "Medium Remote Armor Repairer II",
     },
     // Rep received by pilot2 from pilot1

@@ -8,6 +8,8 @@ import Button from "@/components/ui/Button";
 import { useFleetSessionDispatch } from "@/contexts/FleetContext";
 import type { FleetSession } from "@/types/fleet";
 
+export const dynamic = "force-dynamic";
+
 export default function CreateFleetSessionPage() {
   const [fightName, setFightName] = useState("");
   const [tags, setTags] = useState("");

@@ -97,12 +97,12 @@ export default function FleetSessionDetailPage({
     {
       key: "pilotName",
       label: "Pilot",
-      render: (value) => <span>{value}</span>,
+      render: (value) => <span>{value as string}</span>,
     },
     {
       key: "shipType",
       label: "Ship",
-      render: (value) => <span>{value || "Unknown"}</span>,
+      render: (value) => <span>{(value as string) || "Unknown"}</span>,
     },
     {
       key: "status",
@@ -116,7 +116,8 @@ export default function FleetSessionDetailPage({
         };
         return (
           <span className="uppercase text-xs">
-            {statusMap[value as keyof typeof statusMap] || value}
+            {statusMap[value as string as keyof typeof statusMap] ||
+              (value as string)}
           </span>
         );
       },
@@ -136,12 +137,13 @@ export default function FleetSessionDetailPage({
     {
       key: "pilotName",
       label: "Pilot",
-      render: (value) => <span>{value}</span>,
+      render: (value) => <span>{value as string}</span>,
     },
     {
       key: "uploadedAt",
       label: "Uploaded",
-      render: (value) => new Date(value).toLocaleString(),
+      render: (value) =>
+        new Date(value as string | number | Date).toLocaleString(),
     },
     {
       key: "fileSize",
@@ -210,8 +212,10 @@ export default function FleetSessionDetailPage({
             Participants ({participants.length})
           </h2>
           <DataTable
-            columns={participantColumns}
-            data={participants}
+            columns={
+              participantColumns as unknown as Column<Record<string, unknown>>[]
+            }
+            data={participants as unknown as Record<string, unknown>[]}
             searchable={false}
             emptyState={
               <span className="text-text-muted">No participants yet</span>
@@ -240,8 +244,8 @@ export default function FleetSessionDetailPage({
           )}
 
           <DataTable
-            columns={logColumns}
-            data={logs}
+            columns={logColumns as unknown as Column<Record<string, unknown>>[]}
+            data={logs as unknown as Record<string, unknown>[]}
             searchable={false}
             emptyState={
               <span className="text-text-muted">No logs uploaded yet</span>

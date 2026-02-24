@@ -1,0 +1,5 @@
+Listener: Bungo Brown
+Session Started: [2026.02.19 04:53:52]
+
+[ 2026.02.19 04:53:53 ] (combat) <color=0xff00ffff>4 from Bungo Brown - Nova Rocket - Hits
+[ 2026.02.19 04:53:54 ] (combat) <color=0xffcc0000>10 to Bungo Brown - from Diana Wanda - Nova Rocket - Hits

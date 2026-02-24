@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { POST as joinSession } from "@/app/api/fleet-sessions/[id]/join/route";
 import { POST as uploadLog } from "@/app/api/fleet-sessions/[id]/upload/route";

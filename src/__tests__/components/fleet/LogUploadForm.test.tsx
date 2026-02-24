@@ -82,7 +82,13 @@ describe("LogUploadForm", () => {
     fireEvent.change(pilotInput, { target: { value: "Test Pilot" } });
     fireEvent.change(shipInput, { target: { value: "Drake" } });
 
-    fireEvent.click(submitButton);
+    await waitFor(() => {
+      expect(pilotInput).toHaveValue("Test Pilot");
+    });
+
+    const form = submitButton.closest("form");
+    expect(form).not.toBeNull();
+    fireEvent.submit(form!);
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(
@@ -117,7 +123,13 @@ describe("LogUploadForm", () => {
     fireEvent.change(fileInput, { target: { files: [file] } });
     fireEvent.change(pilotInput, { target: { value: "Test Pilot" } });
 
-    fireEvent.click(submitButton);
+    await waitFor(() => {
+      expect(pilotInput).toHaveValue("Test Pilot");
+    });
+
+    const form = submitButton.closest("form");
+    expect(form).not.toBeNull();
+    fireEvent.submit(form!);
 
     await waitFor(() => {
       expect(mockOnSuccess).toHaveBeenCalled();
@@ -146,7 +158,13 @@ describe("LogUploadForm", () => {
     fireEvent.change(fileInput, { target: { files: [file] } });
     fireEvent.change(pilotInput, { target: { value: "Test Pilot" } });
 
-    fireEvent.click(submitButton);
+    await waitFor(() => {
+      expect(pilotInput).toHaveValue("Test Pilot");
+    });
+
+    const form = submitButton.closest("form");
+    expect(form).not.toBeNull();
+    fireEvent.submit(form!);
 
     await waitFor(() => {
       expect(screen.getByText("Upload failed")).toBeInTheDocument();
@@ -168,10 +186,18 @@ describe("LogUploadForm", () => {
     fireEvent.change(fileInput, { target: { files: [file] } });
     fireEvent.change(pilotInput, { target: { value: "Test Pilot" } });
 
-    fireEvent.click(submitButton);
+    await waitFor(() => {
+      expect(pilotInput).toHaveValue("Test Pilot");
+    });
 
-    expect(screen.getByText("Uploading...")).toBeInTheDocument();
-    expect(submitButton).toBeDisabled();
+    const form = submitButton.closest("form");
+    expect(form).not.toBeNull();
+    fireEvent.submit(form!);
+
+    await waitFor(() => {
+      expect(screen.getByText("Uploading...")).toBeInTheDocument();
+      expect(submitButton).toBeDisabled();
+    });
   });
 
   it("validates required fields before submission", async () => {
@@ -179,11 +205,15 @@ describe("LogUploadForm", () => {
 
     const submitButton = screen.getByRole("button", { name: "Upload Log" });
 
-    fireEvent.click(submitButton);
+    const form = submitButton.closest("form");
+    expect(form).not.toBeNull();
+    fireEvent.submit(form!);
 
-    expect(
-      screen.getByText("Please select a file and enter pilot name"),
-    ).toBeInTheDocument();
-    expect(mockFetch).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(
+        screen.getByText("Please select a file and enter pilot name"),
+      ).toBeInTheDocument();
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
   });
 });

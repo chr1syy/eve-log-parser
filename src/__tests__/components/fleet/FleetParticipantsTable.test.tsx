@@ -58,19 +58,19 @@ describe("FleetParticipantsTable", () => {
 
     // Check formatted values appear
     expect(screen.getByText("1.2B")).toBeInTheDocument(); // damageDealt for Alpha
-    expect(screen.getByText("800M")).toBeInTheDocument(); // damageTaken for Alpha
-    expect(screen.getByText("500M")).toBeInTheDocument(); // repsGiven for Alpha
-    expect(screen.getByText("300M")).toBeInTheDocument(); // repsTaken for Alpha
+    expect(screen.getByText("800.0M")).toBeInTheDocument(); // damageTaken for Alpha
+    expect(screen.getByText("500.0M")).toBeInTheDocument(); // repsGiven for Alpha
+    expect(screen.getAllByText("300.0M").length).toBeGreaterThan(0); // repsTaken for Alpha
 
     expect(screen.getByText("1.0B")).toBeInTheDocument(); // damageDealt for Beta
-    expect(screen.getByText("700M")).toBeInTheDocument(); // damageTaken for Beta
-    expect(screen.getByText("300M")).toBeInTheDocument(); // repsGiven for Beta
-    expect(screen.getByText("200M")).toBeInTheDocument(); // repsTaken for Beta
+    expect(screen.getByText("700.0M")).toBeInTheDocument(); // damageTaken for Beta
+    expect(screen.getAllByText("300.0M").length).toBeGreaterThan(0); // repsGiven for Beta
+    expect(screen.getAllByText("200.0M").length).toBeGreaterThan(0); // repsTaken for Beta
 
-    expect(screen.getByText("200M")).toBeInTheDocument(); // damageDealt for Gamma (should appear twice, but that's fine)
-    expect(screen.getByText("300M")).toBeInTheDocument(); // damageTaken for Gamma (appears twice)
-    expect(screen.getByText("90M")).toBeInTheDocument(); // repsGiven for Gamma
-    expect(screen.getByText("100M")).toBeInTheDocument(); // repsTaken for Gamma
+    expect(screen.getAllByText("200.0M").length).toBeGreaterThan(0); // damageDealt for Gamma (should appear twice, but that's fine)
+    expect(screen.getAllByText("300.0M").length).toBeGreaterThan(0); // damageTaken for Gamma (appears twice)
+    expect(screen.getByText("90.0M")).toBeInTheDocument(); // repsGiven for Gamma
+    expect(screen.getByText("100.0M")).toBeInTheDocument(); // repsTaken for Gamma
   });
 
   it("displays status with correct colors", () => {

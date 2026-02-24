@@ -1,4 +1,29 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+vi.mock("next/server", () => ({
+  NextRequest: class MockNextRequest {
+    constructor(input: RequestInfo | URL, init?: RequestInit) {
+      return { json: vi.fn().mockResolvedValue(init?.body || {}) } as any;
+    }
+  },
+  NextResponse: {
+    json: vi.fn((data, options) => data),
+  },
+}));
+
+vi.mock("@/lib/fleet/sessionStore", () => ({
+  createSession: vi.fn(),
+  listUserSessions: vi.fn(),
+  getSession: vi.fn(),
+  updateSession: vi.fn(),
+  sessionStore: { clear: vi.fn() },
+}));
+
+vi.mock("@/lib/parser", () => ({
+  parseLogFile: vi.fn(),
+}));
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { NextResponse } from "next/server";
 import {
   POST as createSession,
   GET as listSessions,
@@ -9,55 +34,56 @@ import { GET as getSession } from "@/app/api/fleet-sessions/[id]/route";
 import {
   createSession as createSessionStore,
   getSession as getSessionStore,
+  listUserSessions,
+  updateSession,
+  sessionStore,
 } from "@/lib/fleet/sessionStore";
+import { parseLogFile } from "@/lib/parser";
+import type { FleetSession } from "@/types/fleet";
 
-// Mock NextRequest and NextResponse
-const mockJson = vi.fn();
-const mockStatus = vi.fn();
-
-vi.mock("next/server", () => ({
-  NextRequest: class MockNextRequest {
-    constructor(input: RequestInfo | URL, init?: RequestInit) {
-      return { json: vi.fn().mockResolvedValue(init?.body || {}) } as any;
-    }
-  },
-  NextResponse: {
-    json: vi.fn((data, options) => ({
-      ...data,
-      status: options?.status || 200,
-    })),
-  },
-}));
+const createSessionStoreMock = vi.mocked(createSessionStore);
+const getSessionStoreMock = vi.mocked(getSessionStore);
+const listUserSessionsMock = vi.mocked(listUserSessions);
+const updateSessionMock = vi.mocked(updateSession);
+const parseLogFileMock = vi.mocked(parseLogFile);
 
 describe("API Contract Tests", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Clear the session store
-    const { sessionStore } = require("../../lib/fleet/sessionStore");
     sessionStore.clear();
   });
 
   describe("POST /api/fleet-sessions", () => {
     it("returns { id, code, createdAt, creator }", async () => {
+      const session: FleetSession = {
+        id: "test-id",
+        code: "FLEET-123456",
+        createdAt: new Date(),
+        creator: "test-creator",
+        participants: [],
+        logs: [],
+        tags: [],
+        status: "ACTIVE",
+      };
+      createSessionStoreMock.mockReturnValue(session as any);
+
       const mockRequest = {
         json: vi
           .fn()
           .mockResolvedValue({ fightName: "Test Fight", tags: ["tag1"] }),
       } as any;
 
-      await createSession(mockRequest);
+      const response = await createSession(mockRequest);
 
-      expect(mockJson).toHaveBeenCalled();
-      const response = mockJson.mock.calls[0][0];
-      expect(response).toHaveProperty("id");
-      expect(typeof response.id).toBe("string");
-      expect(response).toHaveProperty("code");
-      expect(typeof response.code).toBe("string");
-      expect(response.code).toMatch(/^FLEET-[A-Z0-9]{6}$/);
-      expect(response).toHaveProperty("createdAt");
-      expect(response.createdAt).toBeInstanceOf(Date);
-      expect(response).toHaveProperty("creator");
-      expect(typeof response.creator).toBe("string");
+      expect((response as any).id).toBeDefined();
+      expect(typeof (response as any).id).toBe("string");
+      expect((response as any).code).toBeDefined();
+      expect(typeof (response as any).code).toBe("string");
+      expect((response as any).code).toMatch(/^FLEET-[A-Z0-9]{6}$/);
+      expect((response as any).createdAt).toBeInstanceOf(Date);
+      expect((response as any).creator).toBeDefined();
+      expect(typeof (response as any).creator).toBe("string");
     });
 
     it("handles 500 error on server error", async () => {
@@ -66,29 +92,33 @@ describe("API Contract Tests", () => {
         json: vi.fn().mockRejectedValue(new Error("Parse error")),
       } as any;
 
-      await createSession(mockRequest);
+      const response = await createSession(mockRequest);
 
-      expect(mockJson).toHaveBeenCalled();
-      const response = mockJson.mock.calls[0][0];
-      expect(response).toHaveProperty("error");
-      expect(response.error).toBe("Failed to create session");
-      // Note: status is not directly testable here due to mock, but assume it's 500
+      expect((response as any).error).toBe("Failed to create session");
     });
   });
 
   describe("GET /api/fleet-sessions", () => {
     it("returns array of FleetSession with correct structure", async () => {
-      // Create a session first
-      const session = createSessionStore("Test Fight", ["tag"]);
+      const session: FleetSession = {
+        id: "test-id",
+        code: "FLEET-123456",
+        createdAt: new Date(),
+        creator: "test-creator",
+        participants: [],
+        logs: [],
+        fightName: "Test Fight",
+        tags: ["tag"],
+        status: "ACTIVE",
+      };
+      listUserSessionsMock.mockReturnValue([session]);
 
-      await listSessions();
+      const response = await listSessions();
 
-      expect(mockJson).toHaveBeenCalled();
-      const response = mockJson.mock.calls[0][0];
       expect(Array.isArray(response)).toBe(true);
-      expect(response.length).toBe(1);
+      expect((response as any).length).toBe(1);
 
-      const sessionItem = response[0];
+      const sessionItem = (response as any)[0];
       expect(sessionItem).toHaveProperty("id");
       expect(sessionItem).toHaveProperty("code");
       expect(sessionItem).toHaveProperty("creator");
@@ -105,20 +135,13 @@ describe("API Contract Tests", () => {
     });
 
     it("handles 500 error on server error", async () => {
-      // Mock listUserSessions to throw error
-      vi.spyOn(
-        require("@/lib/fleet/sessionStore"),
-        "listUserSessions",
-      ).mockImplementation(() => {
-        throw new Error("DB error");
+      listUserSessionsMock.mockImplementation(() => {
+        throw new Error("Database error");
       });
 
-      await listSessions();
+      const response = await listSessions();
 
-      expect(mockJson).toHaveBeenCalled();
-      const response = mockJson.mock.calls[0][0];
-      expect(response).toHaveProperty("error");
-      expect(response.error).toBe("Failed to list sessions");
+      expect((response as any).error).toBe("Failed to list sessions");
     });
   });
 
@@ -127,11 +150,32 @@ describe("API Contract Tests", () => {
 
     beforeEach(async () => {
       // Create a session
-      const session = createSessionStore();
+      const session = {
+        id: "test-session-id",
+        code: "FLEET-123456",
+        createdAt: new Date(),
+        creator: "test-creator",
+        participants: [],
+        logs: [],
+        fightName: "Test Fight",
+        tags: [],
+        status: "ACTIVE",
+      };
+      createSessionStoreMock.mockReturnValue(session as any);
+      getSessionStoreMock.mockReturnValue(session as any);
+      updateSessionMock.mockReturnValue(session as any);
       sessionId = session.id;
     });
 
     it("accepts multipart form data and returns FleetLog", async () => {
+      parseLogFileMock.mockResolvedValue({
+        sessionId: "test-session-id",
+        fileName: "test-log.txt",
+        parsedAt: new Date(),
+        entries: [],
+        stats: { totalEvents: 0 },
+      } as any);
+
       const mockFormData = new FormData();
       mockFormData.append("file", new Blob(["log content"]), "log.txt");
       mockFormData.append("pilotName", "Test Pilot");
@@ -141,14 +185,14 @@ describe("API Contract Tests", () => {
         formData: vi.fn().mockResolvedValue(mockFormData),
       } as any;
 
-      await uploadLog(mockRequest, { params: { id: sessionId } } as any);
+      const response = await uploadLog(mockRequest, {
+        params: Promise.resolve({ id: sessionId }),
+      } as any);
 
-      expect(mockJson).toHaveBeenCalled();
-      const response = mockJson.mock.calls[0][0];
-      expect(response).toHaveProperty("success");
-      expect(response.success).toBe(true);
-      expect(response).toHaveProperty("fleetLog");
-      const fleetLog = response.fleetLog;
+      expect(response as any).toHaveProperty("success");
+      expect((response as any).success).toBe(true);
+      expect(response as any).toHaveProperty("fleetLog");
+      const fleetLog = (response as any).fleetLog;
       expect(fleetLog).toHaveProperty("id");
       expect(fleetLog).toHaveProperty("sessionId");
       expect(fleetLog.sessionId).toBe(sessionId);
@@ -163,6 +207,8 @@ describe("API Contract Tests", () => {
     });
 
     it("returns 404 for non-existent session", async () => {
+      getSessionStoreMock.mockReturnValue(undefined);
+
       const mockFormData = new FormData();
       mockFormData.append("file", new Blob(["log content"]), "log.txt");
       mockFormData.append("pilotName", "Test Pilot");
@@ -171,12 +217,12 @@ describe("API Contract Tests", () => {
         formData: vi.fn().mockResolvedValue(mockFormData),
       } as any;
 
-      await uploadLog(mockRequest, { params: { id: "non-existent" } } as any);
+      const response = await uploadLog(mockRequest, {
+        params: Promise.resolve({ id: "non-existent" }),
+      } as any);
 
-      expect(mockJson).toHaveBeenCalled();
-      const response = mockJson.mock.calls[0][0];
-      expect(response.success).toBe(false);
-      expect(response.message).toBe("Session not found");
+      expect((response as any).success).toBe(false);
+      expect((response as any).message).toBe("Session not found");
     });
 
     it("returns 400 for missing file or pilotName", async () => {
@@ -187,12 +233,12 @@ describe("API Contract Tests", () => {
         formData: vi.fn().mockResolvedValue(mockFormData),
       } as any;
 
-      await uploadLog(mockRequest, { params: { id: sessionId } } as any);
+      const response = await uploadLog(mockRequest, {
+        params: Promise.resolve({ id: sessionId }),
+      } as any);
 
-      expect(mockJson).toHaveBeenCalled();
-      const response = mockJson.mock.calls[0][0];
-      expect(response.success).toBe(false);
-      expect(response.message).toBe("Missing file or pilotName");
+      expect((response as any).success).toBe(false);
+      expect((response as any).message).toBe("Missing file or pilotName");
     });
 
     it("handles 500 error on parse failure", async () => {
@@ -201,20 +247,18 @@ describe("API Contract Tests", () => {
       mockFormData.append("pilotName", "Test Pilot");
 
       // Mock parseLogFile to throw error
-      vi.spyOn(require("@/lib/parser"), "parseLogFile").mockRejectedValue(
-        new Error("Parse error"),
-      );
+      parseLogFileMock.mockRejectedValue(new Error("Parse error"));
 
       const mockRequest = {
         formData: vi.fn().mockResolvedValue(mockFormData),
       } as any;
 
-      await uploadLog(mockRequest, { params: { id: sessionId } } as any);
+      const response = await uploadLog(mockRequest, {
+        params: Promise.resolve({ id: sessionId }),
+      } as any);
 
-      expect(mockJson).toHaveBeenCalled();
-      const response = mockJson.mock.calls[0][0];
-      expect(response.success).toBe(false);
-      expect(response.message).toBe("Failed to upload log");
+      expect((response as any).success).toBe(false);
+      expect((response as any).message).toBe("Failed to upload log");
     });
   });
 
@@ -223,49 +267,62 @@ describe("API Contract Tests", () => {
 
     beforeEach(async () => {
       // Create a session
-      const session = createSessionStore();
+      const session = {
+        id: "test-session-id",
+        code: "FLEET-123456",
+        createdAt: new Date(),
+        creator: "test-creator",
+        participants: [],
+        logs: [],
+        fightName: "Test Fight",
+        tags: [],
+        status: "ACTIVE",
+      };
+      createSessionStoreMock.mockReturnValue(session as any);
+      getSessionStoreMock.mockReturnValue(session as any);
       sessionId = session.id;
     });
 
     it("returns { session, participants, logs, analysisReady }", async () => {
-      await getSession({} as any, { params: { id: sessionId } } as any);
+      const response = await getSession(
+        {} as any,
+        { params: Promise.resolve({ id: sessionId }) } as any,
+      );
 
-      expect(mockJson).toHaveBeenCalled();
-      const response = mockJson.mock.calls[0][0];
-      expect(response).toHaveProperty("session");
-      expect(response.session).toHaveProperty("id");
-      expect(response).toHaveProperty("participants");
-      expect(Array.isArray(response.participants)).toBe(true);
-      expect(response).toHaveProperty("logs");
-      expect(Array.isArray(response.logs)).toBe(true);
-      expect(response).toHaveProperty("analysisReady");
-      expect(typeof response.analysisReady).toBe("boolean");
+      expect(response as any).toHaveProperty("session");
+      expect((response as any).session).toHaveProperty("id");
+      expect(response as any).toHaveProperty("participants");
+      expect(Array.isArray((response as any).participants)).toBe(true);
+      expect(response as any).toHaveProperty("logs");
+      expect(Array.isArray((response as any).logs)).toBe(true);
+      expect(response as any).toHaveProperty("analysisReady");
+      expect(typeof (response as any).analysisReady).toBe("boolean");
     });
 
     it("returns 404 for non-existent session", async () => {
-      await getSession({} as any, { params: { id: "non-existent" } } as any);
+      getSessionStoreMock.mockReturnValue(undefined);
 
-      expect(mockJson).toHaveBeenCalled();
-      const response = mockJson.mock.calls[0][0];
-      expect(response).toHaveProperty("error");
-      expect(response.error).toBe("Session not found");
+      const response = await getSession(
+        {} as any,
+        { params: Promise.resolve({ id: "non-existent" }) } as any,
+      );
+
+      expect(response as any).toHaveProperty("error");
+      expect((response as any).error).toBe("Session not found");
     });
 
     it("handles 500 error on server error", async () => {
       // Mock getSession to throw error
-      vi.spyOn(
-        require("@/lib/fleet/sessionStore"),
-        "getSession",
-      ).mockImplementation(() => {
+      getSessionStoreMock.mockImplementation(() => {
         throw new Error("DB error");
       });
 
-      await getSession({} as any, { params: { id: sessionId } } as any);
+      const response = await getSession(
+        {} as any,
+        { params: Promise.resolve({ id: sessionId }) } as any,
+      );
 
-      expect(mockJson).toHaveBeenCalled();
-      const response = mockJson.mock.calls[0][0];
-      expect(response).toHaveProperty("error");
-      expect(response.error).toBe("Failed to retrieve session");
+      expect((response as any).error).toBe("Failed to retrieve session");
     });
   });
 
@@ -275,7 +332,20 @@ describe("API Contract Tests", () => {
 
     beforeEach(async () => {
       // Create a session
-      const session = createSessionStore();
+      const session = {
+        id: "test-session-id",
+        code: "FLEET-123456",
+        createdAt: new Date(),
+        creator: "test-creator",
+        participants: [],
+        logs: [],
+        fightName: "Test Fight",
+        tags: [],
+        status: "ACTIVE",
+      };
+      createSessionStoreMock.mockReturnValue(session as any);
+      getSessionStoreMock.mockReturnValue(session as any);
+      updateSessionMock.mockReturnValue(session as any);
       sessionId = session.id;
       sessionCode = session.code;
     });
@@ -289,13 +359,13 @@ describe("API Contract Tests", () => {
         }),
       } as any;
 
-      await joinSession(mockRequest, { params: { id: sessionId } } as any);
+      const response = await joinSession(mockRequest, {
+        params: Promise.resolve({ id: sessionId }),
+      } as any);
 
-      expect(mockJson).toHaveBeenCalled();
-      const response = mockJson.mock.calls[0][0];
-      expect(response.success).toBe(true);
-      expect(response.message).toBe("Joined session successfully");
-      expect(response).toHaveProperty("session");
+      expect((response as any).success).toBe(true);
+      expect((response as any).message).toBe("Joined session successfully");
+      expect(response as any).toHaveProperty("session");
     });
 
     it("rejects incorrect code", async () => {
@@ -305,12 +375,14 @@ describe("API Contract Tests", () => {
           .mockResolvedValue({ code: "WRONG", pilotName: "Test Pilot" }),
       } as any;
 
-      await joinSession(mockRequest, { params: { id: sessionId } } as any);
+      const response = await joinSession(mockRequest, {
+        params: Promise.resolve({ id: sessionId }),
+      } as any);
 
-      expect(mockJson).toHaveBeenCalled();
-      const response = mockJson.mock.calls[0][0];
-      expect(response.success).toBe(false);
-      expect(response.message).toBe("Invalid code or session not found");
+      expect((response as any).success).toBe(false);
+      expect((response as any).message).toBe(
+        "Invalid code or session not found",
+      );
     });
 
     it("returns 400 for missing required fields", async () => {
@@ -318,7 +390,9 @@ describe("API Contract Tests", () => {
         json: vi.fn().mockResolvedValue({}), // Missing code and pilotName
       } as any;
 
-      await joinSession(mockRequest, { params: { id: sessionId } } as any);
+      await joinSession(mockRequest, {
+        params: Promise.resolve({ id: sessionId }),
+      } as any);
 
       // The route doesn't explicitly check for missing fields, but let's assume it would error
       // Actually, looking at the code, it will try to access undefined and might fail

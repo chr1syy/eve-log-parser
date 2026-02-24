@@ -11,6 +11,8 @@ import {
 } from "@/contexts/FleetContext";
 import type { FleetSession } from "@/types/fleet";
 
+export const dynamic = "force-dynamic";
+
 export default function FleetIndexPage() {
   const sessions = useFleetSessions();
   const dispatch = useFleetSessionDispatch();
@@ -43,12 +45,12 @@ export default function FleetIndexPage() {
     {
       key: "code",
       label: "Session Code",
-      render: (value) => <span className="font-mono">{value}</span>,
+      render: (value) => <span className="font-mono">{value as string}</span>,
     },
     {
       key: "fightName",
       label: "Fight Name",
-      render: (value) => value || "Unnamed Fight",
+      render: (value) => (value as string) || "Unnamed Fight",
     },
     {
       key: "participants",
@@ -59,7 +61,9 @@ export default function FleetIndexPage() {
     {
       key: "status",
       label: "Status",
-      render: (value) => <span className="uppercase text-xs">{value}</span>,
+      render: (value) => (
+        <span className="uppercase text-xs">{value as string}</span>
+      ),
     },
     {
       key: "actions",
@@ -104,8 +108,8 @@ export default function FleetIndexPage() {
             Active Sessions
           </h2>
           <DataTable
-            columns={columns}
-            data={activeSessions}
+            columns={columns as unknown as Column<Record<string, unknown>>[]}
+            data={activeSessions as unknown as Record<string, unknown>[]}
             searchable
             emptyState={
               <span className="text-text-muted">No active sessions</span>
@@ -124,8 +128,10 @@ export default function FleetIndexPage() {
             </button>
             {!collapsed && (
               <DataTable
-                columns={columns}
-                data={archivedSessions}
+                columns={
+                  columns as unknown as Column<Record<string, unknown>>[]
+                }
+                data={archivedSessions as unknown as Record<string, unknown>[]}
                 searchable={false}
                 emptyState={
                   <span className="text-text-muted">No archived sessions</span>

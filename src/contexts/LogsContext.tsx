@@ -171,8 +171,26 @@ export function LogsProvider({ children }: { children: ReactNode }) {
   const userIdRef = useRef<string | null>(null);
   const autoRestoredRef = useRef(false);
 
-  const [userId, setUserId] = useState<string | null>(null);
-  const [needsRecovery, setNeedsRecovery] = useState(false);
+  const initial = useMemo(() => {
+    if (typeof window === "undefined") {
+      return { userId: null, needsRecovery: false };
+    }
+
+    const storedUserId = localStorage.getItem(USER_ID_KEY);
+    const parsedLogsRaw = localStorage.getItem(STORAGE_KEY);
+    const needsRecovery = !storedUserId && !parsedLogsRaw;
+
+    let resolvedUserId = storedUserId;
+    if (!resolvedUserId) {
+      resolvedUserId = generateUUID();
+      localStorage.setItem(USER_ID_KEY, resolvedUserId);
+    }
+
+    return { userId: resolvedUserId, needsRecovery };
+  }, []);
+
+  const [userId, setUserId] = useState<string | null>(initial.userId);
+  const [needsRecovery, setNeedsRecovery] = useState(initial.needsRecovery);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -181,28 +199,16 @@ export function LogsProvider({ children }: { children: ReactNode }) {
     if (autoRestoredRef.current) return;
     autoRestoredRef.current = true;
 
-    const storedUserId = localStorage.getItem(USER_ID_KEY);
     const parsedLogsRaw = localStorage.getItem(STORAGE_KEY);
 
-    if (!storedUserId && !parsedLogsRaw) {
-      // Both keys absent: full cache wipe. Generate a fresh userId and ask the
-      // user to supply their old one via the recovery banner.
-      const newUserId = generateUUID();
-      localStorage.setItem(USER_ID_KEY, newUserId);
-      userIdRef.current = newUserId;
-      setUserId(newUserId);
-      setNeedsRecovery(true);
+    if (needsRecovery) {
+      userIdRef.current = initial.userId;
       return;
     }
 
     // Resolve or generate userId
-    let resolvedUserId = storedUserId;
-    if (!resolvedUserId) {
-      resolvedUserId = generateUUID();
-      localStorage.setItem(USER_ID_KEY, resolvedUserId);
-    }
+    const resolvedUserId = initial.userId;
     userIdRef.current = resolvedUserId;
-    setUserId(resolvedUserId);
 
     if (parsedLogsRaw) {
       // Normal hydration from localStorage
@@ -222,9 +228,7 @@ export function LogsProvider({ children }: { children: ReactNode }) {
       // Silently re-fetch all user logs from the server in the background.
       void (async () => {
         try {
-          const res = await fetch(
-            `/api/user-logs?userId=${resolvedUserId}`
-          );
+          const res = await fetch(`/api/user-logs?userId=${resolvedUserId}`);
           if (!res.ok) return;
           const { logs: metas } = (await res.json()) as {
             logs: Array<{ sessionId: string }>;
@@ -234,7 +238,7 @@ export function LogsProvider({ children }: { children: ReactNode }) {
           for (const meta of metas) {
             try {
               const logRes = await fetch(
-                `/api/user-logs/${meta.sessionId}?userId=${resolvedUserId}`
+                `/api/user-logs/${meta.sessionId}?userId=${resolvedUserId}`,
               );
               if (!logRes.ok) continue;
               const { log } = (await logRes.json()) as { log: ParsedLog };
@@ -303,7 +307,7 @@ export function LogsProvider({ children }: { children: ReactNode }) {
       for (const meta of metas) {
         try {
           const logRes = await fetch(
-            `/api/user-logs/${meta.sessionId}?userId=${uuid}`
+            `/api/user-logs/${meta.sessionId}?userId=${uuid}`,
           );
           if (!logRes.ok) continue;
           const { log } = (await logRes.json()) as { log: ParsedLog };
@@ -317,7 +321,7 @@ export function LogsProvider({ children }: { children: ReactNode }) {
       setNeedsRecovery(false);
       return count;
     },
-    []
+    [],
   );
 
   const value: LogsContextValue = useMemo(
@@ -340,7 +344,7 @@ export function LogsProvider({ children }: { children: ReactNode }) {
       removeLog,
       clearLogs,
       restoreFromUserId,
-    ]
+    ],
   );
 
   return <LogsContext.Provider value={value}>{children}</LogsContext.Provider>;

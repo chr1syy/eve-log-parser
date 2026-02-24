@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import FleetIndexPage from "@/app/fleet/page";
-import { FleetProvider } from "@/contexts/FleetContext";
+import * as FleetContext from "@/contexts/FleetContext";
 import { LogsProvider } from "@/contexts/LogsContext";
 import { EXAMPLE_FLEET_SESSIONS } from "@/lib/fleet/constants";
 
@@ -25,7 +25,7 @@ global.fetch = mockFetch;
 function TestWrapper({ children }: { children: React.ReactNode }) {
   return (
     <LogsProvider>
-      <FleetProvider>{children}</FleetProvider>
+      <FleetContext.FleetProvider>{children}</FleetContext.FleetProvider>
     </LogsProvider>
   );
 }
@@ -149,12 +149,9 @@ describe("FleetIndexPage", () => {
   });
 
   it("displays empty state when no active sessions", () => {
-    // Mock empty sessions by overriding the hook
-    vi.doMock("@/contexts/FleetContext", () => ({
-      FleetProvider: ({ children }: { children: React.ReactNode }) => children,
-      useFleetSessions: () => [],
-      useFleetSessionDispatch: () => vi.fn(),
-    }));
+    const sessionsSpy = vi
+      .spyOn(FleetContext, "useFleetSessions")
+      .mockReturnValue([]);
 
     render(
       <TestWrapper>
@@ -163,5 +160,7 @@ describe("FleetIndexPage", () => {
     );
 
     expect(screen.getByText("No active sessions")).toBeInTheDocument();
+
+    sessionsSpy.mockRestore();
   });
 });

@@ -108,6 +108,16 @@ describe("fleet integration", () => {
           pilotName: "Pilot2",
           shipType: "Tempest",
         },
+        {
+          id: "9",
+          timestamp: new Date(baseTime.getTime() + 5000),
+          rawLine:
+            "[ 2023.01.01 12:00:05 ] (combat) 50 from Pilot2 - Tempest - neut-dealt",
+          eventType: "neut-dealt",
+          capAmount: 50,
+          pilotName: "Pilot2",
+          shipType: "Tempest",
+        },
       ],
     };
 
@@ -158,7 +168,7 @@ describe("fleet integration", () => {
 
     // Step 2: Merge fleet logs
     const mergedEntries = mergeFleetLogs(logs);
-    expect(mergedEntries).toHaveLength(11); // 4 + 4 + 3 = 11 entries
+    expect(mergedEntries).toHaveLength(12); // 4 + 5 + 3 = 12 entries
     expect(
       mergedEntries.every((entry) => entry.pilotName && entry.shipType),
     ).toBe(true);
@@ -234,7 +244,7 @@ describe("fleet integration", () => {
     expect(analysis.damageTaken.byPilot.get("Pilot3")).toBe(90);
 
     // Rep flows
-    expect(analysis.repFlows.flows).toHaveLength(3); // Pilot1 rep-received, Pilot2 rep-outgoing, Pilot3 rep-received
+    expect(analysis.repFlows.flows).toHaveLength(1); // Pilot2 rep-outgoing
     expect(analysis.repFlows.totalRepsGiven.get("Pilot2")).toBe(80);
 
     // Cap pressure

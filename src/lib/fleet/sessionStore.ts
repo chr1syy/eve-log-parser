@@ -1,6 +1,7 @@
 // In-memory session storage for fleet sessions
 // TODO: Replace with persistent storage (database) in production
 
+import { randomUUID } from "crypto";
 import type { FleetSession, FleetSessionCode } from "@/types/fleet";
 
 const sessionStore = new Map<string, FleetSession>();
@@ -21,7 +22,6 @@ export function createSession(
   fightName?: string,
   tags: string[] = [],
 ): FleetSession {
-  const { randomUUID } = require("crypto"); // Node.js crypto
   const id = randomUUID();
   const code = generateUniqueCode();
   const creator = "anonymous"; // TODO: Get from auth context

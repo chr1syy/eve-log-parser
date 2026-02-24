@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "crypto";
 import { getSession, updateSession } from "@/lib/fleet/sessionStore";
 import { parseLogFile } from "@/lib/parser";
 import type { FleetLog } from "@/types/fleet";
 
-const { randomUUID } = require("crypto");
-
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const session = getSession(id);
     if (!session) {
       return NextResponse.json(

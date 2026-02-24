@@ -1,4 +1,4 @@
-import { EventType, HitQuality, LogEntry, ParsedLog } from "@/lib/types";
+import { HitQuality, LogEntry, ParsedLog } from "@/lib/types";
 import { computeStats } from "./computeStats";
 
 /**
@@ -56,6 +56,8 @@ export function stripTags(raw: string): string {
     .replace(/<\/fontsize>/gi, "")
     .replace(/<u>/gi, "")
     .replace(/<\/u>/gi, "")
+    .replace(/<a[^>]*>/gi, "")
+    .replace(/<\/a>/gi, "")
     .replace(/\s{2,}/g, " ")
     .trim();
 }
@@ -82,20 +84,72 @@ function isDroneWeapon(weapon: string): boolean {
 }
 
 function normalizeHitQuality(raw: string): HitQuality {
-  const known: HitQuality[] = [
-    "Wrecks",
-    "Smashes",
-    "Penetrates",
-    "Hits",
-    "Glances Off",
-    "Grazes",
-    "misses",
-  ];
-  const trimmed = raw.trim();
-  for (const q of known) {
-    if (trimmed === q) return q;
+  const normalized = raw.trim().toLowerCase();
+  const mapping: Record<string, HitQuality> = {
+    wrecks: "Wrecks",
+    smashes: "Smashes",
+    penetrates: "Penetrates",
+    hits: "Hits",
+    "glances off": "Glances Off",
+    grazes: "Grazes",
+    misses: "misses",
+  };
+  return mapping[normalized] ?? "unknown";
+}
+
+function parseRepLine(clean: string, raw: string): Partial<LogEntry> | null {
+  if (!/armor repaired/i.test(clean)) return null;
+
+  const repShipTypeFromU = extractUnderlinkText(raw);
+  const repShipTypeFromText = clean
+    .match(/\sfrom\s+([^\-]+?)(?:\s+-|$)/i)?.[1]
+    ?.trim();
+  const repShipType = repShipTypeFromU ?? repShipTypeFromText;
+
+  const isRepBot =
+    repShipType?.toLowerCase().includes("maintenance bot") ||
+    repShipType?.toLowerCase().includes("repair drone") ||
+    false;
+
+  const amountMatch = clean.match(/^(\d+)\s+/);
+  const amount = amountMatch ? parseInt(amountMatch[1], 10) : undefined;
+
+  const moduleFromTail = clean.match(/\s+-\s+(.+?)\s+-\s+repaired by$/i)?.[1];
+  const moduleFromRemoteBy = clean.match(
+    /^\d+\s+remote armor repaired by\s+.+\s+-\s+(.+)$/i,
+  )?.[1];
+  const moduleFromRemoteTo = clean.match(
+    /^\d+\s+remote armor repaired to\s+.+\s+-\s+(.+)$/i,
+  )?.[1];
+
+  const repModule =
+    moduleFromTail?.trim() ||
+    moduleFromRemoteBy?.trim() ||
+    moduleFromRemoteTo?.trim();
+
+  if (clean.includes("repaired by")) {
+    return {
+      eventType: "rep-received",
+      direction: "incoming",
+      amount,
+      repShipType: repShipType ?? undefined,
+      repModule,
+      isRepBot,
+    };
   }
-  return "unknown";
+
+  if (clean.includes("repaired to")) {
+    return {
+      eventType: "rep-outgoing",
+      direction: "outgoing",
+      amount,
+      repShipType: repShipType ?? undefined,
+      repModule,
+      isRepBot,
+    };
+  }
+
+  return null;
 }
 
 /**
@@ -116,6 +170,12 @@ export function parseCombatLine(
   try {
     const firstColor = extractFirstColor(raw);
     const clean = stripTags(raw);
+
+    const repParsed = parseRepLine(clean, raw);
+    if (repParsed) {
+      Object.assign(base, repParsed);
+      return base;
+    }
 
     switch (firstColor) {
       case "0xff00ffff": {
@@ -158,6 +218,21 @@ export function parseCombatLine(
           base.weapon = weapon.trim();
           base.hitQuality = normalizeHitQuality(hitQualityRaw);
           base.isNpc = true;
+          base.isDrone = isDroneWeapon(base.weapon);
+          break;
+        }
+
+        // Alternate form: amount from PilotName - weapon - hitQuality
+        const fromMatch = clean.match(
+          /^(\d+)\s+from\s+(.+?)\s+-\s+(.+?)\s+-\s+(.+)$/,
+        );
+        if (fromMatch) {
+          const [, amount, pilotName, weapon, hitQualityRaw] = fromMatch;
+          base.amount = parseInt(amount, 10);
+          base.pilotName = pilotName.trim();
+          base.weapon = weapon.trim();
+          base.hitQuality = normalizeHitQuality(hitQualityRaw);
+          base.isNpc = false;
           base.isDrone = isDroneWeapon(base.weapon);
         }
         break;
@@ -215,6 +290,20 @@ export function parseCombatLine(
           base.shipType = shipType.trim();
           base.hitQuality = normalizeHitQuality(hitQualityRaw);
           base.isNpc = true;
+          break;
+        }
+
+        // Alternate form: amount to Target - from Attacker - weapon - hitQuality
+        const toFromMatch = clean.match(
+          /^(\d+)\s+to\s+(.+?)\s+-\s+from\s+(.+?)\s+-\s+(.+?)\s+-\s+(.+)$/,
+        );
+        if (toFromMatch) {
+          const [, amount, , attacker, weapon, hitQualityRaw] = toFromMatch;
+          base.amount = parseInt(amount, 10);
+          base.pilotName = attacker.trim();
+          base.weapon = weapon.trim();
+          base.hitQuality = normalizeHitQuality(hitQualityRaw);
+          base.isNpc = false;
         }
         break;
       }
@@ -259,17 +348,29 @@ export function parseCombatLine(
           base.capEventType = "nos-dealt";
           base.direction = "outgoing";
           const m = clean.match(
-            /^(-?[\d.]+)\s+GJ\s+energy drained to\s+.+\s+-\s+(.+)$/,
+            /^(-?[\d.]+)\s+GJ\s+energy drained to\s+(.+?)(?:\s+-\s+from\s+(.+?))?\s+-\s+(.+?)(?:\s+-\s+energy drained)?$/,
           );
           if (m) {
             base.capAmount = Math.abs(parseFloat(m[1]));
-            base.capShipType = extractUnderlinkText(raw) ?? undefined;
-            base.capModule = m[2].trim();
+            base.capShipType =
+              extractUnderlinkText(raw) ?? (m[3] ?? m[2]).trim();
+            base.capModule = m[4].trim();
+            base.pilotName = m[3]?.trim();
           }
         } else if (clean.includes("energy neutralized")) {
           base.eventType = "neut-received";
           base.capEventType = "neut-received";
           base.direction = "incoming";
+          const detailed = clean.match(
+            /^([\d.]+)\s+GJ\s+energy neutralized to\s+.+?\s+-\s+from\s+(.+?)\s+-\s+(.+?)\s+-\s+energy drained$/,
+          );
+          if (detailed) {
+            base.capAmount = parseFloat(detailed[1]);
+            base.capShipType = detailed[2].trim();
+            base.capModule = detailed[3].trim();
+            base.pilotName = detailed[2].trim();
+            break;
+          }
           const m = clean.match(
             /^([\d.]+)\s+GJ\s+energy neutralized\s+.+\s+-\s+(.+)$/,
           );
@@ -287,6 +388,16 @@ export function parseCombatLine(
         base.eventType = "neut-dealt";
         base.capEventType = "neut-dealt";
         base.direction = "outgoing";
+        const drainedMatch = clean.match(
+          /^([\d.]+)\s+GJ\s+energy drained from\s+(.+?)\s+-\s+(.+?)\s+-\s+energy drained$/,
+        );
+        if (drainedMatch) {
+          base.capAmount = parseFloat(drainedMatch[1]);
+          base.capShipType = drainedMatch[2].trim();
+          base.capModule = drainedMatch[3].trim();
+          base.pilotName = drainedMatch[2].trim();
+          break;
+        }
         const m = clean.match(
           /^([\d.]+)\s+GJ\s+energy neutralized\s+.+\s+-\s+(.+)$/,
         );
@@ -299,7 +410,8 @@ export function parseCombatLine(
       }
 
       case "0xffffffff": {
-        const isScram = clean.includes("Warp scram") || clean.includes("Warp disrupt");
+        const isScram =
+          clean.includes("Warp scram") || clean.includes("Warp disrupt");
         if (!isScram) {
           base.eventType = "other";
           break;
@@ -307,14 +419,15 @@ export function parseCombatLine(
         base.eventType = "warp-scram";
 
         // Extract all <u>...</u> targets from the raw line
-        const uMatches = [...raw.matchAll(/<u>([\s\S]*?)<\/u>/gi)].map(
-          (m) => stripTags(m[1]).trim()
+        const uMatches = [...raw.matchAll(/<u>([\s\S]*?)<\/u>/gi)].map((m) =>
+          stripTags(m[1]).trim(),
         );
 
         // Detect direction by checking if "you" is the source
         const fromYou = /from\s+(?:<[^>]+>)*you(?:<[^>]+>)*\s+to/i.test(raw);
-        const toYou = /to\s+(?:<[^>]+>)*you[!]?(?:<[^>]+>)*\s*$/i.test(raw) ||
-                      clean.toLowerCase().includes("to you");
+        const toYou =
+          /to\s+(?:<[^>]+>)*you[!]?(?:<[^>]+>)*\s*$/i.test(raw) ||
+          clean.toLowerCase().includes("to you");
 
         if (fromYou) {
           base.tackleDirection = "outgoing";
@@ -334,7 +447,7 @@ export function parseCombatLine(
       case null: {
         // Outgoing miss: "Your WeaponName misses TargetName completely - WeaponName"
         const outgoingMiss = clean.match(
-          /^Your (.+?) misses (.+?) completely(?:\s+-\s+(.+))?$/
+          /^Your (.+?) misses (.+?) completely(?:\s+-\s+(.+))?$/,
         );
         if (outgoingMiss) {
           base.eventType = "miss-outgoing";
@@ -346,19 +459,19 @@ export function parseCombatLine(
 
         // Incoming drone miss: "DroneName belonging to PilotName misses you completely - DroneName"
         const droneMiss = clean.match(
-          /^(.+?) belonging to (.+?) misses you completely(?:\s+-\s+(.+))?$/
+          /^(.+?) belonging to (.+?) misses you completely(?:\s+-\s+(.+))?$/,
         );
         if (droneMiss) {
           base.eventType = "miss-incoming";
-          base.weapon = droneMiss[1].trim();       // drone type
-          base.pilotName = droneMiss[2].trim();    // owner pilot
+          base.weapon = droneMiss[1].trim(); // drone type
+          base.pilotName = droneMiss[2].trim(); // owner pilot
           base.isDrone = true;
           break;
         }
 
         // Incoming player/NPC miss: "PilotName misses you completely - WeaponName"
         const incomingMiss = clean.match(
-          /^(.+?) misses you completely(?:\s+-\s+(.+))?$/
+          /^(.+?) misses you completely(?:\s+-\s+(.+))?$/,
         );
         if (incomingMiss) {
           base.eventType = "miss-incoming";
@@ -410,7 +523,10 @@ export async function parseLogFile(file: File): Promise<ParsedLog> {
 
     const sessionStartMatch = trimmed.match(/^Session Started:\s+(.+)$/);
     if (sessionStartMatch) {
-      const raw = sessionStartMatch[1].trim();
+      const raw = sessionStartMatch[1]
+        .trim()
+        .replace(/^\[/, "")
+        .replace(/\]$/, "");
       // EVE datetime: YYYY.MM.DD HH:MM:SS → replace dots in date part
       sessionStart = new Date(
         raw.replace(/^(\d{4})\.(\d{2})\.(\d{2})/, "$1-$2-$3"),

@@ -92,7 +92,7 @@ describe("FleetOverviewTab", () => {
     expect(screen.getByText("1.8B ISK")).toBeInTheDocument();
 
     expect(screen.getByText("Total Reps Given")).toBeInTheDocument();
-    expect(screen.getByText("890M HP")).toBeInTheDocument();
+    expect(screen.getByText("890.0M HP")).toBeInTheDocument();
 
     expect(screen.getByText("Enemy Count")).toBeInTheDocument();
     expect(screen.getByText("5 enemies")).toBeInTheDocument();

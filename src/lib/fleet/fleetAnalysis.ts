@@ -116,13 +116,9 @@ export function aggregateRepFlows(entries: LogEntry[]): RepFlowsAggregation {
   const totalRepsGiven = new Map<string, number>();
 
   for (const entry of entries) {
-    if (
-      (entry.eventType === "rep-outgoing" ||
-        entry.eventType === "rep-received") &&
-      entry.amount
-    ) {
+    if (entry.eventType === "rep-outgoing" && entry.amount) {
       const from = entry.pilotName || "Unknown";
-      const to = entry.shipType || "Unknown"; // assuming target
+      const to = entry.repShipType || entry.shipType || "Unknown";
       const key = `${from}-${to}`;
 
       const existing = flows.get(key) || { from, to, amount: 0, count: 0 };
@@ -130,12 +126,7 @@ export function aggregateRepFlows(entries: LogEntry[]): RepFlowsAggregation {
       existing.count += 1;
       flows.set(key, existing);
 
-      if (entry.eventType === "rep-outgoing") {
-        totalRepsGiven.set(
-          from,
-          (totalRepsGiven.get(from) || 0) + entry.amount,
-        );
-      }
+      totalRepsGiven.set(from, (totalRepsGiven.get(from) || 0) + entry.amount);
     }
   }
 
