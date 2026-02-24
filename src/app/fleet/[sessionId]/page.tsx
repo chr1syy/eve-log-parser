@@ -6,6 +6,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import Button from "@/components/ui/Button";
 import DataTable, { Column } from "@/components/ui/DataTable";
 import LogUploadForm from "@/components/fleet/LogUploadForm";
+import FleetAnalysisTabs from "@/components/fleet/FleetAnalysisTabs";
 import type { FleetSession, FleetParticipant, FleetLog } from "@/types/fleet";
 
 interface SessionData {
@@ -182,36 +183,26 @@ export default function FleetSessionDetailPage({
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="flex gap-2 border-b border-border">
-          <button className="px-4 py-2 text-text-primary border-b-2 border-accent">
-            Overview
-          </button>
-          {analysisReady && (
-            <>
-              <Link href="/damage-dealt">
-                <button className="px-4 py-2 text-text-muted hover:text-text-primary">
-                  Damage Dealt
-                </button>
-              </Link>
-              <Link href="/kills">
-                <button className="px-4 py-2 text-text-muted hover:text-text-primary">
-                  Kills
-                </button>
-              </Link>
-              <Link href="/damage-taken">
-                <button className="px-4 py-2 text-text-muted hover:text-text-primary">
-                  Damage Taken
-                </button>
-              </Link>
-              <Link href="/cap-pressure">
-                <button className="px-4 py-2 text-text-muted hover:text-text-primary">
-                  Cap Pressure
-                </button>
-              </Link>
-            </>
-          )}
-        </div>
+        {analysisReady ? (
+          <FleetAnalysisTabs
+            sessionData={session}
+            analysisReady={analysisReady}
+          />
+        ) : (
+          <div className="space-y-6">
+            <div className="text-center py-12">
+              <p className="text-text-muted">
+                Upload at least one log to see fleet analysis
+              </p>
+            </div>
+            <div className="bg-bg-secondary border border-border rounded p-4">
+              <LogUploadForm
+                sessionId={session.id}
+                onSuccess={handleUploadSuccess}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Participants Section */}
         <div>
