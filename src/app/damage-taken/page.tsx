@@ -93,26 +93,26 @@ function WeaponTable({
             key: "source",
             label: "Attacker",
             sortable: true,
-            render: (v) => (
-              <span className="font-mono text-xs text-text-primary">
-                {String(v)}
-              </span>
-            ),
+            render: (v, row) => {
+              const r = row as WeaponRow;
+              const shipType = r.shipType;
+              const showShip = shipType && shipType !== String(v);
+              return (
+                <div className="flex flex-col gap-0.5">
+                  <span className="font-mono text-xs text-text-primary">
+                    {String(v)}
+                  </span>
+                  {showShip ? (
+                    <Badge variant="default">{shipType}</Badge>
+                  ) : (
+                    <span className="text-text-muted font-mono text-xs">—</span>
+                  )}
+                </div>
+              );
+            },
           } as Column<Record<string, unknown>>,
         ]
       : []),
-    {
-      key: "shipType",
-      label: "Ship",
-      sortable: true,
-      render: (v) => {
-        return v ? (
-          <Badge variant="default">{String(v)}</Badge>
-        ) : (
-          <span className="text-text-muted">—</span>
-        );
-      },
-    } as Column<Record<string, unknown>>,
     {
       key: "weapon",
       label: "Weapon / Ammo",
