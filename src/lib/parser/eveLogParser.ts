@@ -38,8 +38,7 @@ async function hashContent(text: string): Promise<string> {
   }
 }
 
-const DRONE_PATTERN =
-  /\b(Wasp|Infiltrator|Hornet|Hammerhead|Ogre|Valkyrie|Warrior|Curator|Garde|Warden|Bouncer|Berserker|Acolyte|Praetor|Gecko)\b/i;
+import { isDroneWeapon as isDroneFromConfig } from "@/lib/config/drones";
 
 /**
  * Strips all EVE HTML markup tags from a line, collapsing extra whitespace.
@@ -79,8 +78,8 @@ export function extractUnderlinkText(raw: string): string | null {
   return stripTags(match[1]).trim() || null;
 }
 
-function isDroneWeapon(weapon: string): boolean {
-  return DRONE_PATTERN.test(weapon);
+function isDroneWeapon(weapon?: string): boolean {
+  return isDroneFromConfig(weapon);
 }
 
 function normalizeHitQuality(raw: string): HitQuality {
@@ -317,21 +316,24 @@ export function parseCombatLine(
           repShipType?.toLowerCase().includes("repair drone") ||
           false;
 
-        if (clean.includes("repaired by")) {
+        if (clean.includes("repaired by") || clean.includes("boosted by")) {
           base.eventType = "rep-received";
           base.direction = "incoming";
           const m = clean.match(
-            /^(\d+)\s+remote armor repaired by\s+.+\s+-\s+(.+)$/,
+            /^(\d+)\s+remote (?:armor repaired|shield boosted) by\s+.+\s+-\s+(.+)$/,
           );
           if (m) {
             base.amount = parseInt(m[1], 10);
             base.repModule = m[2].trim();
           }
-        } else if (clean.includes("repaired to")) {
+        } else if (
+          clean.includes("repaired to") ||
+          clean.includes("boosted to")
+        ) {
           base.eventType = "rep-outgoing";
           base.direction = "outgoing";
           const m = clean.match(
-            /^(\d+)\s+remote armor repaired to\s+.+\s+-\s+(.+)$/,
+            /^(\d+)\s+remote (?:armor repaired|shield boosted) to\s+.+\s+-\s+(.+)$/,
           );
           if (m) {
             base.amount = parseInt(m[1], 10);
@@ -499,9 +501,158 @@ export function parseCombatLine(
 /**
  * Parses an EVE combat log File into a structured ParsedLog.
  */
-export async function parseLogFile(file: File): Promise<ParsedLog> {
-  const text = await file.text();
-  const lines = text.split(/\r?\n/);
+type LogFileInput =
+  | File
+  | Blob
+  | {
+      text?: () => Promise<string>;
+      arrayBuffer?: () => Promise<ArrayBuffer>;
+      stream?: () => unknown;
+      name?: string;
+    }
+  | ArrayBuffer
+  | Uint8Array
+  | string;
+
+function decodeBytes(bytes: Uint8Array): string {
+  return new TextDecoder().decode(bytes);
+}
+
+async function readStreamToBytes(stream: unknown): Promise<Uint8Array | null> {
+  if (!stream) return null;
+
+  if (typeof (stream as ReadableStream).getReader === "function") {
+    const reader = (stream as ReadableStream<Uint8Array>).getReader();
+    const chunks: Uint8Array[] = [];
+    let total = 0;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value) {
+        chunks.push(value);
+        total += value.length;
+      }
+    }
+    const combined = new Uint8Array(total);
+    let offset = 0;
+    for (const chunk of chunks) {
+      combined.set(chunk, offset);
+      offset += chunk.length;
+    }
+    return combined;
+  }
+
+  if (typeof (stream as NodeJS.ReadableStream).on === "function") {
+    const chunks: Uint8Array[] = [];
+    for await (const chunk of stream as AsyncIterable<Uint8Array>) {
+      chunks.push(chunk);
+    }
+    return chunks.length > 0 ? new Uint8Array(Buffer.concat(chunks)) : null;
+  }
+
+  return null;
+}
+
+async function readLogText(file: LogFileInput): Promise<string> {
+  if (typeof file === "string") return file;
+  if (file instanceof ArrayBuffer) return decodeBytes(new Uint8Array(file));
+  if (file instanceof Uint8Array) return decodeBytes(file);
+  if (typeof Buffer !== "undefined" && Buffer.isBuffer(file)) {
+    return decodeBytes(new Uint8Array(file));
+  }
+  if (typeof file.text === "function") return file.text();
+  if (typeof file.arrayBuffer === "function") {
+    const buffer = await file.arrayBuffer();
+    return decodeBytes(new Uint8Array(buffer));
+  }
+  if (typeof file.stream === "function") {
+    const bytes = await readStreamToBytes(file.stream());
+    if (bytes) return decodeBytes(bytes);
+  }
+  if (typeof process !== "undefined" && process.versions?.node) {
+    const maybePath =
+      typeof (file as { path?: string }).path === "string"
+        ? (file as { path: string }).path
+        : typeof (file as { name?: string }).name === "string"
+          ? (file as { name: string }).name
+          : undefined;
+    if (maybePath) {
+      try {
+        const [{ readFile }, { isAbsolute, resolve }] = await Promise.all([
+          import("node:fs/promises"),
+          import("node:path"),
+        ]);
+        const resolved = isAbsolute(maybePath)
+          ? maybePath
+          : resolve(process.cwd(), maybePath);
+        const buffer = await readFile(resolved);
+        return decodeBytes(new Uint8Array(buffer));
+      } catch {
+        // fall through
+      }
+    }
+  }
+  if (typeof (file as { slice?: () => unknown }).slice === "function") {
+    const sliced = (
+      file as { slice: (start?: number, end?: number) => unknown }
+    ).slice(
+      0,
+      typeof (file as { size?: number }).size === "number"
+        ? (file as { size: number }).size
+        : undefined,
+    );
+    if (
+      sliced &&
+      typeof (sliced as { text?: () => Promise<string> }).text === "function"
+    ) {
+      return (sliced as { text: () => Promise<string> }).text();
+    }
+    if (
+      sliced &&
+      typeof (sliced as { arrayBuffer?: () => Promise<ArrayBuffer> })
+        .arrayBuffer === "function"
+    ) {
+      const buffer = await (
+        sliced as {
+          arrayBuffer: () => Promise<ArrayBuffer>;
+        }
+      ).arrayBuffer();
+      return decodeBytes(new Uint8Array(buffer));
+    }
+    if (typeof Response !== "undefined") {
+      try {
+        const response = new Response(sliced as BodyInit);
+        return await response.text();
+      } catch {
+        // fall through
+      }
+    }
+  }
+  if (typeof Response !== "undefined") {
+    try {
+      const response = new Response(file as BodyInit);
+      return await response.text();
+    } catch {
+      // fall through
+    }
+  }
+  throw new TypeError(
+    "Unsupported log input: missing text() or arrayBuffer().",
+  );
+}
+
+function getLogFileName(file: LogFileInput): string {
+  if (typeof file === "string") return "inline-log";
+  if (typeof file === "object" && file && "name" in file) {
+    const name = file.name;
+    if (typeof name === "string" && name.trim()) return name;
+  }
+  return "unknown-log";
+}
+
+export async function parseLogFile(file: LogFileInput): Promise<ParsedLog> {
+  const text = await readLogText(file);
+  const lines = text.split(/\r\n|\n|\r/);
 
   const sessionId = await hashContent(text);
   let characterName: string | undefined;
@@ -583,7 +734,7 @@ export async function parseLogFile(file: File): Promise<ParsedLog> {
 
   return {
     sessionId,
-    fileName: file.name,
+    fileName: getLogFileName(file),
     parsedAt: new Date(),
     characterName,
     sessionStart,

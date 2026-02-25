@@ -135,3 +135,22 @@ export interface LogStats {
     zeroHits: number;
   }[];
 }
+
+export interface VersionResponse {
+  version: string;
+  buildTime: string;
+  gitCommit?: string;
+  gitTag?: string;
+}
+
+export interface CommitEntry {
+  hash: string;
+  message: string;
+  author: string;
+  timestamp: string;
+  url?: string;
+}
+
+export interface ChangelogResponse {
+  commits: CommitEntry[];
+}

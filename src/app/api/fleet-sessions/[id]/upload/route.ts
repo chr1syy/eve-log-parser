@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { getSession, updateSession } from "@/lib/fleet/sessionStore";
 import { parseLogFile } from "@/lib/parser";
+import { broadcastToSession } from "@/lib/fleet/sseConnections";
 import type { FleetLog } from "@/types/fleet";
 
 export async function POST(
@@ -93,6 +94,12 @@ export async function POST(
         { status: 500 },
       );
     }
+
+    // Notify all viewers of this session that new data is available
+    broadcastToSession(id, {
+      type: "log-uploaded",
+      pilotName: resolvedPilotName,
+    });
 
     return NextResponse.json({ success: true, fleetLog });
   } catch (error) {

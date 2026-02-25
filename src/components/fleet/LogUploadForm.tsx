@@ -106,7 +106,7 @@ export default function LogUploadForm({
       <div>
         <label
           htmlFor="file"
-          className="block text-sm font-medium text-text-primary mb-2"
+          className="block text-base font-medium text-text-primary mb-2"
         >
           Log File (.txt)
         </label>
@@ -134,7 +134,7 @@ export default function LogUploadForm({
       <div>
         <label
           htmlFor="pilotName"
-          className="block text-sm font-medium text-text-primary mb-2"
+          className="block text-base font-medium text-text-primary mb-2"
         >
           Pilot Name (auto-detect if blank)
         </label>
@@ -151,7 +151,7 @@ export default function LogUploadForm({
       <div>
         <label
           htmlFor="shipType"
-          className="block text-sm font-medium text-text-primary mb-2"
+          className="block text-base font-medium text-text-primary mb-2"
         >
           Ship Type (Optional)
         </label>

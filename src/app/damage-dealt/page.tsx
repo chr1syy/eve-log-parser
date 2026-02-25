@@ -1,63 +1,85 @@
-'use client';
+"use client";
 
-import { useMemo, useState } from 'react';
-import Link from 'next/link';
-import { Upload, Sword } from 'lucide-react';
-import AppLayout from '@/components/layout/AppLayout';
-import Panel from '@/components/ui/Panel';
-import Button from '@/components/ui/Button';
-import Badge from '@/components/ui/Badge';
-import StatCard from '@/components/dashboard/StatCard';
-import DataTable from '@/components/ui/DataTable';
-import type { Column } from '@/components/ui/DataTable';
-import { useParsedLogs } from '@/hooks/useParsedLogs';
-import { analyzeDamageDealt, generateDamageDealtTimeSeries } from '@/lib/analysis/damageDealt';
-import type { TargetEngagement, WeaponApplicationSummary, DamageDealtTimeSeries } from '@/lib/analysis/damageDealt';
-import DamageDealtChart from '@/components/charts/DamageDealtChart';
-import type { HitQuality } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import {
+  useCallback,
+  useMemo,
+  useState,
+  useDeferredValue,
+  useTransition,
+} from "react";
+import Link from "next/link";
+import { Upload, Sword } from "lucide-react";
+import AppLayout from "@/components/layout/AppLayout";
+import Panel from "@/components/ui/Panel";
+import Button from "@/components/ui/Button";
+import Badge from "@/components/ui/Badge";
+import StatCard from "@/components/dashboard/StatCard";
+import DataTable from "@/components/ui/DataTable";
+import type { Column } from "@/components/ui/DataTable";
+import { useParsedLogs } from "@/hooks/useParsedLogs";
+import {
+  analyzeDamageDealt,
+  generateDamageDealtTimeSeries,
+} from "@/lib/analysis/damageDealt";
+import type {
+  TargetEngagement,
+  WeaponApplicationSummary,
+  DamageDealtTimeSeries,
+} from "@/lib/analysis/damageDealt";
+import DamageDealtChart from "@/components/charts/DamageDealtChart";
+import type { HitQuality } from "@/lib/types";
+import { cn } from "@/lib/utils";
+import { resolveZoomedWindow } from "@/lib/zoom";
 
 // Hit quality ordered display config
 const HIT_QUALITY_ORDER: HitQuality[] = [
-  'Wrecks',
-  'Smashes',
-  'Penetrates',
-  'Hits',
-  'Glances Off',
-  'Grazes',
-]
+  "Wrecks",
+  "Smashes",
+  "Penetrates",
+  "Hits",
+  "Glances Off",
+  "Grazes",
+];
 
 function hitQualityColor(hq: HitQuality): string {
   switch (hq) {
-    case 'Wrecks':
-    case 'Smashes':
-      return 'text-gold-bright'
-    case 'Penetrates':
-    case 'Hits':
-      return 'text-cyan-glow'
-    case 'Glances Off':
-    case 'Grazes':
-      return 'text-text-muted'
+    case "Wrecks":
+    case "Smashes":
+      return "text-gold-bright";
+    case "Penetrates":
+    case "Hits":
+      return "text-cyan-glow";
+    case "Glances Off":
+    case "Grazes":
+      return "text-text-muted";
     default:
-      return 'text-text-secondary'
+      return "text-text-secondary";
   }
 }
 
 function fmt(n: number): string {
-  return n.toLocaleString(undefined, { maximumFractionDigits: 0 })
+  return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
 }
 
 function fmtDps(n: number): string {
-  if (n === 0) return '—'
-  return n.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+  if (n === 0) return "—";
+  return n.toLocaleString(undefined, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
 }
 
 function fmtTime(d: Date): string {
-  return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
+  return d.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
 }
 
 // --- Engagement table row type ---
-type EngagementRow = TargetEngagement & { _maxDps: number; _isZoomed: boolean }
+type EngagementRow = TargetEngagement & { _maxDps: number; _isZoomed: boolean };
 
 function buildEngagementColumns(
   maxDps: number,
@@ -65,79 +87,98 @@ function buildEngagementColumns(
 ): Column<Record<string, unknown>>[] {
   return [
     {
-      key: 'target',
-      label: 'Target',
+      key: "target",
+      label: "Target",
       sortable: true,
       render: (_, row) => {
-        const r = row as unknown as EngagementRow
+        const r = row as unknown as EngagementRow;
         return (
           <button
             type="button"
             className={cn(
-              'flex flex-col gap-0.5 text-left w-full cursor-pointer transition-colors',
-              r._isZoomed
-                ? 'text-cyan-glow'
-                : 'hover:text-cyan-glow',
+              "flex flex-col gap-0.5 text-left w-full cursor-pointer transition-colors",
+              r._isZoomed ? "text-cyan-glow" : "hover:text-cyan-glow",
             )}
             onClick={() => onTargetClick(r)}
           >
-            <span className={cn('font-mono text-xs', r._isZoomed ? 'text-cyan-glow font-bold' : 'text-text-primary')}>
+            <span
+              className={cn(
+                "font-mono text-xs",
+                r._isZoomed ? "text-cyan-glow font-bold" : "text-text-primary",
+              )}
+            >
               {r.target}
             </span>
             {r.shipType && r.shipType !== r.target && (
-              <Badge variant={r._isZoomed ? 'cyan' : 'default'}>{r.shipType}</Badge>
+              <Badge variant={r._isZoomed ? "cyan" : "default"}>
+                {r.shipType}
+              </Badge>
             )}
           </button>
-        )
+        );
       },
     },
     {
-      key: 'corp',
-      label: 'Corp',
+      key: "corp",
+      label: "Corp",
       sortable: true,
-      render: (v) => v ? <Badge variant="cyan">{String(v)}</Badge> : <span className="text-text-muted">—</span>,
+      render: (v) =>
+        v ? (
+          <Badge variant="cyan">{String(v)}</Badge>
+        ) : (
+          <span className="text-text-muted">—</span>
+        ),
     },
     {
-      key: 'firstHit',
-      label: 'Window',
+      key: "firstHit",
+      label: "Window",
       render: (_, row) => {
-        const r = row as unknown as EngagementRow
+        const r = row as unknown as EngagementRow;
         return (
           <span className="font-mono text-xs text-text-secondary">
             {fmtTime(r.firstHit)}–{fmtTime(r.lastHit)}
           </span>
-        )
+        );
       },
     },
     {
-      key: 'windowSeconds',
-      label: 'Secs',
+      key: "windowSeconds",
+      label: "Secs",
       sortable: true,
       numeric: true,
       render: (v) => {
-        const n = v as number
-        return <span className="font-mono text-xs text-text-secondary">{n.toFixed(1)}</span>
+        const n = v as number;
+        return (
+          <span className="font-mono text-xs text-text-secondary">
+            {n.toFixed(1)}
+          </span>
+        );
       },
     },
     {
-      key: 'totalDamage',
-      label: 'Total Dmg',
+      key: "totalDamage",
+      label: "Total Dmg",
       sortable: true,
       numeric: true,
-      render: (v) => <span className="font-mono text-xs text-gold-bright font-bold">{fmt(v as number)}</span>,
+      render: (v) => (
+        <span className="font-mono text-xs text-gold-bright font-bold">
+          {fmt(v as number)}
+        </span>
+      ),
     },
     {
-      key: 'dps',
-      label: 'DPS',
+      key: "dps",
+      label: "DPS",
       sortable: true,
       numeric: true,
       render: (v, row) => {
-        const dps = v as number
-        const r = row as unknown as EngagementRow
-        const pct = maxDps > 0 && dps > 0 ? (dps / maxDps) * 100 : 0
+        const dps = v as number;
+        const pct = maxDps > 0 && dps > 0 ? (dps / maxDps) * 100 : 0;
         return (
           <div className="flex flex-col gap-1 min-w-[80px]">
-            <span className="font-mono text-xs text-cyan-glow font-bold">{fmtDps(dps)}</span>
+            <span className="font-mono text-xs text-cyan-glow font-bold">
+              {fmtDps(dps)}
+            </span>
             {pct > 0 && (
               <div className="h-1 rounded-full bg-space overflow-hidden w-full">
                 <div
@@ -147,93 +188,133 @@ function buildEngagementColumns(
               </div>
             )}
           </div>
-        )
+        );
       },
     },
     {
-      key: 'hitCount',
-      label: 'Hits',
+      key: "hitCount",
+      label: "Hits",
       sortable: true,
       numeric: true,
-      render: (v) => <span className="font-mono text-xs">{fmt(v as number)}</span>,
+      render: (v) => (
+        <span className="font-mono text-xs">{fmt(v as number)}</span>
+      ),
     },
     {
-      key: 'minHit',
-      label: 'Min',
+      key: "minHit",
+      label: "Min",
       sortable: true,
       numeric: true,
-      render: (v) => <span className="font-mono text-xs text-status-safe">{fmt(v as number)}</span>,
+      render: (v) => (
+        <span className="font-mono text-xs text-status-safe">
+          {fmt(v as number)}
+        </span>
+      ),
     },
     {
-      key: 'maxHit',
-      label: 'Max',
+      key: "maxHit",
+      label: "Max",
       sortable: true,
       numeric: true,
-      render: (v) => <span className="font-mono text-xs text-status-kill">{fmt(v as number)}</span>,
+      render: (v) => (
+        <span className="font-mono text-xs text-status-kill">
+          {fmt(v as number)}
+        </span>
+      ),
     },
     {
-      key: 'avgHit',
-      label: 'Avg',
+      key: "avgHit",
+      label: "Avg",
       sortable: true,
       numeric: true,
-      render: (v) => <span className="font-mono text-xs text-text-secondary">{fmt(v as number)}</span>,
+      render: (v) => (
+        <span className="font-mono text-xs text-text-secondary">
+          {fmt(v as number)}
+        </span>
+      ),
     },
-  ]
+  ];
 }
 
 // --- Weapon table ---
-type WeaponRow = WeaponApplicationSummary & Record<string, unknown>
+type WeaponRow = WeaponApplicationSummary & Record<string, unknown>;
 
-function WeaponTable({ summaries, emptyMessage }: { summaries: WeaponApplicationSummary[]; emptyMessage: string }) {
+function WeaponTable({
+  summaries,
+  emptyMessage,
+}: {
+  summaries: WeaponApplicationSummary[];
+  emptyMessage: string;
+}) {
   if (summaries.length === 0) {
     return (
       <p className="text-text-muted font-mono text-xs uppercase tracking-widest text-center py-6">
         {emptyMessage}
       </p>
-    )
+    );
   }
 
   const columns: Column<Record<string, unknown>>[] = [
     {
-      key: 'weapon',
-      label: 'Weapon / Ammo',
+      key: "weapon",
+      label: "Weapon / Ammo",
       sortable: true,
-      render: (v) => <span className="font-mono text-xs text-text-primary">{String(v)}</span>,
+      render: (v) => (
+        <span className="font-mono text-xs text-text-primary">{String(v)}</span>
+      ),
     },
     {
-      key: 'hitCount',
-      label: 'Hits',
+      key: "hitCount",
+      label: "Hits",
       sortable: true,
       numeric: true,
-      render: (v) => <span className="font-mono text-xs">{fmt(v as number)}</span>,
+      render: (v) => (
+        <span className="font-mono text-xs">{fmt(v as number)}</span>
+      ),
     },
     {
-      key: 'totalDamage',
-      label: 'Total Dmg',
+      key: "totalDamage",
+      label: "Total Dmg",
       sortable: true,
       numeric: true,
-      render: (v) => <span className="font-mono text-xs text-gold-bright font-bold">{fmt(v as number)}</span>,
+      render: (v) => (
+        <span className="font-mono text-xs text-gold-bright font-bold">
+          {fmt(v as number)}
+        </span>
+      ),
     },
     {
-      key: 'minHit',
-      label: 'Min',
+      key: "minHit",
+      label: "Min",
       sortable: true,
       numeric: true,
-      render: (v) => <span className="font-mono text-xs text-status-safe">{fmt(v as number)}</span>,
+      render: (v) => (
+        <span className="font-mono text-xs text-status-safe">
+          {fmt(v as number)}
+        </span>
+      ),
     },
     {
-      key: 'maxHit',
-      label: 'Max',
+      key: "maxHit",
+      label: "Max",
       sortable: true,
       numeric: true,
-      render: (v) => <span className="font-mono text-xs text-status-kill">{fmt(v as number)}</span>,
+      render: (v) => (
+        <span className="font-mono text-xs text-status-kill">
+          {fmt(v as number)}
+        </span>
+      ),
     },
     {
-      key: 'avgHit',
-      label: 'Avg',
+      key: "avgHit",
+      label: "Avg",
       sortable: true,
       numeric: true,
-      render: (v) => <span className="font-mono text-xs text-text-secondary">{fmt(v as number)}</span>,
+      render: (v) => (
+        <span className="font-mono text-xs text-text-secondary">
+          {fmt(v as number)}
+        </span>
+      ),
     },
     ...HIT_QUALITY_ORDER.map((hq) => ({
       key: `hq_${hq}`,
@@ -241,109 +322,175 @@ function WeaponTable({ summaries, emptyMessage }: { summaries: WeaponApplication
       sortable: false,
       numeric: true,
       render: (_v: unknown, row: Record<string, unknown>) => {
-        const weaponRow = row as WeaponRow
-        const count = weaponRow.hitQualities[hq]
-        if (!count) return <span className="text-text-muted font-mono text-xs">—</span>
+        const weaponRow = row as WeaponRow;
+        const count = weaponRow.hitQualities[hq];
+        if (!count)
+          return <span className="text-text-muted font-mono text-xs">—</span>;
         return (
-          <span className={cn('font-mono text-xs font-bold', hitQualityColor(hq))}>
+          <span
+            className={cn("font-mono text-xs font-bold", hitQualityColor(hq))}
+          >
             {count}
           </span>
-        )
+        );
       },
     })),
-  ]
+  ];
 
   // Flatten hitQualities into row keys for DataTable
   const rows = summaries.map((s) => {
-    const row: Record<string, unknown> = { ...s }
+    const row: Record<string, unknown> = { ...s };
     for (const hq of HIT_QUALITY_ORDER) {
-      row[`hq_${hq}`] = s.hitQualities[hq] ?? null
+      row[`hq_${hq}`] = s.hitQualities[hq] ?? null;
     }
-    return row
-  })
+    return row;
+  });
 
   return (
-    <DataTable
-      columns={columns}
-      data={rows}
-      rowKey={(_, i) => String(i)}
-    />
-  )
+    <DataTable columns={columns} data={rows} rowKey={(_, i) => String(i)} />
+  );
 }
 
 export default function DamageDealtPage() {
-  const { activeLog } = useParsedLogs()
-  const hasLogs = activeLog !== null
+  const { activeLog } = useParsedLogs();
+  const hasLogs = activeLog !== null;
 
-  const [zoomedTarget, setZoomedTarget] = useState<TargetEngagement | null>(null)
+  const [zoomedTarget, setZoomedTarget] = useState<TargetEngagement | null>(
+    null,
+  );
+  const [zoomedWindow, setZoomedWindow] = useState<
+    { start: Date; end: Date } | undefined
+  >(undefined);
+  // Signal to force the Brush to reset to full range (increments on RESET)
+  const [resetBrushKey, setResetBrushKey] = useState(0);
+  const [excludeDrones, setExcludeDrones] = useState(false);
+  // Defer heavy analysis work to keep the UI responsive when the active log
+  // changes. This lets urgent updates (UI interactions) render first while
+  // analysis/time-series are computed in the background.
+  const deferredActiveLog = useDeferredValue(activeLog);
+  const [isPending, startTransition] = useTransition();
 
   const analysis = useMemo(() => {
-    if (!hasLogs) return null
-    return analyzeDamageDealt(activeLog!.entries)
-  }, [activeLog, hasLogs])
+    if (!deferredActiveLog) return null;
+    return analyzeDamageDealt(deferredActiveLog.entries);
+  }, [deferredActiveLog]);
 
   const timeSeries: DamageDealtTimeSeries = useMemo(() => {
-    if (!hasLogs) return { points: [], tackleWindows: [] }
-    return generateDamageDealtTimeSeries(activeLog!.entries)
-  }, [activeLog, hasLogs])
+    if (!deferredActiveLog) return { points: [], tackleWindows: [] };
+    return generateDamageDealtTimeSeries(
+      deferredActiveLog.entries,
+      excludeDrones,
+    );
+  }, [deferredActiveLog, excludeDrones]);
 
-  const zoomedWindow = zoomedTarget
-    ? { start: zoomedTarget.firstHit, end: zoomedTarget.lastHit }
-    : undefined
+  const effectiveZoomedWindow = resolveZoomedWindow(zoomedWindow, zoomedTarget);
 
   const maxDps = useMemo(() => {
-    if (!analysis) return 0
-    return Math.max(0, ...analysis.engagements.map((e) => e.dps))
-  }, [analysis])
+    if (!analysis) return 0;
+    return Math.max(0, ...analysis.engagements.map((e) => e.dps));
+  }, [analysis]);
 
-  const handleTargetClick = (engagement: TargetEngagement) => {
-    setZoomedTarget((prev) =>
-      prev?.target === engagement.target && prev?.shipType === engagement.shipType
-        ? null
-        : engagement,
-    )
-  }
+  const handleTargetClick = useCallback((engagement: TargetEngagement) => {
+    // Mark these state updates as low-priority so UI interactions (like
+    // clicking) remain snappy while expensive background work runs.
+    startTransition(() => {
+      setZoomedWindow(undefined);
+      setZoomedTarget((prev) => {
+        const toggledOff =
+          prev?.target === engagement.target &&
+          prev?.shipType === engagement.shipType;
+        // If the user clicked the same target to toggle zoom off, force a
+        // brush reset so the brush handles return to the full domain. This
+        // avoids a stale brush position remaining after programmatic zoom
+        // changes.
+        if (toggledOff) {
+          setResetBrushKey((k) => k + 1);
+          return null;
+        }
+        return engagement;
+      });
+    });
+  }, []);
+
+  const handleRangeSelect = useCallback((start: Date, end: Date) => {
+    startTransition(() => {
+      setZoomedTarget(null);
+      setZoomedWindow({ start, end });
+    });
+  }, []);
 
   const engagementRows: Record<string, unknown>[] = useMemo(() => {
-    if (!analysis) return []
-    return analysis.engagements.map((e) => ({
-      ...e,
-      _maxDps: maxDps,
-      _isZoomed:
-        zoomedTarget?.target === e.target && zoomedTarget?.shipType === e.shipType,
-    } as Record<string, unknown>))
-  }, [analysis, maxDps, zoomedTarget])
+    if (!analysis) return [];
+    return analysis.engagements.map(
+      (e) =>
+        ({
+          ...e,
+          _maxDps: maxDps,
+          _isZoomed:
+            zoomedTarget?.target === e.target &&
+            zoomedTarget?.shipType === e.shipType,
+        }) as Record<string, unknown>,
+    );
+  }, [analysis, maxDps, zoomedTarget]);
 
   const engagementColumns = useMemo(
     () => buildEngagementColumns(maxDps, handleTargetClick),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [maxDps],
-  )
+    [maxDps, handleTargetClick],
+  );
 
   // Stat card values
   const bestHit = analysis
     ? Math.max(0, ...analysis.engagements.map((e) => e.maxHit))
-    : 0
-  const worstHit = analysis && analysis.engagements.length > 0
-    ? Math.min(...analysis.engagements.map((e) => e.minHit))
-    : 0
-  const avgHit = analysis && analysis.totalHits > 0
-    ? analysis.totalDamageDealt / analysis.totalHits
-    : 0
+    : 0;
+  const worstHit =
+    analysis && analysis.engagements.length > 0
+      ? Math.min(...analysis.engagements.map((e) => e.minHit))
+      : 0;
+  const avgHit =
+    analysis && analysis.totalHits > 0
+      ? analysis.totalDamageDealt / analysis.totalHits
+      : 0;
 
-  const chartHeaderAction = zoomedTarget ? (
-    <div className="flex items-center gap-2 font-mono text-xs">
-      <span className="text-cyan-glow">{zoomedTarget.target}</span>
-      <span className="text-text-muted">—</span>
+  const hasZoom = Boolean(zoomedTarget || zoomedWindow);
+  const zoomLabel = zoomedTarget
+    ? zoomedTarget.target
+    : zoomedWindow
+      ? `${fmtTime(zoomedWindow.start)}–${fmtTime(zoomedWindow.end)}`
+      : null;
+
+  const chartHeaderAction = (
+    <div className="flex items-center gap-3 font-mono text-xs">
+      {hasZoom && (
+        <>
+          {zoomLabel && <span className="text-cyan-glow">{zoomLabel}</span>}
+          <span className="text-text-muted">—</span>
+          <button
+            type="button"
+            className="text-text-muted hover:text-text-primary transition-colors uppercase tracking-widest"
+            onClick={() => {
+              // Force brush reset in chart by bumping the reset key, then
+              // clear zoom states. Using startTransition keeps UI snappy.
+              startTransition(() => {
+                setResetBrushKey((k) => k + 1);
+                setZoomedTarget(null);
+                setZoomedWindow(undefined);
+              });
+            }}
+          >
+            RESET
+          </button>
+          <span className="text-text-muted">—</span>
+        </>
+      )}
       <button
         type="button"
         className="text-text-muted hover:text-text-primary transition-colors uppercase tracking-widest"
-        onClick={() => setZoomedTarget(null)}
+        onClick={() => setExcludeDrones(!excludeDrones)}
       >
-        RESET
+        {excludeDrones ? "INCLUDE DRONES" : "EXCLUDE DRONES"}
       </button>
     </div>
-  ) : null
+  );
 
   return (
     <AppLayout title="DAMAGE APPLICATION">
@@ -385,16 +532,8 @@ export default function DamageDealtPage() {
         <div className="space-y-6">
           {/* Section 3 — Stat cards (shown at top for quick overview) */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-            <StatCard
-              label="Best Single Hit"
-              value={bestHit}
-              variant="gold"
-            />
-            <StatCard
-              label="Worst Hit"
-              value={worstHit}
-              variant="default"
-            />
+            <StatCard label="Best Single Hit" value={bestHit} variant="gold" />
+            <StatCard label="Worst Hit" value={worstHit} variant="default" />
             <StatCard
               label="Average Hit"
               value={Math.round(avgHit)}
@@ -413,8 +552,22 @@ export default function DamageDealtPage() {
           </div>
 
           {/* Damage dealt time-series chart */}
-          <Panel title="DAMAGE DEALT OVER TIME" headerAction={chartHeaderAction}>
-            <DamageDealtChart series={timeSeries} zoomedWindow={zoomedWindow} />
+          <Panel
+            title="DAMAGE DEALT OVER TIME"
+            headerAction={chartHeaderAction}
+          >
+            <DamageDealtChart
+              series={timeSeries}
+              zoomedWindow={effectiveZoomedWindow}
+              excludeDrones={excludeDrones}
+              onRangeSelect={handleRangeSelect}
+              resetKey={resetBrushKey}
+            />
+            {isPending && (
+              <div className="mt-2 text-text-muted font-mono text-xs">
+                Computing analysis…
+              </div>
+            )}
           </Panel>
 
           {/* Section 1 — DPS per target */}
@@ -451,5 +604,5 @@ export default function DamageDealtPage() {
         </div>
       )}
     </AppLayout>
-  )
+  );
 }

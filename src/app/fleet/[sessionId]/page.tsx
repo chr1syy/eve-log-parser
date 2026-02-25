@@ -32,10 +32,11 @@ export default function FleetSessionDetailPage() {
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const fetchSession = async (id: string) => {
+  const fetchSession = async (id: string, silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       setError(null);
       // Check localStorage for access
       try {
@@ -81,15 +82,39 @@ export default function FleetSessionDetailPage() {
         /* ignore */
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load session");
+      if (!silent)
+        setError(err instanceof Error ? err.message : "Failed to load session");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     if (!sessionId) return;
     fetchSession(sessionId);
+  }, [sessionId]);
+
+  // Live-refresh: subscribe to SSE updates so we hot-reload when a fleet
+  // member uploads a new log without requiring a manual page refresh.
+  useEffect(() => {
+    if (!sessionId) return;
+
+    const es = new EventSource(`/api/fleet-sessions/${sessionId}/events`);
+
+    es.onmessage = (event: MessageEvent) => {
+      const payload = JSON.parse(event.data as string) as { type: string };
+      if (payload.type === "log-uploaded") {
+        setRefreshing(true);
+        void fetchSession(sessionId, true).finally(() =>
+          setRefreshing(false),
+        );
+      }
+    };
+
+    return () => {
+      es.close();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
   const handleCopyCode = async () => {
@@ -254,9 +279,16 @@ export default function FleetSessionDetailPage() {
         {/* Session Header */}
         <div className="bg-bg-secondary border border-border rounded p-6">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-ui uppercase tracking-wider text-text-primary">
-              {session.fightName || "Unnamed Fight"}
-            </h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-ui uppercase tracking-wider text-text-primary">
+                {session.fightName || "Unnamed Fight"}
+              </h1>
+              {refreshing && (
+                <span className="text-xs text-text-muted animate-pulse uppercase tracking-wider">
+                  Syncing…
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-4">
               <span className="font-mono text-lg">{session.code}</span>
               <Button size="sm" onClick={handleCopyCode}>
@@ -285,7 +317,7 @@ export default function FleetSessionDetailPage() {
 
         <div className="space-y-6">
           <div className="text-center py-6">
-            <p className="text-text-muted">
+            <p className="text-base text-text-secondary">
               Upload logs at any time to update fleet analysis
             </p>
           </div>

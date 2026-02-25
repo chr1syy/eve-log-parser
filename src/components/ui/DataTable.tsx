@@ -23,6 +23,8 @@ interface DataTableProps<T> {
   rowKey?: (row: T, index: number) => string;
   defaultSortKey?: string;
   defaultSortDirection?: "asc" | "desc";
+  // Optional click handler for rows (used by pages to make rows actionable)
+  onRowClick?: (row: T) => void;
 }
 
 type SortDirection = "asc" | "desc" | null;
@@ -42,6 +44,7 @@ export default function DataTable<T extends Record<string, unknown>>({
   rowKey,
   defaultSortKey,
   defaultSortDirection,
+  onRowClick,
 }: DataTableProps<T>) {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortState>({
@@ -99,6 +102,8 @@ export default function DataTable<T extends Record<string, unknown>>({
     setSearch(value);
     setPage(1);
   }
+
+  const clickable = typeof onRowClick === "function";
 
   return (
     <div className="flex flex-col gap-3">
@@ -170,7 +175,23 @@ export default function DataTable<T extends Record<string, unknown>>({
                 return (
                   <tr
                     key={key}
-                    className="border-b border-border-subtle hover:bg-elevated transition-colors"
+                    className={cn(
+                      "border-b border-border-subtle hover:bg-elevated transition-colors",
+                      clickable && "cursor-pointer",
+                    )}
+                    onClick={clickable ? () => onRowClick(row as T) : undefined}
+                    onKeyDown={
+                      clickable
+                        ? (e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              onRowClick(row as T);
+                            }
+                          }
+                        : undefined
+                    }
+                    role={clickable ? "button" : undefined}
+                    tabIndex={clickable ? 0 : undefined}
                   >
                     {columns.map((col) => {
                       const value = row[col.key];

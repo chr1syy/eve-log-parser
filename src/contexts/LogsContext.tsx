@@ -209,6 +209,8 @@ export function LogsProvider({ children }: { children: ReactNode }) {
     // Resolve or generate userId
     const resolvedUserId = initial.userId;
     userIdRef.current = resolvedUserId;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setUserId(resolvedUserId);
 
     if (parsedLogsRaw) {
       // Normal hydration from localStorage

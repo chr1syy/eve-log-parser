@@ -1,6 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import {
+  useMemo,
+  useState,
+  useDeferredValue,
+  useTransition,
+  useCallback,
+} from "react";
 import Link from "next/link";
 import { Upload, ShieldAlert } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
@@ -17,12 +23,9 @@ import { analyzeReps } from "@/lib/analysis/repAnalysis";
 import { filterOutHostileNpcs } from "@/lib/npcFilter";
 import type {
   IncomingWeaponSummary,
-  TimeSeriesDpsPoint,
+  AttackerTimeSeries,
 } from "@/lib/analysis/damageTaken";
-import type {
-  RepSourceSummary,
-  RepAnalysisResult,
-} from "@/lib/analysis/repAnalysis";
+import type { RepSourceSummary } from "@/lib/analysis/repAnalysis";
 import type { HitQuality } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -79,10 +82,14 @@ function WeaponTable({
   summaries,
   emptyMessage,
   showSource = false,
+  onRowClick,
+  attackerSeries,
 }: {
   summaries: IncomingWeaponSummary[];
   emptyMessage: string;
   showSource?: boolean;
+  onRowClick?: (row: IncomingWeaponSummary) => void;
+  attackerSeries?: AttackerTimeSeries[];
 }) {
   if (summaries.length === 0) {
     return (
@@ -99,11 +106,43 @@ function WeaponTable({
             key: "source",
             label: "Attacker",
             sortable: true,
-            render: (v) => (
-              <span className="font-mono text-xs text-text-primary">
-                {String(v)}
-              </span>
-            ),
+            render: (v, row) => {
+              const r = row as WeaponRow;
+              const shipType = r.shipType;
+              const showShip = shipType && shipType !== String(v);
+              // try to find attacker color/index
+              const attackerIdx = attackerSeries
+                ? attackerSeries.findIndex((a) => a.source === String(v))
+                : -1;
+              const attacker =
+                attackerIdx >= 0 ? attackerSeries![attackerIdx] : null;
+              return (
+                <div className="flex flex-col gap-0.5">
+                  <div className="flex items-center gap-2">
+                    {attacker ? (
+                      <span
+                        className="w-3 h-3 inline-block rounded-sm"
+                        style={{ backgroundColor: attacker.color }}
+                        aria-hidden
+                      />
+                    ) : null}
+                    <span className="font-mono text-xs text-text-primary">
+                      {String(v)}
+                    </span>
+                    {attacker ? (
+                      <span className="font-mono text-[10px] text-text-muted">
+                        #{attackerIdx + 1}
+                      </span>
+                    ) : null}
+                  </div>
+                  {showShip ? (
+                    <Badge variant="default">{shipType}</Badge>
+                  ) : (
+                    <span className="text-text-muted font-mono text-xs">—</span>
+                  )}
+                </div>
+              );
+            },
           } as Column<Record<string, unknown>>,
         ]
       : []),
@@ -192,17 +231,35 @@ function WeaponTable({
     })),
   ];
 
-  // Flatten hitQualities into row keys for DataTable
-  const rows = summaries.map((s) => {
-    const row: Record<string, unknown> = { ...s };
+  // Flatten hitQualities into row keys for DataTable and keep original
+  // summary on the row under a private key so clickable rows can map
+  // back to the typed IncomingWeaponSummary.
+  const rows: Record<string, unknown>[] = summaries.map((s) => {
+    const row: Record<string, unknown> = {
+      ...(s as unknown as Record<string, unknown>),
+    };
     for (const hq of HIT_QUALITY_ORDER) {
       row[`hq_${hq}`] = s.hitQualities[hq] ?? null;
     }
+    // keep reference to original summary for callbacks
+    row.__orig = s;
     return row;
   });
 
   return (
-    <DataTable columns={columns} data={rows} rowKey={(_, i) => String(i)} />
+    <DataTable
+      columns={columns}
+      data={rows}
+      rowKey={(_, i) => String(i)}
+      onRowClick={
+        onRowClick
+          ? (r) =>
+              onRowClick(
+                (r as Record<string, unknown>).__orig as IncomingWeaponSummary,
+              )
+          : undefined
+      }
+    />
   );
 }
 
@@ -308,23 +365,99 @@ export default function DamageTakenPage() {
   const hasLogs = activeLog !== null;
   const [hideNpcs, setHideNpcs] = useState(false);
 
+  // Defer heavy analysis when the active log changes so UI interactions stay
+  // responsive (matches the pattern used in Damage Dealt page).
+  const deferredActiveLog = useDeferredValue(activeLog);
+  const [isPending, startTransition] = useTransition();
+
   const entries = useMemo(() => {
-    const raw = activeLog?.entries ?? [];
+    const raw = deferredActiveLog?.entries ?? [];
     return hideNpcs ? filterOutHostileNpcs(raw) : raw;
-  }, [activeLog, hideNpcs]);
+  }, [deferredActiveLog, hideNpcs]);
 
   const damageAnalysis = useMemo(() => {
-    if (!hasLogs) return null;
+    if (!deferredActiveLog) return null;
     return analyzeDamageTaken(entries);
-  }, [entries, hasLogs]);
+  }, [entries, deferredActiveLog]);
 
   const repAnalysis = useMemo(() => {
-    if (!hasLogs) return null;
+    if (!deferredActiveLog) return null;
     return analyzeReps(entries);
-  }, [entries, hasLogs]);
+  }, [entries, deferredActiveLog]);
 
   const hasIncomingDamage =
     damageAnalysis && damageAnalysis.totalIncomingHits > 0;
+
+  // Zoom/brush state for the chart
+  const [zoomedWindow, setZoomedWindow] = useState<
+    { start: Date; end: Date } | undefined
+  >(undefined);
+  const [zoomedSource, setZoomedSource] = useState<{
+    source: string;
+    weapon?: string;
+    shipType?: string;
+  } | null>(null);
+  const [resetBrushKey, setResetBrushKey] = useState(0);
+
+  const handleRangeSelect = useCallback((start: Date, end: Date) => {
+    startTransition(() => {
+      setZoomedSource(null);
+      setZoomedWindow({ start, end });
+    });
+  }, []);
+
+  const handleSourceClick = useCallback(
+    (summary: IncomingWeaponSummary) => {
+      startTransition(() => {
+        // Toggle zoom for this source+weapon
+        const isSame =
+          zoomedSource?.source === summary.source &&
+          zoomedSource?.weapon === summary.weapon;
+        if (isSame) {
+          // clicking again toggles off and reset brush
+          setResetBrushKey((k) => k + 1);
+          setZoomedSource(null);
+          setZoomedWindow(undefined);
+          return;
+        }
+
+        // If this summary has timestamps, zoom to them; otherwise no-op
+        if (summary.firstHit && summary.lastHit) {
+          setZoomedSource({
+            source: summary.source,
+            weapon: summary.weapon,
+            shipType: summary.shipType,
+          });
+          setZoomedWindow({ start: summary.firstHit, end: summary.lastHit });
+        }
+      });
+    },
+    [zoomedSource],
+  );
+
+  const hasZoom = Boolean(zoomedWindow);
+
+  const chartHeaderAction = (
+    <div className="flex items-center gap-3 font-mono text-xs">
+      {hasZoom && (
+        <>
+          <button
+            type="button"
+            className="text-text-muted hover:text-text-primary transition-colors uppercase tracking-widest"
+            onClick={() => {
+              startTransition(() => {
+                setResetBrushKey((k) => k + 1);
+                setZoomedWindow(undefined);
+              });
+            }}
+          >
+            RESET
+          </button>
+          <span className="text-text-muted">—</span>
+        </>
+      )}
+    </div>
+  );
 
   return (
     <AppLayout title="DAMAGE MITIGATION">
@@ -381,12 +514,24 @@ export default function DamageTakenPage() {
           </div>
 
           {/* Section 1 — DPS Over Time */}
-          <Panel title="INCOMING DPS OVER TIME (10s ROLLING)">
+          <Panel
+            title="INCOMING DPS OVER TIME (10s ROLLING)"
+            headerAction={chartHeaderAction}
+          >
             <DpsTakenChart
               timeSeries={damageAnalysis.dpsTimeSeries}
               fights={damageAnalysis.fights}
+              attackerSeries={damageAnalysis.attackerTimeSeries}
               repTimeSeries={repAnalysis?.incomingRepTimeSeries}
+              zoomedWindow={zoomedWindow}
+              onRangeSelect={handleRangeSelect}
+              resetKey={resetBrushKey}
             />
+            {isPending && (
+              <div className="mt-2 text-text-muted font-mono text-xs">
+                Computing analysis…
+              </div>
+            )}
           </Panel>
 
           {/* Section 2 — Peak DPS Windows */}
@@ -418,6 +563,12 @@ export default function DamageTakenPage() {
                 summaries={damageAnalysis.incomingWeaponSummaries}
                 emptyMessage="NO INCOMING WEAPON DAMAGE"
                 showSource={true}
+                // Make rows clickable so users can click the existing table rows
+                // to zoom the chart instead of using the duplicated summary list.
+                onRowClick={(row) =>
+                  handleSourceClick(row as IncomingWeaponSummary)
+                }
+                attackerSeries={damageAnalysis.attackerTimeSeries}
               />
             </Panel>
             <Panel title="INCOMING DRONES">
@@ -425,6 +576,10 @@ export default function DamageTakenPage() {
                 summaries={damageAnalysis.incomingDroneSummaries}
                 emptyMessage="NO INCOMING DRONE DAMAGE"
                 showSource={true}
+                onRowClick={(row) =>
+                  handleSourceClick(row as IncomingWeaponSummary)
+                }
+                attackerSeries={damageAnalysis.attackerTimeSeries}
               />
             </Panel>
           </div>
