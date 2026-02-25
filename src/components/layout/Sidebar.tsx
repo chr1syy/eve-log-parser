@@ -63,10 +63,8 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Bottom version */}
-      <div className="px-4 py-3 border-t border-border flex-shrink-0">
-        <span className="text-text-muted text-xs font-mono">v0.1.0</span>
-      </div>
+      {/* Footer area intentionally left empty; version is shown in footer by tag */}
+      <div className="px-4 py-3 border-t border-border flex-shrink-0" />
     </aside>
   );
 }

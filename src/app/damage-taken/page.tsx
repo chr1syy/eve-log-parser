@@ -79,10 +79,12 @@ function WeaponTable({
   summaries,
   emptyMessage,
   showSource = false,
+  onRowClick,
 }: {
   summaries: IncomingWeaponSummary[];
   emptyMessage: string;
   showSource?: boolean;
+  onRowClick?: (row: IncomingWeaponSummary) => void;
 }) {
   if (summaries.length === 0) {
     return (
@@ -204,17 +206,35 @@ function WeaponTable({
     })),
   ];
 
-  // Flatten hitQualities into row keys for DataTable
-  const rows = summaries.map((s) => {
-    const row: Record<string, unknown> = { ...s };
+  // Flatten hitQualities into row keys for DataTable and keep original
+  // summary on the row under a private key so clickable rows can map
+  // back to the typed IncomingWeaponSummary.
+  const rows: Record<string, unknown>[] = summaries.map((s) => {
+    const row: Record<string, unknown> = {
+      ...(s as unknown as Record<string, unknown>),
+    };
     for (const hq of HIT_QUALITY_ORDER) {
       row[`hq_${hq}`] = s.hitQualities[hq] ?? null;
     }
+    // keep reference to original summary for callbacks
+    row.__orig = s;
     return row;
   });
 
   return (
-    <DataTable columns={columns} data={rows} rowKey={(_, i) => String(i)} />
+    <DataTable
+      columns={columns}
+      data={rows}
+      rowKey={(_, i) => String(i)}
+      onRowClick={
+        onRowClick
+          ? (r) =>
+              onRowClick(
+                (r as Record<string, unknown>).__orig as IncomingWeaponSummary,
+              )
+          : undefined
+      }
+    />
   );
 }
 
@@ -347,13 +367,48 @@ export default function DamageTakenPage() {
   const [zoomedWindow, setZoomedWindow] = useState<
     { start: Date; end: Date } | undefined
   >(undefined);
+  const [zoomedSource, setZoomedSource] = useState<{
+    source: string;
+    weapon?: string;
+    shipType?: string;
+  } | null>(null);
   const [resetBrushKey, setResetBrushKey] = useState(0);
 
   const handleRangeSelect = useCallback((start: Date, end: Date) => {
     startTransition(() => {
+      setZoomedSource(null);
       setZoomedWindow({ start, end });
     });
   }, []);
+
+  const handleSourceClick = useCallback(
+    (summary: IncomingWeaponSummary) => {
+      startTransition(() => {
+        // Toggle zoom for this source+weapon
+        const isSame =
+          zoomedSource?.source === summary.source &&
+          zoomedSource?.weapon === summary.weapon;
+        if (isSame) {
+          // clicking again toggles off and reset brush
+          setResetBrushKey((k) => k + 1);
+          setZoomedSource(null);
+          setZoomedWindow(undefined);
+          return;
+        }
+
+        // If this summary has timestamps, zoom to them; otherwise no-op
+        if (summary.firstHit && summary.lastHit) {
+          setZoomedSource({
+            source: summary.source,
+            weapon: summary.weapon,
+            shipType: summary.shipType,
+          });
+          setZoomedWindow({ start: summary.firstHit, end: summary.lastHit });
+        }
+      });
+    },
+    [zoomedSource],
+  );
 
   const hasZoom = Boolean(zoomedWindow);
 
@@ -482,6 +537,11 @@ export default function DamageTakenPage() {
                 summaries={damageAnalysis.incomingWeaponSummaries}
                 emptyMessage="NO INCOMING WEAPON DAMAGE"
                 showSource={true}
+                // Make rows clickable so users can click the existing table rows
+                // to zoom the chart instead of using the duplicated summary list.
+                onRowClick={(row) =>
+                  handleSourceClick(row as IncomingWeaponSummary)
+                }
               />
             </Panel>
             <Panel title="INCOMING DRONES">
@@ -489,6 +549,9 @@ export default function DamageTakenPage() {
                 summaries={damageAnalysis.incomingDroneSummaries}
                 emptyMessage="NO INCOMING DRONE DAMAGE"
                 showSource={true}
+                onRowClick={(row) =>
+                  handleSourceClick(row as IncomingWeaponSummary)
+                }
               />
             </Panel>
           </div>

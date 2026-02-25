@@ -30,6 +30,10 @@ export interface IncomingWeaponSummary {
   minHit: number;
   maxHit: number;
   hitQualities: Partial<Record<HitQuality, number>>;
+  // first/last hit timestamps for this source+weapon window — useful for
+  // programmatic zooming of the timeline when the user clicks a row.
+  firstHit?: Date;
+  lastHit?: Date;
 }
 
 export interface DamageTakenAnalysis {
@@ -155,7 +159,10 @@ function computeDpsTimeSeries(
   return points;
 }
 
-function computePeakDps(entries: LogEntry[], windowSeconds: number): DpsWindow {
+export function computePeakDps(
+  entries: LogEntry[],
+  windowSeconds: number,
+): DpsWindow {
   const windowMs = windowSeconds * 1000;
   const sorted = [...entries].sort(
     (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
@@ -260,6 +267,14 @@ export function analyzeDamageTaken(entries: LogEntry[]): DamageTakenAnalysis {
       }
     }
 
+    const firstTimestamp =
+      (damage[0]?.timestamp?.getTime() ?? misses[0]?.timestamp?.getTime()) ||
+      undefined;
+    const lastTimestamp =
+      (damage[damage.length - 1]?.timestamp?.getTime() ??
+        misses[misses.length - 1]?.timestamp?.getTime()) ||
+      undefined;
+
     const summary: IncomingWeaponSummary = {
       source,
       shipType,
@@ -271,6 +286,8 @@ export function analyzeDamageTaken(entries: LogEntry[]): DamageTakenAnalysis {
       minHit,
       maxHit,
       hitQualities,
+      firstHit: firstTimestamp ? new Date(firstTimestamp) : undefined,
+      lastHit: lastTimestamp ? new Date(lastTimestamp) : undefined,
     };
 
     if (isDrone) {
