@@ -39,7 +39,7 @@ async function hashContent(text: string): Promise<string> {
 }
 
 const DRONE_PATTERN =
-  /\b(Wasp|Infiltrator|Hornet|Hammerhead|Ogre|Valkyrie|Warrior|Curator|Garde|Warden|Bouncer|Berserker|Acolyte|Praetor|Gecko)\b/i;
+  /\b(Wasp|Infiltrator|Hornet|Hammerhead|Hobgoblin|Ogre|Valkyrie|Warrior|Curator|Garde|Warden|Bouncer|Berserker|Acolyte|Praetor|Gecko)\b/i;
 
 /**
  * Strips all EVE HTML markup tags from a line, collapsing extra whitespace.
