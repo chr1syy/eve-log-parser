@@ -12,7 +12,7 @@ import {
   ReferenceArea,
   Brush,
 } from "recharts";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   DamageDealtTimeSeries,
   DamageDealtPoint,
@@ -118,10 +118,11 @@ export default function DamageDealtChart({
   // the brush "jumping" behavior caused by rendering the brush against a
   // filtered (shortened) data array.
   const fullPoints = points;
-  const data = fullPoints.map((pt) => ({
-    ...pt,
-    timestampMs: pt.timestamp.getTime(),
-  }));
+  const data = useMemo(
+    () =>
+      fullPoints.map((pt) => ({ ...pt, timestampMs: pt.timestamp.getTime() })),
+    [fullPoints],
+  );
 
   // Filter to zoomed window if provided for other UI bits (tooltips / labels)
   const visiblePoints = zoomedWindow
@@ -196,6 +197,7 @@ export default function DamageDealtChart({
   const [brushRemountKey, setBrushRemountKey] = useState<string | undefined>(
     undefined,
   );
+  const lastZoomSourceRef = useRef<string | null>(null);
 
   // internal brush state for immediate UI feedback while dragging
   const [internalBrush, setInternalBrush] = useState<
@@ -216,12 +218,16 @@ export default function DamageDealtChart({
   }, [brushIndexRange?.startIndex, brushIndexRange?.endIndex]);
 
   // Clip tackle windows to the visible domain
-  const visibleTackleWindows = tackleWindows
-    .map((w) => ({
-      x1: Math.max(w.start.getTime(), domainMin),
-      x2: Math.min(w.end.getTime(), domainMax),
-    }))
-    .filter((w) => w.x1 < w.x2);
+  const visibleTackleWindows = useMemo(
+    () =>
+      tackleWindows
+        .map((w) => ({
+          x1: Math.max(w.start.getTime(), domainMin),
+          x2: Math.min(w.end.getTime(), domainMax),
+        }))
+        .filter((w) => w.x1 < w.x2),
+    [tackleWindows, domainMin, domainMax],
+  );
 
   return (
     <div className="space-y-3">
@@ -315,8 +321,7 @@ export default function DamageDealtChart({
             fill="#cc0000"
             fillOpacity={0.4}
             maxBarSize={12}
-            animationDuration={600}
-            animationEasing="ease-out"
+            isAnimationActive={false}
             name="Bad Hit %"
           />
 
@@ -330,8 +335,7 @@ export default function DamageDealtChart({
             dot={false}
             activeDot={{ r: 3, fill: "#00d4ff" }}
             name="DPS"
-            animationDuration={600}
-            animationEasing="ease-out"
+            isAnimationActive={false}
           />
           {onRangeSelect && (
             <Brush
@@ -344,13 +348,16 @@ export default function DamageDealtChart({
               // parent after a short debounce so we don't fight pointer
               // interactions.
               onChange={(r) => {
-                setInternalBrush(r);
+                // Don't update parent/zoom while dragging. Debounce and mark
+                // the last zoom source so programmatic sync doesn't remount
+                // the Brush while the user is interacting.
+                lastZoomSourceRef.current = "brush";
                 if (notifyTimer.current)
                   window.clearTimeout(notifyTimer.current);
                 notifyTimer.current = window.setTimeout(() => {
                   handleBrushChange(r);
                   notifyTimer.current = null;
-                }, 180);
+                }, 700);
               }}
               // When a transient sync is present we pass start/end indices once
               // so the Brush snaps to the programmatic window. After a short
