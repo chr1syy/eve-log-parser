@@ -353,12 +353,26 @@ export default function DamageDealtChart({
               key={syncIndices ? brushRemountKey : undefined}
               dataKey="timestampMs"
               height={28}
-              stroke="#00707f"
-              strokeOpacity={0.75}
-              travellerWidth={6}
-              fill="#00707f"
-              fillOpacity={0.14}
-              traveller={<rect rx={2} fill="#e6e6e6" stroke="#cfcfcf" />}
+              stroke="#005f65"
+              strokeOpacity={0.9}
+              travellerWidth={12}
+              fill="#005f65"
+              fillOpacity={0.06}
+              // Provide a clearly visible traveller handle: white fill with
+              // dark stroke so it contrasts against the selection area and the
+              // chart background.
+              traveller={
+                <g>
+                  <rect
+                    rx={3}
+                    width={12}
+                    height={20}
+                    fill="#ffffff"
+                    stroke="#0f172a"
+                    strokeWidth={1}
+                  />
+                </g>
+              }
               // Update internal UI state immediately while dragging; notify
               // parent after a short debounce so we don't fight pointer
               // interactions.
