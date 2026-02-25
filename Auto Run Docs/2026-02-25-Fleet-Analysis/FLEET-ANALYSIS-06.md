@@ -37,5 +37,7 @@ Final verification tasks to run after implementing all phases.
 
   Reason not completed: manual verification required and runtime tools missing in this execution environment. Leaving the checkbox unchecked so a human can perform the interactive smoke test.
 
+  - Automated run note: The Maestro-managed agent `feat-fleet-analysis` attempted the smoke test on 2026-02-25; the environment lacked `npm` and a browser so the app could not be started here. Images analyzed: 0. Task left unchecked for manual completion.
+
 Notes:
 - I inspected the repository and confirmed `CLAUDE.md` is present as a symlink pointing to `AGENTS.md` (no creation required).
