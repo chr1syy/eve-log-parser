@@ -358,6 +358,7 @@ export default function DamageDealtChart({
               travellerWidth={6}
               fill="#00707f"
               fillOpacity={0.14}
+              traveller={<rect rx={2} fill="#e6e6e6" stroke="#cfcfcf" />}
               // Update internal UI state immediately while dragging; notify
               // parent after a short debounce so we don't fight pointer
               // interactions.
