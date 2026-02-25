@@ -40,11 +40,11 @@ function PilotDamageTakenBars({ entries }: { entries: LogEntry[] }) {
     const map = new Map<string, { damage: number; shipType: string }>();
     for (const e of entries) {
       if (e.eventType !== "damage-received") continue;
-      const pilot = e.pilotName ?? "Unknown";
+      const pilot = e.fleetPilot ?? e.pilotName ?? "Unknown";
       const existing = map.get(pilot);
       map.set(pilot, {
         damage: (existing?.damage ?? 0) + (e.amount ?? 0),
-        shipType: e.shipType ?? existing?.shipType ?? "",
+        shipType: e.fleetShipType ?? e.shipType ?? existing?.shipType ?? "",
       });
     }
     return Array.from(map.entries())

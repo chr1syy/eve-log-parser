@@ -17,9 +17,7 @@ import Badge from "@/components/ui/Badge";
 import StatCard from "@/components/dashboard/StatCard";
 import DataTable from "@/components/ui/DataTable";
 import type { Column } from "@/components/ui/DataTable";
-import {
-  analyzeDamageDealt,
-} from "@/lib/analysis/damageDealt";
+import { analyzeDamageDealt } from "@/lib/analysis/damageDealt";
 import type {
   TargetEngagement,
   WeaponApplicationSummary,
@@ -52,7 +50,8 @@ function computePerPilotDps(
 
   const pilotsSet = new Set<string>();
   for (const e of dmgEntries) {
-    if (e.pilotName) pilotsSet.add(e.pilotName);
+    if (e.fleetPilot ?? e.pilotName)
+      pilotsSet.add(e.fleetPilot ?? e.pilotName ?? "Unknown");
   }
   const pilots = Array.from(pilotsSet).sort();
 
@@ -64,7 +63,7 @@ function computePerPilotDps(
   // Accumulate damage per (bucket, pilot)
   const buckets = new Map<number, Map<string, number>>();
   for (const entry of dmgEntries) {
-    const pilot = entry.pilotName ?? "Unknown";
+    const pilot = entry.fleetPilot ?? entry.pilotName ?? "Unknown";
     const bucketIdx = Math.floor((entry.timestamp.getTime() - tMin) / bucketMs);
     const bucketTime = tMin + bucketIdx * bucketMs;
     if (!buckets.has(bucketTime)) buckets.set(bucketTime, new Map());
@@ -99,13 +98,19 @@ interface FleetPilotDpsChartProps {
 }
 
 function FleetPilotDpsChart({ entries }: FleetPilotDpsChartProps) {
-  const { data, pilots } = useMemo(() => computePerPilotDps(entries), [entries]);
+  const { data, pilots } = useMemo(
+    () => computePerPilotDps(entries),
+    [entries],
+  );
 
   if (data.length === 0) return null;
 
   return (
     <ResponsiveContainer width="100%" height={300}>
-      <ComposedChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+      <ComposedChart
+        data={data}
+        margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
+      >
         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
         <XAxis
           dataKey="label"
@@ -135,9 +140,7 @@ function FleetPilotDpsChart({ entries }: FleetPilotDpsChartProps) {
             name ?? "",
           ]}
         />
-        <Legend
-          wrapperStyle={{ fontSize: 12, fontFamily: "monospace" }}
-        />
+        <Legend wrapperStyle={{ fontSize: 12, fontFamily: "monospace" }} />
         {pilots.map((pilot, i) => (
           <Line
             key={pilot}
@@ -491,9 +494,7 @@ export default function FleetDamageDealtContent({
       ? Math.min(...analysis.engagements.map((e) => e.minHit))
       : 0;
   const avgHit =
-    analysis.totalHits > 0
-      ? analysis.totalDamageDealt / analysis.totalHits
-      : 0;
+    analysis.totalHits > 0 ? analysis.totalDamageDealt / analysis.totalHits : 0;
 
   return (
     <div className="space-y-6">

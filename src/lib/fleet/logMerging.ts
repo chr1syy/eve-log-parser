@@ -87,8 +87,9 @@ export function mergeFleetLogs(logs: FleetLogData[]): LogEntry[] {
       // Add pilot metadata to each entry
       const enrichedEntry: LogEntry = {
         ...entry,
-        pilotName: log.pilot,
-        shipType: log.shipType,
+        // Do not overwrite original pilotName/shipType — record fleet owner separately
+        fleetPilot: log.pilot,
+        fleetShipType: log.shipType,
       };
       allEntries.push(enrichedEntry);
     }
