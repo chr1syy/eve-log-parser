@@ -16,12 +16,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   TimeSeriesDpsPoint,
   FightSegment,
+  AttackerTimeSeries,
 } from "@/lib/analysis/damageTaken";
 import type { RepTimeSeriesPoint } from "@/lib/analysis/repAnalysis";
 
 interface DpsTakenChartProps {
   timeSeries: TimeSeriesDpsPoint[];
   fights: FightSegment[];
+  attackerSeries?: AttackerTimeSeries[];
   repTimeSeries?: RepTimeSeriesPoint[];
   zoomedWindow?: { start: Date; end: Date };
   onRangeSelect?: (start: Date, end: Date) => void;
@@ -96,6 +98,7 @@ function CustomTooltip({
 export default function DpsTakenChart({
   timeSeries,
   fights,
+  attackerSeries,
   repTimeSeries,
   zoomedWindow,
   onRangeSelect,
@@ -183,8 +186,20 @@ export default function DpsTakenChart({
       });
     }
 
+    // Attach per-attacker DPS values (if supplied) using stable keys.
+    if (attackerSeries && attackerSeries.length > 0) {
+      for (let ai = 0; ai < attackerSeries.length; ai++) {
+        const key = `att_${ai}`;
+        const series = attackerSeries[ai];
+        for (let i = 0; i < merged.length; i++) {
+          // series.timeSeries should align to global timestamps; fall back to 0
+          merged[i][key] = series.timeSeries?.[i]?.dps ?? 0;
+        }
+      }
+    }
+
     return merged;
-  }, [baseData, repTimeSeries]);
+  }, [baseData, repTimeSeries, attackerSeries]);
 
   // Brush + selection logic (mirrors DamageDealtChart pattern):
   const notifyTimer = useRef<number | null>(null);
@@ -195,6 +210,20 @@ export default function DpsTakenChart({
   const [brushRemountKey, setBrushRemountKey] = useState<string | undefined>(
     undefined,
   );
+  // Visibility state for per-attacker lines (legend toggles)
+  const [attackerVisibility, setAttackerVisibility] = useState<
+    Record<string, boolean>
+  >({});
+
+  // (Re)initialize visibility when attackerSeries changes
+  useEffect(() => {
+    if (!attackerSeries) return;
+    const vis: Record<string, boolean> = {};
+    attackerSeries.forEach((_a, i) => {
+      vis[`att_${i}`] = true;
+    });
+    setAttackerVisibility(vis);
+  }, [attackerSeries]);
 
   const fullDomainMin = data[0]?.timestampMs ?? 0;
   const fullDomainMax = data[data.length - 1]?.timestampMs ?? 0;
@@ -386,6 +415,24 @@ export default function DpsTakenChart({
             animationDuration={600}
             animationEasing="ease-out"
           />
+          {/* Per-attacker lines (non-NPC). Render above the DPS area so they are visible. */}
+          {attackerSeries &&
+            attackerSeries.map((att: AttackerTimeSeries, idx: number) => {
+              const key = `att_${idx}`;
+              if (!attackerVisibility[key]) return null;
+              return (
+                <Line
+                  key={`att-${idx}`}
+                  type="monotone"
+                  dataKey={key}
+                  stroke={att.color}
+                  strokeWidth={2}
+                  dot={false}
+                  opacity={0.95}
+                  isAnimationActive={false}
+                />
+              );
+            })}
           {repTimeSeries && repTimeSeries.length > 0 && (
             <Line
               // Use a stepped line so gaps that drop to explicit zeros appear
@@ -451,6 +498,44 @@ export default function DpsTakenChart({
           )}
         </ComposedChart>
       </ResponsiveContainer>
+
+      {/* Attacker color mapping below the chart */}
+      {attackerSeries && attackerSeries.length > 0 && (
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          {attackerSeries.map((att, i) => {
+            const key = `att_${i}`;
+            const visible = attackerVisibility[key] ?? true;
+            return (
+              <button
+                key={`legend-${i}`}
+                type="button"
+                onClick={() =>
+                  setAttackerVisibility((s) => ({ ...s, [key]: !visible }))
+                }
+                className="flex items-center gap-2 focus:outline-none"
+                aria-pressed={!visible}
+                title={`${att.source}${att.shipType ? ` — ${att.shipType}` : ""}`}
+              >
+                <span
+                  className="w-4 h-4 inline-flex items-center justify-center rounded-sm text-[10px] font-mono text-black"
+                  style={{ backgroundColor: att.color }}
+                  aria-hidden
+                >
+                  {i + 1}
+                </span>
+                <span
+                  className={`font-mono text-xs ${
+                    visible ? "text-text-primary" : "text-text-muted"
+                  }`}
+                >
+                  {att.source}
+                  {att.shipType ? ` — ${att.shipType}` : ""}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

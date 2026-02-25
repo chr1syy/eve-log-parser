@@ -496,6 +496,7 @@ export default function DamageTakenPage() {
             <DpsTakenChart
               timeSeries={damageAnalysis.dpsTimeSeries}
               fights={damageAnalysis.fights}
+              attackerSeries={damageAnalysis.attackerTimeSeries}
               repTimeSeries={repAnalysis?.incomingRepTimeSeries}
               zoomedWindow={zoomedWindow}
               onRangeSelect={handleRangeSelect}
