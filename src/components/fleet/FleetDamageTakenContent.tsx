@@ -264,6 +264,133 @@ function PilotDamageTakenBars({ entries }: { entries: LogEntry[] }) {
   );
 }
 
+// Cross-matrix helpers for drill-down view (damage taken)
+type DamageTakenCrossEntry = {
+  byPilot: Record<string, Record<string, number>>; // receiver -> attacker -> dmg
+  byAttacker: Record<string, Record<string, number>>; // attacker -> receiver -> dmg
+  pilots: { name: string; total: number }[];
+  attackers: { name: string; total: number }[];
+};
+
+function buildDamageTakenMatrix(entries: LogEntry[]): DamageTakenCrossEntry {
+  const dmg = entries.filter((e) => e.eventType === "damage-received");
+  const byPilot: Record<string, Record<string, number>> = {};
+  const byAttacker: Record<string, Record<string, number>> = {};
+
+  for (const e of dmg) {
+    const pilot = e.fleetPilot ?? e.pilotName ?? "Unknown"; // receiver
+    const attacker = e.pilotName ?? e.shipType ?? "Unknown"; // source of damage
+    const amount = e.amount ?? 0;
+
+    byPilot[pilot] ??= {};
+    byPilot[pilot][attacker] = (byPilot[pilot][attacker] ?? 0) + amount;
+
+    byAttacker[attacker] ??= {};
+    byAttacker[attacker][pilot] = (byAttacker[attacker][pilot] ?? 0) + amount;
+  }
+
+  const pilots = Object.entries(byPilot)
+    .map(([name, map]) => ({
+      name,
+      total: Object.values(map).reduce((a, b) => a + b, 0),
+    }))
+    .sort((a, b) => b.total - a.total);
+
+  const attackers = Object.entries(byAttacker)
+    .map(([name, map]) => ({
+      name,
+      total: Object.values(map).reduce((a, b) => a + b, 0),
+    }))
+    .sort((a, b) => b.total - a.total);
+
+  return { byPilot, byAttacker, pilots, attackers };
+}
+
+function DamageTakenMatrix({ entries }: { entries: LogEntry[] }) {
+  const [selectedPilot, setSelectedPilot] = useState<string | null>(null);
+  const [selectedAttacker, setSelectedAttacker] = useState<string | null>(null);
+
+  const matrix = useMemo(() => buildDamageTakenMatrix(entries), [entries]);
+
+  const chartEntries = useMemo(() => {
+    if (selectedPilot) {
+      return entries.filter(
+        (e) => (e.fleetPilot ?? e.pilotName ?? "Unknown") === selectedPilot,
+      );
+    }
+    if (selectedAttacker) {
+      return entries.filter(
+        (e) => (e.pilotName ?? e.shipType ?? "Unknown") === selectedAttacker,
+      );
+    }
+    return entries;
+  }, [entries, selectedPilot, selectedAttacker]);
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {/* Pilots (left) */}
+      <div>
+        <div className="mb-2 font-mono text-xs text-text-muted">Pilots</div>
+        <div className="space-y-2">
+          {matrix.pilots.map((p) => (
+            <button
+              key={p.name}
+              type="button"
+              className={`w-full flex items-center justify-between px-3 py-2 rounded transition-colors text-left ${
+                selectedPilot === p.name
+                  ? "bg-red-700/10 ring-1 ring-red-600"
+                  : "hover:bg-white/2"
+              }`}
+              onClick={() =>
+                setSelectedPilot((prev) => (prev === p.name ? null : p.name))
+              }
+            >
+              <span className="font-mono text-sm">{p.name}</span>
+              <span className="font-mono text-sm text-gold-bright">
+                {fmt(p.total)}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Center: filtered incoming DPS chart */}
+      <div className="col-span-1 lg:col-span-1">
+        <div className="mb-2 font-mono text-xs text-text-muted">Timeline</div>
+        <Panel title="INCOMING DPS — filtered">
+          <FleetPilotDamageTakenChart entries={chartEntries} />
+        </Panel>
+      </div>
+
+      {/* Attackers (right) */}
+      <div>
+        <div className="mb-2 font-mono text-xs text-text-muted">Attackers</div>
+        <div className="space-y-2">
+          {matrix.attackers.map((t) => (
+            <button
+              key={t.name}
+              type="button"
+              className={`w-full flex items-center justify-between px-3 py-2 rounded transition-colors text-left ${
+                selectedAttacker === t.name
+                  ? "bg-red-700/10 ring-1 ring-red-600"
+                  : "hover:bg-white/2"
+              }`}
+              onClick={() =>
+                setSelectedAttacker((prev) => (prev === t.name ? null : t.name))
+              }
+            >
+              <span className="font-mono text-sm">{t.name}</span>
+              <span className="font-mono text-sm text-gold-bright">
+                {fmt(t.total)}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Rep table ─────────────────────────────────────────────────────────────────
 
 type RepRow = RepSourceSummary & Record<string, unknown>;
