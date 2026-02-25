@@ -49,8 +49,6 @@ Notes:
 - Action taken: attempted an automated smoke test but the execution environment lacks `npm` and a browser. The smoke test requires manual verification on a developer machine; the checkbox remains unchecked.
 - Next steps for a human verifier:
   1. Install Node 22 (or the project's required Node version) and ensure `npm` is available.
- 2. From the repository root run: `npm install` then `npm run dev`.
+  2. From the repository root run: `npm install` then `npm run dev`.
   3. Open `http://localhost:3000` in a browser and perform the manual smoke test steps listed in this document (create/join fleet sessions, verify localStorage access gating, open Fleet Analysis tabs and interact with charts).
   4. If everything is successful, update the checkbox in this file from `- [ ]` to `- [x]` and commit the change.
-
-- Run processed by agent `feat-fleet-analysis` on 2026-02-25T00:00:00Z: I attempted an automated smoke test but the execution environment lacks `npm` and a browser, so I could not start the app or perform interactive verification. Images analyzed: 0. The smoke test remains a manual step and the checkbox is intentionally left `- [ ]` for a human to complete.
