@@ -183,64 +183,37 @@ export default function DamageDealtChart({
     return { startIndex, endIndex };
   })();
 
-  // Internal, immediate brush indices used to drive Brush UI responsively
-  // while the user is dragging. We debounce notifications to the parent so
-  // the page zoom only updates after the user pauses dragging, avoiding
-  // the feel of the brush being "pushed back" by programmatic updates.
-  const [internalBrush, setInternalBrush] = useState<
-    { startIndex?: number; endIndex?: number } | undefined
-  >(brushIndexRange);
-
-  // timer ref for debouncing notifications
+  // timer ref for debouncing notifications to parent
   const notifyTimer = useRef<number | null>(null);
-  // timer ref for transient programmatic sync state
-  const syncTimer = useRef<number | null>(null);
-  const [pendingSync, setPendingSync] = useState<
+
+  // transient controlled indices used only to snap the Brush when a
+  // programmatic zoom is requested. We render the Brush once with
+  // these indices (by giving it a unique key) then clear them so the Brush
+  // becomes uncontrolled and user interactions take precedence.
+  const [syncIndices, setSyncIndices] = useState<
     { startIndex?: number; endIndex?: number } | undefined
   >(undefined);
-  const [brushSyncKey, setBrushSyncKey] = useState<string | undefined>(
+  const [brushRemountKey, setBrushRemountKey] = useState<string | undefined>(
     undefined,
   );
 
-  // Sync internal brush when zoomedWindow changes programmatically (e.g.
-  // user clicked a target). We replace the internal indices so the traveller
-  // snaps to the correct position.
-  useEffect(() => {
-    setInternalBrush(brushIndexRange);
-  }, [brushIndexRange?.startIndex, brushIndexRange?.endIndex]);
+  // internal brush state for immediate UI feedback while dragging
+  const [internalBrush, setInternalBrush] = useState<
+    { startIndex?: number; endIndex?: number } | undefined
+  >(undefined);
 
-  // When a programmatic zoom occurs (zoomedWindow -> brushIndexRange), we
-  // temporarily render the Brush as controlled with start/end indices so it
-  // jumps to the requested position once. After a short delay we clear
-  // `pendingSync` so the Brush becomes uncontrolled and the user can drag
-  // freely without being fought by continuous prop updates.
   useEffect(() => {
     if (!brushIndexRange) return;
-    // If indices already match internalBrush, still perform a transient sync
-    // to ensure the Brush thumbs snap into position.
-    setPendingSync(brushIndexRange);
-    setBrushSyncKey(
+    setSyncIndices(brushIndexRange);
+    setBrushRemountKey(
       `${brushIndexRange.startIndex ?? 0}-${brushIndexRange.endIndex ?? 0}-${Date.now()}`,
     );
-    // seed immediate UI state
+    // seed internal brush so the UI snaps immediately
     setInternalBrush(brushIndexRange);
-    if (syncTimer.current) window.clearTimeout(syncTimer.current);
-    syncTimer.current = window.setTimeout(() => {
-      setPendingSync(undefined);
-      syncTimer.current = null;
-    }, 120);
-    return () => {
-      if (syncTimer.current) window.clearTimeout(syncTimer.current);
-      syncTimer.current = null;
-    };
+    // clear syncIndices after a single tick so Brush becomes uncontrolled
+    const id = window.setTimeout(() => setSyncIndices(undefined), 80);
+    return () => window.clearTimeout(id);
   }, [brushIndexRange?.startIndex, brushIndexRange?.endIndex]);
-
-  // Clear timer on unmount
-  useEffect(() => {
-    return () => {
-      if (notifyTimer.current) window.clearTimeout(notifyTimer.current);
-    };
-  }, []);
 
   // Clip tackle windows to the visible domain
   const visibleTackleWindows = tackleWindows
@@ -362,7 +335,7 @@ export default function DamageDealtChart({
           />
           {onRangeSelect && (
             <Brush
-              key={pendingSync ? brushSyncKey : undefined}
+              key={syncIndices ? brushRemountKey : undefined}
               dataKey="timestampMs"
               height={32}
               stroke="#00d4ff"
@@ -379,12 +352,12 @@ export default function DamageDealtChart({
                   notifyTimer.current = null;
                 }, 180);
               }}
-              // When a pendingSync is present we pass start/end indices once
+              // When a transient sync is present we pass start/end indices once
               // so the Brush snaps to the programmatic window. After a short
-              // timeout pendingSync is cleared and the Brush becomes
+              // timeout syncIndices is cleared and the Brush becomes
               // uncontrolled again, allowing smooth user dragging.
-              startIndex={pendingSync ? pendingSync.startIndex : undefined}
-              endIndex={pendingSync ? pendingSync.endIndex : undefined}
+              startIndex={syncIndices ? syncIndices.startIndex : undefined}
+              endIndex={syncIndices ? syncIndices.endIndex : undefined}
             />
           )}
         </ComposedChart>
