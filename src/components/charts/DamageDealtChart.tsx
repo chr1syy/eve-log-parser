@@ -358,9 +358,9 @@ export default function DamageDealtChart({
               height={28}
               stroke="#005f65"
               strokeOpacity={0.9}
-              travellerWidth={12}
+              travellerWidth={14}
               fill="#005f65"
-              fillOpacity={0.06}
+              fillOpacity={0.08}
               // Provide a clearly visible traveller handle: white fill with
               // dark stroke so it contrasts against the selection area and the
               // chart background.
@@ -368,11 +368,14 @@ export default function DamageDealtChart({
                 <g>
                   <rect
                     rx={3}
-                    width={12}
-                    height={20}
+                    width={14}
+                    height={22}
                     fill="#ffffff"
-                    stroke="#0f172a"
-                    strokeWidth={1}
+                    stroke="#0b1220"
+                    strokeWidth={2}
+                    style={{
+                      filter: "drop-shadow(0 1px 1px rgba(0,0,0,0.15))",
+                    }}
                   />
                 </g>
               }
@@ -380,16 +383,20 @@ export default function DamageDealtChart({
               // parent after a short debounce so we don't fight pointer
               // interactions.
               onChange={(r) => {
-                // Don't update parent/zoom while dragging. Debounce and mark
-                // the last zoom source so programmatic sync doesn't remount
-                // the Brush while the user is interacting.
-                lastZoomSourceRef.current = "brush";
+                // If the Brush was programmatically synced (syncIndices is set),
+                // the first user interaction should release control so the
+                // user can drag freely. Clear syncIndices here on first change
+                // and mark the source to avoid remount loops.
+                if (syncIndices) {
+                  setSyncIndices(undefined);
+                  lastZoomSourceRef.current = "brush";
+                }
                 if (notifyTimer.current)
                   window.clearTimeout(notifyTimer.current);
                 notifyTimer.current = window.setTimeout(() => {
                   handleBrushChange(r);
                   notifyTimer.current = null;
-                }, 700);
+                }, 600);
               }}
               // When a transient sync is present we pass start/end indices once
               // so the Brush snaps to the programmatic window. After a short
