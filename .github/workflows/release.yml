@@ -30,8 +30,10 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      # Changelog is now authored by an agent and committed alongside the
-      # release tag. Skip automatic changelog generation in the release job.
+      - name: Generate changelog
+        run: npm run generate-changelog
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Set build metadata
         run: echo "BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> $GITHUB_ENV
       - name: Build and push Docker image
