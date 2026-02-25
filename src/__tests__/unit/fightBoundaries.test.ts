@@ -96,4 +96,32 @@ describe("detectFightBoundaries", () => {
     expect(starts[0]).toBe(now);
     expect(starts[1]).toBe(now + 70_000);
   });
+
+  it("change of target (contiguous) does not produce a boundary", () => {
+    const now = Date.now();
+    const entries: LogEntry[] = [
+      {
+        id: "1",
+        timestamp: new Date(now),
+        rawLine: "",
+        eventType: "damage-received",
+        pilotName: "Attacker A",
+        shipType: "Raven",
+      },
+      {
+        id: "2",
+        timestamp: new Date(now + 1000),
+        rawLine: "",
+        eventType: "damage-received",
+        pilotName: "Attacker B",
+        shipType: "Ishtar",
+      },
+    ];
+
+    // Current implementation splits only on time gaps; changing target
+    // while events remain time-contiguous should NOT create a new boundary.
+    const starts = detectFightBoundaries(entries, 5000);
+    expect(starts.length).toBe(1);
+    expect(starts[0]).toBe(now);
+  });
 });
