@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import type { FleetSession, FleetSessionCode } from "@/types/fleet";
+
 import { createSession, listUserSessions } from "@/lib/fleet/sessionStore";
 
 export async function POST(request: NextRequest) {

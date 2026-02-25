@@ -4,7 +4,6 @@ import {
   mergeFleetLogs,
   FleetLogData,
 } from "@/lib/fleet/logMerging";
-import { LogEntry } from "@/lib/types";
 
 describe("logMerging", () => {
   describe("matchLogsByTimestamp", () => {

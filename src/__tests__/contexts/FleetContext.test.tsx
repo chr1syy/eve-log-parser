@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect } from "vitest";
-import { render, screen, act } from "@testing-library/react";
+import { render, act } from "@testing-library/react";
 import { renderHook } from "@testing-library/react";
 import {
   FleetProvider,
@@ -9,12 +9,8 @@ import {
   useFleetSessionDispatch,
 } from "@/contexts/FleetContext";
 import { EXAMPLE_FLEET_SESSIONS } from "@/lib/fleet/constants";
-import type { FleetSession, FleetLog, FleetParticipant } from "@/types/fleet";
+import type { FleetSession, FleetLog } from "@/types/fleet";
 
-// Test component wrapper
-function TestComponent({ children }: { children: React.ReactNode }) {
-  return <FleetProvider>{children}</FleetProvider>;
-}
 
 // ────────────────────────────────────────────────────────────
 // FleetProvider

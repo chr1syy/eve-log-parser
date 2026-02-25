@@ -2,7 +2,6 @@ import { describe, it, expect } from "vitest";
 import { analyzeFleetCombat } from "@/lib/fleet/fleetAnalysis";
 import { calculateParticipantStats } from "@/lib/fleet/participantStats";
 import { mergeFleetLogs, FleetLogData } from "@/lib/fleet/logMerging";
-import { LogEntry } from "@/lib/types";
 import { FleetParticipant } from "@/types/fleet";
 
 describe("fleet/data-consistency", () => {

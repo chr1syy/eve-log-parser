@@ -236,7 +236,6 @@ export default function DpsTakenChart({
     // setting state during an effect in response to prop changes; disable
     // the linter warning because the initialization is derived from the
     // incoming prop and runs synchronously on mount/update.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAttackerVisibility(vis);
   }, [attackerSeries]);
 
@@ -295,13 +294,13 @@ export default function DpsTakenChart({
     if (!brushIndexRange) return;
     // transiently set sync indices to snap the Brush travellers — intentional
     // behavior, suppress the lint warning for clarity.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSyncIndices(brushIndexRange);
     setBrushRemountKey(
       `${brushIndexRange.startIndex ?? 0}-${brushIndexRange.endIndex ?? 0}-${Date.now()}`,
     );
     const id = window.setTimeout(() => setSyncIndices(undefined), 600);
     return () => window.clearTimeout(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [brushIndexRange?.startIndex, brushIndexRange?.endIndex]);
 
   // Ensure brush SVG elements get the desired red inline styles. Some Recharts
@@ -320,7 +319,7 @@ export default function DpsTakenChart({
         try {
           el.style.fill = "#e53e3e";
           el.style.fillOpacity = "0.36";
-        } catch (e) {
+        } catch {
           // ignore
         }
       });
@@ -332,7 +331,7 @@ export default function DpsTakenChart({
         try {
           el.style.fill = "#e53e3e";
           el.style.stroke = "rgba(2,6,23,0.8)";
-        } catch (e) {
+        } catch {
           // ignore
         }
       });
@@ -360,7 +359,6 @@ export default function DpsTakenChart({
     }
 
     const lastIdx = Math.max(0, data.length - 1);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSyncIndices({ startIndex: 0, endIndex: lastIdx });
     setBrushRemountKey(`clear-${Date.now()}`);
     const id = window.setTimeout(() => setSyncIndices(undefined), 600);
@@ -370,7 +368,6 @@ export default function DpsTakenChart({
   useEffect(() => {
     if (resetKey === undefined) return;
     const lastIdx = Math.max(0, data.length - 1);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSyncIndices({ startIndex: 0, endIndex: lastIdx });
     setBrushRemountKey(`reset-${resetKey}-${Date.now()}`);
     const id = window.setTimeout(() => setSyncIndices(undefined), 600);

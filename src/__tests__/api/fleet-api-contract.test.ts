@@ -6,7 +6,7 @@ vi.mock("next/server", () => ({
     }
   },
   NextResponse: {
-    json: vi.fn((data, options) => data),
+    json: vi.fn((data) => data),
   },
 }));
 
@@ -23,7 +23,6 @@ vi.mock("@/lib/parser", () => ({
 }));
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { NextResponse } from "next/server";
 import {
   POST as createSession,
   GET as listSessions,

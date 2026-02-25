@@ -6,7 +6,6 @@
 type SSEController = ReadableStreamDefaultController<Uint8Array>;
 
 declare global {
-  // eslint-disable-next-line no-var
   var __fleetSSEConnections: Map<string, Set<SSEController>> | undefined;
 }
 

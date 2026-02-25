@@ -3,11 +3,7 @@
 import StatCard from "@/components/dashboard/StatCard";
 import FleetParticipantsTable from "./FleetParticipantsTable";
 import FleetEnemiesTable from "./FleetEnemiesTable";
-import {
-  FleetCombatAnalysis,
-  FleetParticipant,
-  EnemyStats,
-} from "@/types/fleet";
+import { FleetCombatAnalysis } from "@/types/fleet";
 import { formatNumber, formatDuration } from "@/lib/utils";
 
 interface FleetOverviewTabProps {

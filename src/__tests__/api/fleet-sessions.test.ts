@@ -9,9 +9,6 @@ import { POST as uploadLog } from "@/app/api/fleet-sessions/[id]/upload/route";
 import { GET as getSession } from "@/app/api/fleet-sessions/[id]/route";
 import {
   createSession as createSessionStore,
-  getSession as getSessionStore,
-  listUserSessions,
-  updateSession,
   sessionStore,
 } from "@/lib/fleet/sessionStore";
 
@@ -23,7 +20,7 @@ vi.mock("next/server", () => ({
     }
   },
   NextResponse: {
-    json: vi.fn((data, options) => data),
+    json: vi.fn((data) => data),
   },
 }));
 

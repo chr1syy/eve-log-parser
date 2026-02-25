@@ -6,7 +6,6 @@ import {
 } from "@/lib/fleet/logMerging";
 import { analyzeFleetCombat } from "@/lib/fleet/fleetAnalysis";
 import { calculateParticipantStats } from "@/lib/fleet/participantStats";
-import { LogEntry } from "@/lib/types";
 import { FleetParticipant } from "@/types/fleet";
 
 describe("fleet integration", () => {

@@ -171,7 +171,7 @@ function buildEngagementColumns(
       label: "DPS",
       sortable: true,
       numeric: true,
-      render: (v, row) => {
+      render: (v) => {
         const dps = v as number;
         const pct = maxDps > 0 && dps > 0 ? (dps / maxDps) * 100 : 0;
         return (

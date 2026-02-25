@@ -13,7 +13,6 @@ import {
   CartesianGrid,
 } from "recharts";
 import Panel from "@/components/ui/Panel";
-import Badge from "@/components/ui/Badge";
 import StatCard from "@/components/dashboard/StatCard";
 import DataTable from "@/components/ui/DataTable";
 import type { Column } from "@/components/ui/DataTable";
@@ -160,22 +159,7 @@ function fmt(n: number): string {
   return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
 }
 
-function fmtDps(n: number): string {
-  if (n === 0) return "—";
-  return n.toLocaleString(undefined, {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  });
-}
 
-function fmtTime(d: Date): string {
-  return d.toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
-}
 
 // Cross-matrix helpers for drill-down view
 type CrossEntry = {
@@ -408,10 +392,6 @@ export default function FleetDamageDealtContent({
 }: FleetDamageDealtContentProps) {
   const analysis = useMemo(() => analyzeDamageDealt(entries), [entries]);
 
-  const maxDps = useMemo(
-    () => Math.max(0, ...analysis.engagements.map((e) => e.dps)),
-    [analysis],
-  );
 
   // NOTE: engagement table / zoom state removed for Phase 05 matrix drill-down.
 

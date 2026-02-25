@@ -35,6 +35,7 @@ export default function FleetIndexPage() {
     }
 
     if (ids.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoading(false);
       return;
     }

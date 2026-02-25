@@ -114,7 +114,6 @@ export default function FleetSessionDetailPage() {
     return () => {
       es.close();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
   const handleCopyCode = async () => {
@@ -242,7 +241,7 @@ export default function FleetSessionDetailPage() {
     {
       key: "actions",
       label: "Actions",
-      render: (_, row) => (
+      render: () => (
         <div className="flex gap-2">
           {/* TODO: Add actions like remove participant */}
         </div>

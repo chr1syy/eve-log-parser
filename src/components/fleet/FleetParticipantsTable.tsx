@@ -77,7 +77,7 @@ export default function FleetParticipantsTable({
     {
       key: "status",
       label: "Status",
-      render: (value, row) => {
+      render: (value) => {
         const { text, className } = getStatusDisplay(
           value as FleetParticipant["status"],
         );

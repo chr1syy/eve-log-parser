@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+
 import AppLayout from "@/components/layout/AppLayout";
 import Button from "@/components/ui/Button";
 import { useFleetSessionDispatch } from "@/contexts/FleetContext";
@@ -21,7 +21,6 @@ export default function CreateFleetSessionPage() {
   const [copyError, setCopyError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const dispatch = useFleetSessionDispatch();
-  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

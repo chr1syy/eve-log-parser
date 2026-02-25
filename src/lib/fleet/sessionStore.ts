@@ -51,7 +51,6 @@ function saveToDisk(store: Map<string, FleetSession>): void {
 // ── Singleton store ───────────────────────────────────────────────────────────
 
 declare global {
-  // eslint-disable-next-line no-var
   var __fleetSessionStore: Map<string, FleetSession> | undefined;
 }
 

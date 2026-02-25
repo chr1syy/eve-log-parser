@@ -57,7 +57,7 @@ const PILOT_COLORS = [
 function computePerPilotDamageTaken(entries: LogEntry[]) {
   const damageEvents = entries.filter((e) => e.eventType === "damage-received");
   if (damageEvents.length === 0)
-    return { pilots: [] as string[], data: [] as any[] };
+    return { pilots: [] as string[], data: [] as Record<string, number | Date | string>[] };
 
   const bucketMs = 30 * 1000; // 30s buckets
   const tsSorted = damageEvents
@@ -89,7 +89,7 @@ function computePerPilotDamageTaken(entries: LogEntry[]) {
 
   const data = eventsByBucket.map((bucket, i) => {
     const ts = start + i * bucketMs;
-    const row: Record<string, any> = {
+    const row: Record<string, number | Date | string> = {
       timestampMs: ts,
       timestamp: new Date(ts),
       timeLabel: fmtTime(new Date(ts)),
@@ -153,7 +153,7 @@ function FleetPilotDamageTakenChart({ entries }: { entries: LogEntry[] }) {
             width={56}
           />
           <Tooltip
-            content={({ active, payload }: any) => {
+            content={({ active, payload }: { active?: boolean; payload?: Array<{ payload: Record<string, number | Date | string> }> }) => {
               if (!active || !payload?.length) return null;
               const point = payload[0]?.payload;
               return (
@@ -305,6 +305,7 @@ function buildDamageTakenMatrix(entries: LogEntry[]): DamageTakenCrossEntry {
   return { byPilot, byAttacker, pilots, attackers };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function DamageTakenMatrix({ entries }: { entries: LogEntry[] }) {
   const [selectedPilot, setSelectedPilot] = useState<string | null>(null);
   const [selectedAttacker, setSelectedAttacker] = useState<string | null>(null);
