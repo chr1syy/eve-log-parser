@@ -9,7 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:integration": "vitest run src/__tests__/integration/",
-    "generate-changelog": "node scripts/generate-changelog.mjs"
+    "generate-changelog": "echo \"changelog generation is agent-driven; use scripts/apply-changelog.mjs to apply a summary\" && exit 0"
   },
   "dependencies": {
     "clsx": "^2.1.1",

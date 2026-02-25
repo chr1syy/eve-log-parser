@@ -49,8 +49,11 @@ function computeRepTimeSeries(
 
   const timestamps = sorted.map((e) => e.timestamp.getTime());
   const uniqueTs = Array.from(new Set(timestamps)).sort((a, b) => a - b);
+  const GAP_INSERT_THRESHOLD_MS = 90_000; // 1.5 minutes
+  const points: RepTimeSeriesPoint[] = [];
 
-  return uniqueTs.map((ts) => {
+  for (let i = 0; i < uniqueTs.length; i++) {
+    const ts = uniqueTs[i];
     const windowStart = ts - rollingWindowMs;
     const windowAmount = sorted
       .filter((e) => {
@@ -58,11 +61,21 @@ function computeRepTimeSeries(
         return t > windowStart && t <= ts;
       })
       .reduce((sum, e) => sum + (e.amount ?? 0), 0);
-    return {
+    points.push({
       timestamp: new Date(ts),
       repsPerSecond: windowAmount / (rollingWindowMs / 1000),
-    };
-  });
+    });
+
+    const nextTs = uniqueTs[i + 1];
+    if (nextTs !== undefined && nextTs - ts > GAP_INSERT_THRESHOLD_MS) {
+      const after = ts + 1;
+      const before = nextTs - 1;
+      points.push({ timestamp: new Date(after), repsPerSecond: 0 });
+      points.push({ timestamp: new Date(before), repsPerSecond: 0 });
+    }
+  }
+
+  return points;
 }
 
 function computePeakRepsPerSecond(

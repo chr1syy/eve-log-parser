@@ -1,6 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import {
+  useMemo,
+  useState,
+  useDeferredValue,
+  useTransition,
+  useCallback,
+} from "react";
 import Link from "next/link";
 import { Upload, ShieldAlert } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
@@ -314,23 +320,64 @@ export default function DamageTakenPage() {
   const hasLogs = activeLog !== null;
   const [hideNpcs, setHideNpcs] = useState(false);
 
+  // Defer heavy analysis when the active log changes so UI interactions stay
+  // responsive (matches the pattern used in Damage Dealt page).
+  const deferredActiveLog = useDeferredValue(activeLog);
+  const [isPending, startTransition] = useTransition();
+
   const entries = useMemo(() => {
-    const raw = activeLog?.entries ?? [];
+    const raw = deferredActiveLog?.entries ?? [];
     return hideNpcs ? filterOutHostileNpcs(raw) : raw;
-  }, [activeLog, hideNpcs]);
+  }, [deferredActiveLog, hideNpcs]);
 
   const damageAnalysis = useMemo(() => {
-    if (!hasLogs) return null;
+    if (!deferredActiveLog) return null;
     return analyzeDamageTaken(entries);
-  }, [entries, hasLogs]);
+  }, [entries, deferredActiveLog]);
 
   const repAnalysis = useMemo(() => {
-    if (!hasLogs) return null;
+    if (!deferredActiveLog) return null;
     return analyzeReps(entries);
-  }, [entries, hasLogs]);
+  }, [entries, deferredActiveLog]);
 
   const hasIncomingDamage =
     damageAnalysis && damageAnalysis.totalIncomingHits > 0;
+
+  // Zoom/brush state for the chart
+  const [zoomedWindow, setZoomedWindow] = useState<
+    { start: Date; end: Date } | undefined
+  >(undefined);
+  const [resetBrushKey, setResetBrushKey] = useState(0);
+
+  const handleRangeSelect = useCallback((start: Date, end: Date) => {
+    startTransition(() => {
+      setZoomedWindow({ start, end });
+    });
+  }, []);
+
+  const hasZoom = Boolean(zoomedWindow);
+
+  const chartHeaderAction = (
+    <div className="flex items-center gap-3 font-mono text-xs">
+      {hasZoom && (
+        <>
+          <button
+            type="button"
+            className="text-text-muted hover:text-text-primary transition-colors uppercase tracking-widest"
+            onClick={() => {
+              startTransition(() => {
+                setResetBrushKey((k) => k + 1);
+                setZoomedWindow(undefined);
+              });
+            }}
+          >
+            RESET
+          </button>
+          <span className="text-text-muted">—</span>
+        </>
+      )}
+    </div>
+  );
 
   return (
     <AppLayout title="DAMAGE MITIGATION">
@@ -387,12 +434,23 @@ export default function DamageTakenPage() {
           </div>
 
           {/* Section 1 — DPS Over Time */}
-          <Panel title="INCOMING DPS OVER TIME (10s ROLLING)">
+          <Panel
+            title="INCOMING DPS OVER TIME (10s ROLLING)"
+            headerAction={chartHeaderAction}
+          >
             <DpsTakenChart
               timeSeries={damageAnalysis.dpsTimeSeries}
               fights={damageAnalysis.fights}
               repTimeSeries={repAnalysis?.incomingRepTimeSeries}
+              zoomedWindow={zoomedWindow}
+              onRangeSelect={handleRangeSelect}
+              resetKey={resetBrushKey}
             />
+            {isPending && (
+              <div className="mt-2 text-text-muted font-mono text-xs">
+                Computing analysis…
+              </div>
+            )}
           </Panel>
 
           {/* Section 2 — Peak DPS Windows */}

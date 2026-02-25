@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import {
+  useCallback,
+  useMemo,
+  useState,
+  useDeferredValue,
+  useTransition,
+} from "react";
 import Link from "next/link";
 import { Upload, Sword } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
@@ -355,17 +361,27 @@ export default function DamageDealtPage() {
   const [zoomedWindow, setZoomedWindow] = useState<
     { start: Date; end: Date } | undefined
   >(undefined);
+  // Signal to force the Brush to reset to full range (increments on RESET)
+  const [resetBrushKey, setResetBrushKey] = useState(0);
   const [excludeDrones, setExcludeDrones] = useState(false);
+  // Defer heavy analysis work to keep the UI responsive when the active log
+  // changes. This lets urgent updates (UI interactions) render first while
+  // analysis/time-series are computed in the background.
+  const deferredActiveLog = useDeferredValue(activeLog);
+  const [isPending, startTransition] = useTransition();
 
   const analysis = useMemo(() => {
-    if (!hasLogs) return null;
-    return analyzeDamageDealt(activeLog!.entries);
-  }, [activeLog, hasLogs]);
+    if (!deferredActiveLog) return null;
+    return analyzeDamageDealt(deferredActiveLog.entries);
+  }, [deferredActiveLog]);
 
   const timeSeries: DamageDealtTimeSeries = useMemo(() => {
-    if (!hasLogs) return { points: [], tackleWindows: [] };
-    return generateDamageDealtTimeSeries(activeLog!.entries, excludeDrones);
-  }, [activeLog, hasLogs, excludeDrones]);
+    if (!deferredActiveLog) return { points: [], tackleWindows: [] };
+    return generateDamageDealtTimeSeries(
+      deferredActiveLog.entries,
+      excludeDrones,
+    );
+  }, [deferredActiveLog, excludeDrones]);
 
   const effectiveZoomedWindow = resolveZoomedWindow(zoomedWindow, zoomedTarget);
 
@@ -375,18 +391,24 @@ export default function DamageDealtPage() {
   }, [analysis]);
 
   const handleTargetClick = useCallback((engagement: TargetEngagement) => {
-    setZoomedWindow(undefined);
-    setZoomedTarget((prev) =>
-      prev?.target === engagement.target &&
-      prev?.shipType === engagement.shipType
-        ? null
-        : engagement,
-    );
+    // Mark these state updates as low-priority so UI interactions (like
+    // clicking) remain snappy while expensive background work runs.
+    startTransition(() => {
+      setZoomedWindow(undefined);
+      setZoomedTarget((prev) =>
+        prev?.target === engagement.target &&
+        prev?.shipType === engagement.shipType
+          ? null
+          : engagement,
+      );
+    });
   }, []);
 
   const handleRangeSelect = useCallback((start: Date, end: Date) => {
-    setZoomedTarget(null);
-    setZoomedWindow({ start, end });
+    startTransition(() => {
+      setZoomedTarget(null);
+      setZoomedWindow({ start, end });
+    });
   }, []);
 
   const engagementRows: Record<string, unknown>[] = useMemo(() => {
@@ -438,8 +460,13 @@ export default function DamageDealtPage() {
             type="button"
             className="text-text-muted hover:text-text-primary transition-colors uppercase tracking-widest"
             onClick={() => {
-              setZoomedTarget(null);
-              setZoomedWindow(undefined);
+              // Force brush reset in chart by bumping the reset key, then
+              // clear zoom states. Using startTransition keeps UI snappy.
+              startTransition(() => {
+                setResetBrushKey((k) => k + 1);
+                setZoomedTarget(null);
+                setZoomedWindow(undefined);
+              });
             }}
           >
             RESET
@@ -526,7 +553,13 @@ export default function DamageDealtPage() {
               zoomedWindow={effectiveZoomedWindow}
               excludeDrones={excludeDrones}
               onRangeSelect={handleRangeSelect}
+              resetKey={resetBrushKey}
             />
+            {isPending && (
+              <div className="mt-2 text-text-muted font-mono text-xs">
+                Computing analysis…
+              </div>
+            )}
           </Panel>
 
           {/* Section 1 — DPS per target */}

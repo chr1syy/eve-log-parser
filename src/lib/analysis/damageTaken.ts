@@ -46,6 +46,9 @@ export interface DamageTakenAnalysis {
 }
 
 const FIGHT_GAP_MS = 60_000; // 60 seconds
+// If two events are separated by more than this threshold we insert zero
+// points in the time series to avoid visually interpolating a slow decline.
+const GAP_INSERT_THRESHOLD_MS = 90_000; // 1.5 minutes
 
 function segmentFights(entries: LogEntry[]): FightSegment[] {
   const sorted = [...entries].sort(
@@ -107,7 +110,8 @@ function computeDpsTimeSeries(
     const timestamps = sorted.map((e) => e.timestamp.getTime());
     const uniqueTs = Array.from(new Set(timestamps)).sort((a, b) => a - b);
 
-    for (const ts of uniqueTs) {
+    for (let i = 0; i < uniqueTs.length; i++) {
+      const ts = uniqueTs[i];
       const windowStart = ts - rollingWindowMs;
       const windowDamage = sorted
         .filter((e) => {
@@ -117,6 +121,34 @@ function computeDpsTimeSeries(
         .reduce((sum, e) => sum + (e.amount ?? 0), 0);
       const dps = windowDamage / (rollingWindowMs / 1000);
       points.push({ timestamp: new Date(ts), dps, fightIndex: fi });
+
+      // If gap to next unique timestamp is large, insert zero points so the
+      // chart drops to 0 instead of visually interpolating a slow decline.
+      const nextTs = uniqueTs[i + 1];
+      if (nextTs !== undefined && nextTs - ts > GAP_INSERT_THRESHOLD_MS) {
+        // Insert a near-immediate zero after current timestamp and a zero
+        // just before the next timestamp so the line is flat at 0 between
+        // them.
+        const after = ts + 1; // 1 ms after current
+        const before = nextTs - 1; // 1 ms before next
+        points.push({ timestamp: new Date(after), dps: 0, fightIndex: fi });
+        points.push({ timestamp: new Date(before), dps: 0, fightIndex: fi });
+      }
+    }
+
+    // Also consider the gap to the next fight segment. If the next fight
+    // starts far enough in the future insert zero points between the last
+    // timestamp of this fight and the first timestamp of the next fight so
+    // the global timeline visibly drops to zero between fights.
+    if (fi < fights.length - 1) {
+      const lastTs = uniqueTs[uniqueTs.length - 1];
+      const nextStart = fights[fi + 1].start.getTime();
+      if (nextStart - lastTs > GAP_INSERT_THRESHOLD_MS) {
+        const after = lastTs + 1;
+        const before = nextStart - 1;
+        points.push({ timestamp: new Date(after), dps: 0, fightIndex: fi });
+        points.push({ timestamp: new Date(before), dps: 0, fightIndex: fi });
+      }
     }
   }
 

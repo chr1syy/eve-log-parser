@@ -10,7 +10,9 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
+  Brush,
 } from "recharts";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   TimeSeriesDpsPoint,
   FightSegment,
@@ -21,6 +23,9 @@ interface DpsTakenChartProps {
   timeSeries: TimeSeriesDpsPoint[];
   fights: FightSegment[];
   repTimeSeries?: RepTimeSeriesPoint[];
+  zoomedWindow?: { start: Date; end: Date };
+  onRangeSelect?: (start: Date, end: Date) => void;
+  resetKey?: number;
 }
 
 type TimeValue = Date | string | number;
@@ -92,6 +97,9 @@ export default function DpsTakenChart({
   timeSeries,
   fights,
   repTimeSeries,
+  zoomedWindow,
+  onRangeSelect,
+  resetKey,
 }: DpsTakenChartProps) {
   if (timeSeries.length === 0) {
     return (
@@ -110,47 +118,205 @@ export default function DpsTakenChart({
     });
   }
 
-  // Convert time series data for Recharts
-  const data: Array<{
-    timestampMs: number;
-    timeLabel: string;
-    timestamp: Date;
-    dps: number;
-    fightIndex: number;
-    repsPerSecond?: number;
-  }> = timeSeries.map((point) => ({
-    ...point,
-    timestampMs: toDate(point.timestamp).getTime(),
-    timeLabel: formatTime(point.timestamp),
-  }));
+  // Convert time series data for Recharts (keep full data so Brush indices
+  // map consistently to timestamps when we render the Brush over the whole
+  // dataset). Build baseData first then produce a final `data` array that
+  // merges rep values without mutating objects (they may be frozen).
+  const baseData = useMemo(
+    () =>
+      timeSeries.map((point) => ({
+        ...point,
+        timestampMs: toDate(point.timestamp).getTime(),
+        timeLabel: formatTime(point.timestamp),
+      })),
+    [timeSeries],
+  );
 
-  // Merge rep time series into data if available
-  if (repTimeSeries && repTimeSeries.length > 0) {
-    // Build rep map with carry-forward logic
-    const sortedReps = repTimeSeries
-      .map((p) => ({ ts: p.timestamp.getTime(), rps: p.repsPerSecond }))
-      .sort((a, b) => a.ts - b.ts);
+  const data = useMemo(() => {
+    if (!repTimeSeries || repTimeSeries.length === 0) return baseData;
 
-    // For each damage point, find the most recent rep value
-    let repIdx = 0;
-
-    for (const point of data) {
-      // Find the last rep entry <= this timestamp
-      while (
-        repIdx < sortedReps.length - 1 &&
-        sortedReps[repIdx + 1].ts <= point.timestampMs
-      ) {
-        repIdx++;
-      }
-
-      if (
-        repIdx < sortedReps.length &&
-        sortedReps[repIdx].ts <= point.timestampMs
-      ) {
-        point.repsPerSecond = sortedReps[repIdx].rps;
-      }
+    const dpsMap = new Map<
+      number,
+      { dps: number; fightIndex: number; timestamp: Date; timeLabel: string }
+    >();
+    for (const pt of baseData) {
+      dpsMap.set(pt.timestampMs, {
+        dps: pt.dps,
+        fightIndex: pt.fightIndex,
+        timestamp: pt.timestamp,
+        timeLabel: pt.timeLabel,
+      });
     }
-  }
+
+    const repMap = new Map<number, number>();
+    for (const r of repTimeSeries) {
+      repMap.set(r.timestamp.getTime(), r.repsPerSecond);
+    }
+
+    const allTs = Array.from(
+      new Set<number>([...dpsMap.keys(), ...repMap.keys()]),
+    ).sort((a, b) => a - b);
+
+    const merged: Array<any> = [];
+    let lastDps = 0;
+    let lastFightIndex = 0;
+    let lastRps: number | undefined = undefined;
+    for (const ts of allTs) {
+      const d = dpsMap.get(ts);
+      if (d) {
+        lastDps = d.dps;
+        lastFightIndex = d.fightIndex;
+      }
+      if (repMap.has(ts)) {
+        lastRps = repMap.get(ts);
+      }
+      // Carry-forward last known repsPerSecond so the line remains
+      // continuous between actual rep samples. Explicit zero points (which
+      // are present in repMap) will set lastRps to 0 and produce a drop.
+      merged.push({
+        timestampMs: ts,
+        timestamp: new Date(ts),
+        timeLabel: formatTime(new Date(ts)),
+        dps: d ? d.dps : lastDps,
+        fightIndex: d ? d.fightIndex : lastFightIndex,
+        repsPerSecond: lastRps,
+      });
+    }
+
+    return merged;
+  }, [baseData, repTimeSeries]);
+
+  // Brush + selection logic (mirrors DamageDealtChart pattern):
+  const notifyTimer = useRef<number | null>(null);
+  const lastZoomSourceRef = useRef<string | null>(null);
+  const [syncIndices, setSyncIndices] = useState<
+    { startIndex?: number; endIndex?: number } | undefined
+  >(undefined);
+  const [brushRemountKey, setBrushRemountKey] = useState<string | undefined>(
+    undefined,
+  );
+
+  const fullDomainMin = data[0]?.timestampMs ?? 0;
+  const fullDomainMax = data[data.length - 1]?.timestampMs ?? 0;
+
+  const domainMin = zoomedWindow ? zoomedWindow.start.getTime() : fullDomainMin;
+  const domainMax = zoomedWindow ? zoomedWindow.end.getTime() : fullDomainMax;
+
+  const brushIndexRange = (() => {
+    if (!zoomedWindow) return undefined;
+    const startMs = zoomedWindow.start.getTime();
+    const endMs = zoomedWindow.end.getTime();
+    let startIndex: number | undefined = undefined;
+    let endIndex: number | undefined = undefined;
+    for (let i = 0; i < data.length; i++) {
+      const ts = data[i].timestampMs;
+      if (startIndex === undefined && ts >= startMs) startIndex = i;
+      if (ts <= endMs) endIndex = i;
+      if (startIndex !== undefined && ts > endMs) break;
+    }
+    if (startIndex === undefined) startIndex = 0;
+    if (endIndex === undefined) endIndex = data.length - 1;
+    return { startIndex, endIndex };
+  })();
+
+  const handleBrushChange = (range?: {
+    startIndex?: number;
+    endIndex?: number;
+  }) => {
+    if (!onRangeSelect) return;
+    if (!range) return;
+
+    if (notifyTimer.current) {
+      window.clearTimeout(notifyTimer.current);
+      notifyTimer.current = null;
+    }
+
+    notifyTimer.current = window.setTimeout(() => {
+      const si = range.startIndex ?? 0;
+      const ei = range.endIndex ?? Math.max(0, data.length - 1);
+      const start = data[Math.max(0, Math.min(si, data.length - 1))]?.timestamp;
+      const end = data[Math.max(0, Math.min(ei, data.length - 1))]?.timestamp;
+      if (start && end) {
+        lastZoomSourceRef.current = "brush";
+        onRangeSelect(start, end);
+      }
+      notifyTimer.current = null;
+    }, 300);
+  };
+
+  useEffect(() => {
+    if (!brushIndexRange) return;
+    setSyncIndices(brushIndexRange);
+    setBrushRemountKey(
+      `${brushIndexRange.startIndex ?? 0}-${brushIndexRange.endIndex ?? 0}-${Date.now()}`,
+    );
+    const id = window.setTimeout(() => setSyncIndices(undefined), 600);
+    return () => window.clearTimeout(id);
+  }, [brushIndexRange?.startIndex, brushIndexRange?.endIndex]);
+
+  // Ensure brush SVG elements get the desired red inline styles. Some Recharts
+  // builds render shapes with inline styles or other higher-specificity rules
+  // that can defeat stylesheet selectors; apply inline styles and observe
+  // mutations to keep them enforced across re-renders (matches
+  // DamageDealtChart approach).
+  useEffect(() => {
+    const applyInlineStyles = () => {
+      const root = document.querySelector(".damage-brush");
+      if (!root) return;
+      const slides = root.querySelectorAll<SVGElement>(
+        ".recharts-brush-slide-rect, .recharts-brush-slide",
+      );
+      slides.forEach((el) => {
+        try {
+          el.style.fill = "#e53e3e";
+          el.style.fillOpacity = "0.36";
+        } catch (e) {
+          // ignore
+        }
+      });
+
+      const travellers = root.querySelectorAll<SVGElement>(
+        ".recharts-brush-traveller, .recharts-brush-traveller-rect",
+      );
+      travellers.forEach((el) => {
+        try {
+          el.style.fill = "#e53e3e";
+          el.style.stroke = "rgba(2,6,23,0.8)";
+        } catch (e) {
+          // ignore
+        }
+      });
+    };
+
+    applyInlineStyles();
+    const root = document.querySelector(".damage-brush");
+    if (!root) return;
+    const mo = new MutationObserver(applyInlineStyles);
+    mo.observe(root, { childList: true, subtree: true, attributes: true });
+    return () => mo.disconnect();
+  }, [brushRemountKey, data.length]);
+
+  useEffect(() => {
+    if (zoomedWindow) return;
+    if (lastZoomSourceRef.current === "brush") {
+      lastZoomSourceRef.current = null;
+      return;
+    }
+    const lastIdx = Math.max(0, data.length - 1);
+    setSyncIndices({ startIndex: 0, endIndex: lastIdx });
+    setBrushRemountKey(`clear-${Date.now()}`);
+    const id = window.setTimeout(() => setSyncIndices(undefined), 600);
+    return () => window.clearTimeout(id);
+  }, [zoomedWindow, data.length]);
+
+  useEffect(() => {
+    if (resetKey === undefined) return;
+    const lastIdx = Math.max(0, data.length - 1);
+    setSyncIndices({ startIndex: 0, endIndex: lastIdx });
+    setBrushRemountKey(`reset-${resetKey}-${Date.now()}`);
+    const id = window.setTimeout(() => setSyncIndices(undefined), 600);
+    return () => window.clearTimeout(id);
+  }, [resetKey, data.length]);
 
   return (
     <div className="space-y-3">
@@ -173,7 +339,7 @@ export default function DpsTakenChart({
           <XAxis
             dataKey="timestampMs"
             type="number"
-            domain={["dataMin", "dataMax"]}
+            domain={[domainMin, domainMax]}
             tick={{
               fill: "#8892a4",
               fontSize: 10,
@@ -215,7 +381,9 @@ export default function DpsTakenChart({
           />
           {repTimeSeries && repTimeSeries.length > 0 && (
             <Line
-              type="monotone"
+              // Use a stepped line so gaps that drop to explicit zeros appear
+              // as immediate drops rather than a smoothed decline.
+              type="stepAfter"
               dataKey="repsPerSecond"
               stroke="#66cc66"
               strokeWidth={2}
@@ -241,6 +409,39 @@ export default function DpsTakenChart({
               }}
             />
           ))}
+          {onRangeSelect && (
+            <>
+              <Brush
+                key={brushRemountKey}
+                className="damage-brush"
+                dataKey="timestampMs"
+                height={20}
+                travellerWidth={12}
+                stroke="#005f99"
+                startIndex={
+                  syncIndices?.startIndex ?? brushIndexRange?.startIndex
+                }
+                endIndex={syncIndices?.endIndex ?? brushIndexRange?.endIndex}
+                onChange={(r) => handleBrushChange(r)}
+              />
+              <style jsx global>{`
+                .damage-brush .recharts-brush-slide {
+                  fill: #e53e3e;
+                }
+                .damage-brush .recharts-brush-slide-rect,
+                .damage-brush .recharts-brush-slide.selected,
+                .damage-brush .recharts-brush-slide[fill-opacity="0.36"] {
+                  fill: #e53e3e !important;
+                  fill-opacity: 0.36 !important;
+                }
+                .damage-brush .recharts-brush-traveller,
+                .damage-brush .recharts-brush-traveller-rect {
+                  fill: #e53e3e !important;
+                  stroke: rgba(2, 6, 23, 0.8) !important;
+                }
+              `}</style>
+            </>
+          )}
         </ComposedChart>
       </ResponsiveContainer>
     </div>

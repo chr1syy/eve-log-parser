@@ -26,6 +26,9 @@ interface DamageDealtChartProps {
   zoomedWindow?: { start: Date; end: Date };
   excludeDrones?: boolean;
   onRangeSelect?: (start: Date, end: Date) => void;
+  // Optional key that, when changed, forces the Brush sliders to remount and
+  // snap to the full domain. Page-level RESET should increment this key.
+  resetKey?: number;
 }
 
 function formatTime(date: Date): string {
@@ -103,6 +106,7 @@ export default function DamageDealtChart({
   zoomedWindow,
   excludeDrones,
   onRangeSelect,
+  resetKey,
 }: DamageDealtChartProps) {
   const { points, tackleWindows } = series;
 
@@ -289,6 +293,19 @@ export default function DamageDealtChart({
     const id = window.setTimeout(() => setSyncIndices(undefined), 600);
     return () => window.clearTimeout(id);
   }, [zoomedWindow, data.length]);
+
+  // When the parent increments `resetKey` we must force the Brush to snap to
+  // the full domain so the slider handles visually return to the ends. This
+  // mirrors the logic used when zoomedWindow is cleared but is driven by an
+  // explicit parent key to guarantee reset on user RESET clicks.
+  useEffect(() => {
+    if (resetKey === undefined) return;
+    const lastIdx = Math.max(0, data.length - 1);
+    setSyncIndices({ startIndex: 0, endIndex: lastIdx });
+    setBrushRemountKey(`reset-${resetKey}-${Date.now()}`);
+    const id = window.setTimeout(() => setSyncIndices(undefined), 600);
+    return () => window.clearTimeout(id);
+  }, [resetKey, data.length]);
 
   // Clip tackle windows to the visible domain
   const visibleTackleWindows = useMemo(
