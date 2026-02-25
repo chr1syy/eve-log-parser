@@ -205,8 +205,11 @@ export default function DamageDealtChart({
     setBrushRemountKey(
       `${brushIndexRange.startIndex ?? 0}-${brushIndexRange.endIndex ?? 0}-${Date.now()}`,
     );
-    // clear syncIndices after a single tick so Brush becomes uncontrolled
-    const id = window.setTimeout(() => setSyncIndices(undefined), 80);
+    // keep syncIndices visible a bit longer so the user sees the snapped
+    // selection before the Brush becomes uncontrolled again. Make this long
+    // enough for Recharts to copy the internal state so the selection
+    // remains visible after we clear the controlled props.
+    const id = window.setTimeout(() => setSyncIndices(undefined), 600);
     return () => window.clearTimeout(id);
   }, [brushIndexRange?.startIndex, brushIndexRange?.endIndex]);
 
@@ -224,7 +227,7 @@ export default function DamageDealtChart({
     const lastIdx = Math.max(0, data.length - 1);
     setSyncIndices({ startIndex: 0, endIndex: lastIdx });
     setBrushRemountKey(`clear-${Date.now()}`);
-    const id = window.setTimeout(() => setSyncIndices(undefined), 80);
+    const id = window.setTimeout(() => setSyncIndices(undefined), 600);
     return () => window.clearTimeout(id);
   }, [zoomedWindow, data.length]);
 
