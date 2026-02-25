@@ -180,163 +180,133 @@ function fmtTime(d: Date): string {
   });
 }
 
-type EngagementRow = TargetEngagement & {
-  _maxDps: number;
-  _isZoomed: boolean;
+// Cross-matrix helpers for drill-down view
+type CrossEntry = {
+  byPilot: Record<string, Record<string, number>>;
+  byTarget: Record<string, Record<string, number>>;
+  pilots: { name: string; total: number }[];
+  targets: { name: string; total: number }[];
 };
 
-function buildEngagementColumns(
-  maxDps: number,
-  onTargetClick: (e: TargetEngagement) => void,
-): Column<Record<string, unknown>>[] {
-  return [
-    {
-      key: "target",
-      label: "Target",
-      sortable: true,
-      render: (_, row) => {
-        const r = row as unknown as EngagementRow;
-        return (
-          <button
-            type="button"
-            className={cn(
-              "flex flex-col gap-0.5 text-left w-full cursor-pointer transition-colors",
-              r._isZoomed ? "text-cyan-glow" : "hover:text-cyan-glow",
-            )}
-            onClick={() => onTargetClick(r)}
-          >
-            <span
+function buildDamageDealtMatrix(entries: LogEntry[]): CrossEntry {
+  const dmg = entries.filter((e) => e.eventType === "damage-dealt");
+  const byPilot: Record<string, Record<string, number>> = {};
+  const byTarget: Record<string, Record<string, number>> = {};
+
+  for (const e of dmg) {
+    const pilot = e.fleetPilot ?? e.pilotName ?? "Unknown";
+    const target = e.pilotName ?? e.shipType ?? "Unknown";
+    const amount = e.amount ?? 0;
+
+    byPilot[pilot] ??= {};
+    byPilot[pilot][target] = (byPilot[pilot][target] ?? 0) + amount;
+
+    byTarget[target] ??= {};
+    byTarget[target][pilot] = (byTarget[target][pilot] ?? 0) + amount;
+  }
+
+  const pilots = Object.entries(byPilot)
+    .map(([name, map]) => ({
+      name,
+      total: Object.values(map).reduce((a, b) => a + b, 0),
+    }))
+    .sort((a, b) => b.total - a.total);
+
+  const targets = Object.entries(byTarget)
+    .map(([name, map]) => ({
+      name,
+      total: Object.values(map).reduce((a, b) => a + b, 0),
+    }))
+    .sort((a, b) => b.total - a.total);
+
+  return { byPilot, byTarget, pilots, targets };
+}
+
+function DamageDealtMatrix({ entries }: { entries: LogEntry[] }) {
+  const [selectedPilot, setSelectedPilot] = useState<string | null>(null);
+  const [selectedTarget, setSelectedTarget] = useState<string | null>(null);
+
+  const matrix = useMemo(() => buildDamageDealtMatrix(entries), [entries]);
+
+  const chartEntries = useMemo(() => {
+    if (selectedPilot) {
+      return entries.filter(
+        (e) => (e.fleetPilot ?? e.pilotName ?? "Unknown") === selectedPilot,
+      );
+    }
+    if (selectedTarget) {
+      return entries.filter(
+        (e) => (e.pilotName ?? e.shipType ?? "Unknown") === selectedTarget,
+      );
+    }
+    return entries;
+  }, [entries, selectedPilot, selectedTarget]);
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {/* Pilots (left) */}
+      <div>
+        <div className="mb-2 font-mono text-xs text-text-muted">Pilots</div>
+        <div className="space-y-2">
+          {matrix.pilots.map((p) => (
+            <button
+              key={p.name}
+              type="button"
               className={cn(
-                "font-mono text-xs",
-                r._isZoomed ? "text-cyan-glow font-bold" : "text-text-primary",
+                "w-full flex items-center justify-between px-3 py-2 rounded transition-colors text-left",
+                selectedPilot === p.name
+                  ? "bg-cyan/10 ring-1 ring-cyan-glow"
+                  : "hover:bg-white/2",
               )}
+              onClick={() =>
+                setSelectedPilot((prev) => (prev === p.name ? null : p.name))
+              }
             >
-              {r.target}
-            </span>
-            {r.shipType && r.shipType !== r.target && (
-              <Badge variant={r._isZoomed ? "cyan" : "default"}>
-                {r.shipType}
-              </Badge>
-            )}
-          </button>
-        );
-      },
-    },
-    {
-      key: "corp",
-      label: "Corp",
-      sortable: true,
-      render: (v) =>
-        v ? (
-          <Badge variant="cyan">{String(v)}</Badge>
-        ) : (
-          <span className="text-text-muted">—</span>
-        ),
-    },
-    {
-      key: "firstHit",
-      label: "Window",
-      render: (_, row) => {
-        const r = row as unknown as EngagementRow;
-        return (
-          <span className="font-mono text-xs text-text-secondary">
-            {fmtTime(r.firstHit)}–{fmtTime(r.lastHit)}
-          </span>
-        );
-      },
-    },
-    {
-      key: "windowSeconds",
-      label: "Secs",
-      sortable: true,
-      numeric: true,
-      render: (v) => (
-        <span className="font-mono text-xs text-text-secondary">
-          {(v as number).toFixed(1)}
-        </span>
-      ),
-    },
-    {
-      key: "totalDamage",
-      label: "Total Dmg",
-      sortable: true,
-      numeric: true,
-      render: (v) => (
-        <span className="font-mono text-xs text-gold-bright font-bold">
-          {fmt(v as number)}
-        </span>
-      ),
-    },
-    {
-      key: "dps",
-      label: "DPS",
-      sortable: true,
-      numeric: true,
-      render: (v, row) => {
-        const dps = v as number;
-        const r = row as unknown as EngagementRow;
-        const pct = r._maxDps > 0 && dps > 0 ? (dps / r._maxDps) * 100 : 0;
-        return (
-          <div className="flex flex-col gap-1 min-w-[80px]">
-            <span className="font-mono text-xs text-cyan-glow font-bold">
-              {fmtDps(dps)}
-            </span>
-            {pct > 0 && (
-              <div className="h-1 rounded-full bg-space overflow-hidden w-full">
-                <div
-                  className="h-full bg-cyan-glow rounded-full"
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
-            )}
-          </div>
-        );
-      },
-    },
-    {
-      key: "hitCount",
-      label: "Hits",
-      sortable: true,
-      numeric: true,
-      render: (v) => (
-        <span className="font-mono text-xs">{fmt(v as number)}</span>
-      ),
-    },
-    {
-      key: "minHit",
-      label: "Min",
-      sortable: true,
-      numeric: true,
-      render: (v) => (
-        <span className="font-mono text-xs text-status-safe">
-          {fmt(v as number)}
-        </span>
-      ),
-    },
-    {
-      key: "maxHit",
-      label: "Max",
-      sortable: true,
-      numeric: true,
-      render: (v) => (
-        <span className="font-mono text-xs text-status-kill">
-          {fmt(v as number)}
-        </span>
-      ),
-    },
-    {
-      key: "avgHit",
-      label: "Avg",
-      sortable: true,
-      numeric: true,
-      render: (v) => (
-        <span className="font-mono text-xs text-text-secondary">
-          {fmt(v as number)}
-        </span>
-      ),
-    },
-    // Hit quality columns intentionally omitted for fleet view
-  ];
+              <span className="font-mono text-sm">{p.name}</span>
+              <span className="font-mono text-sm text-gold-bright">
+                {fmt(p.total)}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Center: filtered DPS chart */}
+      <div className="col-span-1 lg:col-span-1">
+        <div className="mb-2 font-mono text-xs text-text-muted">Timeline</div>
+        <Panel title="DPS — filtered">
+          <FleetPilotDpsChart entries={chartEntries} />
+        </Panel>
+      </div>
+
+      {/* Targets (right) */}
+      <div>
+        <div className="mb-2 font-mono text-xs text-text-muted">Targets</div>
+        <div className="space-y-2">
+          {matrix.targets.map((t) => (
+            <button
+              key={t.name}
+              type="button"
+              className={cn(
+                "w-full flex items-center justify-between px-3 py-2 rounded transition-colors text-left",
+                selectedTarget === t.name
+                  ? "bg-cyan/10 ring-1 ring-cyan-glow"
+                  : "hover:bg-white/2",
+              )}
+              onClick={() =>
+                setSelectedTarget((prev) => (prev === t.name ? null : t.name))
+              }
+            >
+              <span className="font-mono text-sm">{t.name}</span>
+              <span className="font-mono text-sm text-gold-bright">
+                {fmt(t.total)}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ── Weapon table (no hit quality) ─────────────────────────────────────────────
@@ -439,10 +409,6 @@ interface FleetDamageDealtContentProps {
 export default function FleetDamageDealtContent({
   entries,
 }: FleetDamageDealtContentProps) {
-  const [zoomedTarget, setZoomedTarget] = useState<TargetEngagement | null>(
-    null,
-  );
-
   const analysis = useMemo(() => analyzeDamageDealt(entries), [entries]);
 
   const maxDps = useMemo(
@@ -450,32 +416,7 @@ export default function FleetDamageDealtContent({
     [analysis],
   );
 
-  const handleTargetClick = (engagement: TargetEngagement) => {
-    setZoomedTarget((prev) =>
-      prev?.target === engagement.target &&
-      prev?.shipType === engagement.shipType
-        ? null
-        : engagement,
-    );
-  };
-
-  const engagementRows = useMemo(
-    () =>
-      analysis.engagements.map((e) => ({
-        ...e,
-        _maxDps: maxDps,
-        _isZoomed:
-          zoomedTarget?.target === e.target &&
-          zoomedTarget?.shipType === e.shipType,
-      })),
-    [analysis, maxDps, zoomedTarget],
-  );
-
-  const engagementColumns = useMemo(
-    () => buildEngagementColumns(maxDps, handleTargetClick),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [maxDps],
-  );
+  // NOTE: engagement table / zoom state removed for Phase 05 matrix drill-down.
 
   if (analysis.totalHits === 0) {
     return (
@@ -524,20 +465,9 @@ export default function FleetDamageDealtContent({
         <FleetPilotDpsChart entries={entries} />
       </Panel>
 
-      {/* DPS per target */}
-      <Panel title="DPS PER TARGET">
-        <DataTable
-          columns={engagementColumns}
-          data={engagementRows as unknown as Record<string, unknown>[]}
-          searchable
-          searchPlaceholder="SEARCH TARGETS..."
-          rowKey={(_, i) => String(i)}
-          emptyState={
-            <span className="text-text-muted font-mono text-xs uppercase tracking-widest">
-              NO TARGETS
-            </span>
-          }
-        />
+      {/* Drill-down: fleet pilot ↔ target */}
+      <Panel title="DAMAGE MATRIX — FLEET PILOTS vs TARGETS">
+        <DamageDealtMatrix entries={entries} />
       </Panel>
 
       {/* Weapons & Drones (no hit quality) */}
