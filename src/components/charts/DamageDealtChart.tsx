@@ -199,23 +199,34 @@ export default function DamageDealtChart({
   );
   const lastZoomSourceRef = useRef<string | null>(null);
 
-  // internal brush state for immediate UI feedback while dragging
-  const [internalBrush, setInternalBrush] = useState<
-    { startIndex?: number; endIndex?: number } | undefined
-  >(undefined);
-
   useEffect(() => {
     if (!brushIndexRange) return;
     setSyncIndices(brushIndexRange);
     setBrushRemountKey(
       `${brushIndexRange.startIndex ?? 0}-${brushIndexRange.endIndex ?? 0}-${Date.now()}`,
     );
-    // seed internal brush so the UI snaps immediately
-    setInternalBrush(brushIndexRange);
     // clear syncIndices after a single tick so Brush becomes uncontrolled
     const id = window.setTimeout(() => setSyncIndices(undefined), 80);
     return () => window.clearTimeout(id);
   }, [brushIndexRange?.startIndex, brushIndexRange?.endIndex]);
+
+  // When zoom is cleared (zoomedWindow becomes undefined) we also force a
+  // transient remount of the Brush set to the full range so the traveller
+  // visually resets to the full domain. Skip this if the last zoom source
+  // was the brush itself to avoid fighting user interaction.
+  useEffect(() => {
+    if (zoomedWindow) return;
+    if (lastZoomSourceRef.current === "brush") {
+      lastZoomSourceRef.current = null;
+      return;
+    }
+    // ensure data length is available
+    const lastIdx = Math.max(0, data.length - 1);
+    setSyncIndices({ startIndex: 0, endIndex: lastIdx });
+    setBrushRemountKey(`clear-${Date.now()}`);
+    const id = window.setTimeout(() => setSyncIndices(undefined), 80);
+    return () => window.clearTimeout(id);
+  }, [zoomedWindow, data.length]);
 
   // Clip tackle windows to the visible domain
   const visibleTackleWindows = useMemo(
