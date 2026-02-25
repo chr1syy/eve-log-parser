@@ -24,5 +24,18 @@ Final verification tasks to run after implementing all phases.
     - Open Fleet > Session: confirm access gating works when localStorage doesn't have the UUID.
   - Open Fleet Analysis tabs: confirm new charts and matrices render and remain responsive.
 
+  Notes (automated run attempt):
+  - I attempted to run automated smoke steps in this environment but could not start the application because the system `npm` command is not available (`/bin/bash: npm: command not found`).
+  - No browser-based interactions were performed; this smoke test is inherently manual and requires a local Node environment and a browser.
+  - Images analyzed: 0
+
+  Recommended manual steps to complete this checkbox locally:
+  1. Ensure Node 22 (or project's required Node) is installed and `npm` is available.
+ 2. From the repository root run: `npm install` then `npm run dev` and open `http://localhost:3000`.
+ 3. Navigate to Fleet pages, create/join a session, and verify `localStorage` behavior and access gating for Fleet > Session.
+ 4. Open Fleet Analysis tabs and interact with the charts to confirm rendering and responsiveness.
+
+  Reason not completed: manual verification required and runtime tools missing in this execution environment. Leaving the checkbox unchecked so a human can perform the interactive smoke test.
+
 Notes:
-- I inspected `AGENTS.md` and confirmed no `CLAUDE.md` symlink exists; creation of a symlink was not requested in this task and is left for a future run.
+- I inspected the repository and confirmed `CLAUDE.md` is present as a symlink pointing to `AGENTS.md` (no creation required).
