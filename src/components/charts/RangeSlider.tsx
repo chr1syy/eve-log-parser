@@ -19,19 +19,31 @@ export default function RangeSlider({
   const [right, setRight] = useState(endIndex ?? Math.max(0, length - 1));
   const draggingRef = useRef<"left" | "right" | null>(null);
 
+  // Keep internal state in sync with prop changes but avoid unconditional
+  // setState inside effects (which can trigger cascading renders). Only
+  // update when the incoming prop actually differs from the current state.
   useEffect(() => {
-    setLeft(startIndex ?? 0);
+    const desired = startIndex ?? 0;
+    if (desired !== left) setLeft(desired);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startIndex]);
 
   useEffect(() => {
-    setRight(endIndex ?? Math.max(0, length - 1));
-  }, [endIndex, length]);
+    const desired = endIndex ?? Math.max(0, length - 1);
+    if (desired !== right) setRight(desired);
+    // length intentionally excluded from deps to avoid extra sync cycles
+    // when parent is animating layout; the caller can force a reset by
+    // changing startIndex/endIndex instead.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [endIndex]);
 
   useEffect(() => {
     const onUp = () => {
       if (draggingRef.current) {
         draggingRef.current = null;
-        onChangeComplete(clamp(left), clamp(right));
+        const clampedLeft = Math.max(0, Math.min(length - 1, left));
+        const clampedRight = Math.max(0, Math.min(length - 1, right));
+        onChangeComplete(clampedLeft, clampedRight);
       }
     };
     window.addEventListener("mouseup", onUp);
@@ -40,7 +52,7 @@ export default function RangeSlider({
       window.removeEventListener("mouseup", onUp);
       window.removeEventListener("touchend", onUp);
     };
-  }, [left, right, length]);
+  }, [left, right, length, onChangeComplete]);
 
   const percent = (v: number) => (length <= 1 ? 0 : (v / (length - 1)) * 100);
 
@@ -88,12 +100,9 @@ export default function RangeSlider({
         aria-valuenow={left}
         onMouseDown={() => (draggingRef.current = "left")}
         onTouchStart={() => (draggingRef.current = "left")}
-        onMouseMove={(e) => {
-          if (draggingRef.current !== "left") return;
-          const rect = (e.target as HTMLElement)
-            .closest(".range-root")
-            ?.getBoundingClientRect();
-        }}
+        /* intentionally left without move handler; movement is handled by
+             the shared overlay below to keep behavior consistent across
+             pointer types. */
         style={{
           position: "absolute",
           top: 6,

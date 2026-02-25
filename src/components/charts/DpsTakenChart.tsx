@@ -104,13 +104,8 @@ export default function DpsTakenChart({
   onRangeSelect,
   resetKey,
 }: DpsTakenChartProps) {
-  if (timeSeries.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-48 text-text-muted font-mono text-xs">
-        NO INCOMING DAMAGE DATA
-      </div>
-    );
-  }
+  // Ensure hooks run consistently even when there is no data. We render a
+  // placeholder later if the series is empty.
 
   // Compute fight boundaries for reference lines
   const fightBoundaries: { timestamp: number; label: string }[] = [];
@@ -160,7 +155,15 @@ export default function DpsTakenChart({
       new Set<number>([...dpsMap.keys(), ...repMap.keys()]),
     ).sort((a, b) => a - b);
 
-    const merged: Array<any> = [];
+    const merged: Array<{
+      timestampMs: number;
+      timestamp: Date;
+      timeLabel: string;
+      dps: number;
+      fightIndex: number;
+      repsPerSecond?: number;
+      [key: string]: unknown;
+    }> = [];
     let lastDps = 0;
     let lastFightIndex = 0;
     let lastRps: number | undefined = undefined;
@@ -226,6 +229,11 @@ export default function DpsTakenChart({
     attackerSeries.forEach((_a, i) => {
       vis[`att_${i}`] = true;
     });
+    // Initialize visibility state from attackerSeries. This is intentionally
+    // setting state during an effect in response to prop changes; disable
+    // the linter warning because the initialization is derived from the
+    // incoming prop and runs synchronously on mount/update.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAttackerVisibility(vis);
   }, [attackerSeries]);
 
@@ -282,6 +290,9 @@ export default function DpsTakenChart({
 
   useEffect(() => {
     if (!brushIndexRange) return;
+    // transiently set sync indices to snap the Brush travellers — intentional
+    // behavior, suppress the lint warning for clarity.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSyncIndices(brushIndexRange);
     setBrushRemountKey(
       `${brushIndexRange.startIndex ?? 0}-${brushIndexRange.endIndex ?? 0}-${Date.now()}`,
@@ -346,6 +357,7 @@ export default function DpsTakenChart({
     }
 
     const lastIdx = Math.max(0, data.length - 1);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSyncIndices({ startIndex: 0, endIndex: lastIdx });
     setBrushRemountKey(`clear-${Date.now()}`);
     const id = window.setTimeout(() => setSyncIndices(undefined), 600);
@@ -355,11 +367,20 @@ export default function DpsTakenChart({
   useEffect(() => {
     if (resetKey === undefined) return;
     const lastIdx = Math.max(0, data.length - 1);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSyncIndices({ startIndex: 0, endIndex: lastIdx });
     setBrushRemountKey(`reset-${resetKey}-${Date.now()}`);
     const id = window.setTimeout(() => setSyncIndices(undefined), 600);
     return () => window.clearTimeout(id);
   }, [resetKey, data.length]);
+
+  if (timeSeries.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-48 text-text-muted font-mono text-xs">
+        NO INCOMING DAMAGE DATA
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">

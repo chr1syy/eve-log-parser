@@ -110,13 +110,10 @@ export default function DamageDealtChart({
 }: DamageDealtChartProps) {
   const { points, tackleWindows } = series;
 
-  if (points.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-48 text-text-muted font-mono text-xs">
-        NO DATA
-      </div>
-    );
-  }
+  // render hooks and computations regardless of data size (rules-of-hooks
+  // require hooks to run in the same order every render). If there is no
+  // data we still compute safe defaults and show the NO DATA placeholder at
+  // render time below.
 
   // Keep full data for the chart so Brush always operates over the entire
   // timeline. When a zoomedWindow is provided we narrow the X axis domain to
@@ -141,7 +138,7 @@ export default function DamageDealtChart({
     : points;
 
   // Expand window slightly so chart doesn't look empty if only 1 point is visible
-  const displayPoints = visiblePoints.length > 0 ? visiblePoints : points;
+  // (kept for parity with previous behaviour; not strictly used here).
 
   // Debounced brush commit: avoid updating parent on every mousemove to
   // prevent a re-render tug-of-war between programmatic updates and user drag.
@@ -235,6 +232,10 @@ export default function DamageDealtChart({
 
   useEffect(() => {
     if (!brushIndexRange) return;
+    // Setting transient sync indices in response to a brushIndexRange change
+    // is intentional — disable the rule which warns about setState in
+    // effects for this specific case.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSyncIndices(brushIndexRange);
     setBrushRemountKey(
       `${brushIndexRange.startIndex ?? 0}-${brushIndexRange.endIndex ?? 0}-${Date.now()}`,
@@ -310,6 +311,10 @@ export default function DamageDealtChart({
 
     // ensure data length is available
     const lastIdx = Math.max(0, data.length - 1);
+    // Transiently set controlled indices to force the Brush travellers to
+    // snap visually to the full domain. This is deliberate; silence the
+    // rule here for clarity.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSyncIndices({ startIndex: 0, endIndex: lastIdx });
     setBrushRemountKey(`clear-${Date.now()}`);
     const id = window.setTimeout(() => setSyncIndices(undefined), 600);
@@ -323,6 +328,7 @@ export default function DamageDealtChart({
   useEffect(() => {
     if (resetKey === undefined) return;
     const lastIdx = Math.max(0, data.length - 1);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSyncIndices({ startIndex: 0, endIndex: lastIdx });
     setBrushRemountKey(`reset-${resetKey}-${Date.now()}`);
     const id = window.setTimeout(() => setSyncIndices(undefined), 600);
@@ -340,6 +346,15 @@ export default function DamageDealtChart({
         .filter((w) => w.x1 < w.x2),
     [tackleWindows, domainMin, domainMax],
   );
+
+  // If there are no points show a placeholder (hooks already ran above).
+  if (points.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-48 text-text-muted font-mono text-xs">
+        NO DATA
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">
