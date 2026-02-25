@@ -18,7 +18,28 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm ci
+      - name: Debug npm registry and .npmrc
+        run: |
+          echo "npm registry: $(npm config get registry)"
+          echo "--- ~/.npmrc (if present) ---"
+          sed -n '1,200p' ~/.npmrc || true
+          echo "--- attempt HEAD on zod tarball ---"
+          curl -I https://registry.npmjs.org/zod/-/zod-4.3.6.tgz || true
+
+      - name: Ensure public npm registry
+        run: npm config set registry https://registry.npmjs.org
+
+      - name: Install dependencies (with retries)
+        run: |
+          for i in 1 2 3; do
+            npm ci --registry=https://registry.npmjs.org && break
+            echo "npm ci failed (attempt $i), retrying..."
+            sleep $((i * 5))
+            if [ $i -eq 3 ]; then
+              echo "npm ci failed after 3 attempts"
+              exit 1
+            fi
+          done
       - run: npm run lint
       - run: npm run test
       - run: npm run build
