@@ -21,7 +21,10 @@ import { useParsedLogs } from "@/hooks/useParsedLogs";
 import { analyzeDamageTaken } from "@/lib/analysis/damageTaken";
 import { analyzeReps } from "@/lib/analysis/repAnalysis";
 import { filterOutHostileNpcs } from "@/lib/npcFilter";
-import type { IncomingWeaponSummary } from "@/lib/analysis/damageTaken";
+import type {
+  IncomingWeaponSummary,
+  AttackerTimeSeries,
+} from "@/lib/analysis/damageTaken";
 import type { RepSourceSummary } from "@/lib/analysis/repAnalysis";
 import type { HitQuality } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -80,11 +83,13 @@ function WeaponTable({
   emptyMessage,
   showSource = false,
   onRowClick,
+  attackerSeries,
 }: {
   summaries: IncomingWeaponSummary[];
   emptyMessage: string;
   showSource?: boolean;
   onRowClick?: (row: IncomingWeaponSummary) => void;
+  attackerSeries?: AttackerTimeSeries[];
 }) {
   if (summaries.length === 0) {
     return (
@@ -105,11 +110,31 @@ function WeaponTable({
               const r = row as WeaponRow;
               const shipType = r.shipType;
               const showShip = shipType && shipType !== String(v);
+              // try to find attacker color/index
+              const attackerIdx = attackerSeries
+                ? attackerSeries.findIndex((a) => a.source === String(v))
+                : -1;
+              const attacker =
+                attackerIdx >= 0 ? attackerSeries![attackerIdx] : null;
               return (
                 <div className="flex flex-col gap-0.5">
-                  <span className="font-mono text-xs text-text-primary">
-                    {String(v)}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {attacker ? (
+                      <span
+                        className="w-3 h-3 inline-block rounded-sm"
+                        style={{ backgroundColor: attacker.color }}
+                        aria-hidden
+                      />
+                    ) : null}
+                    <span className="font-mono text-xs text-text-primary">
+                      {String(v)}
+                    </span>
+                    {attacker ? (
+                      <span className="font-mono text-[10px] text-text-muted">
+                        #{attackerIdx + 1}
+                      </span>
+                    ) : null}
+                  </div>
                   {showShip ? (
                     <Badge variant="default">{shipType}</Badge>
                   ) : (
@@ -543,6 +568,7 @@ export default function DamageTakenPage() {
                 onRowClick={(row) =>
                   handleSourceClick(row as IncomingWeaponSummary)
                 }
+                attackerSeries={damageAnalysis.attackerTimeSeries}
               />
             </Panel>
             <Panel title="INCOMING DRONES">
@@ -553,6 +579,7 @@ export default function DamageTakenPage() {
                 onRowClick={(row) =>
                   handleSourceClick(row as IncomingWeaponSummary)
                 }
+                attackerSeries={damageAnalysis.attackerTimeSeries}
               />
             </Panel>
           </div>
