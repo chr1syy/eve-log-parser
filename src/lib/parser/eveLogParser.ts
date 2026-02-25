@@ -38,8 +38,7 @@ async function hashContent(text: string): Promise<string> {
   }
 }
 
-const DRONE_PATTERN =
-  /\b(Wasp|Infiltrator|Hornet|Hammerhead|Hobgoblin|Ogre|Valkyrie|Warrior|Curator|Garde|Warden|Bouncer|Berserker|Acolyte|Praetor|Gecko)\b/i;
+import { isDroneWeapon as isDroneFromConfig } from "@/lib/config/drones";
 
 /**
  * Strips all EVE HTML markup tags from a line, collapsing extra whitespace.
@@ -77,8 +76,8 @@ export function extractUnderlinkText(raw: string): string | null {
   return stripTags(match[1]).trim() || null;
 }
 
-function isDroneWeapon(weapon: string): boolean {
-  return DRONE_PATTERN.test(weapon);
+function isDroneWeapon(weapon?: string): boolean {
+  return isDroneFromConfig(weapon);
 }
 
 function normalizeHitQuality(raw: string): HitQuality {
