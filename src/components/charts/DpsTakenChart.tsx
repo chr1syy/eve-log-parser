@@ -198,6 +198,10 @@ export default function DpsTakenChart({
       }
     }
 
+    // attach repsPerSecond as a visible key as well (may be undefined)
+    // the existing repsPerSecond key is already used; visibility is controlled
+    // via `repsVisible` state in the rendering.
+
     return merged;
   }, [baseData, repTimeSeries, attackerSeries]);
 
@@ -224,6 +228,9 @@ export default function DpsTakenChart({
     });
     setAttackerVisibility(vis);
   }, [attackerSeries]);
+
+  // Reps visibility
+  const [repsVisible, setRepsVisible] = useState<boolean>(true);
 
   const fullDomainMin = data[0]?.timestampMs ?? 0;
   const fullDomainMax = data[data.length - 1]?.timestampMs ?? 0;
@@ -433,7 +440,7 @@ export default function DpsTakenChart({
                 />
               );
             })}
-          {repTimeSeries && repTimeSeries.length > 0 && (
+          {repTimeSeries && repTimeSeries.length > 0 && repsVisible && (
             <Line
               // Use a stepped line so gaps that drop to explicit zeros appear
               // as immediate drops rather than a smoothed decline.
@@ -534,6 +541,29 @@ export default function DpsTakenChart({
               </button>
             );
           })}
+          {/* Reps legend entry (interactive) */}
+          {repTimeSeries && repTimeSeries.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setRepsVisible((v) => !v)}
+              className="flex items-center gap-2 focus:outline-none"
+              aria-pressed={!repsVisible}
+              title="Toggle incoming reps"
+            >
+              <span
+                className="w-4 h-4 inline-flex items-center justify-center rounded-sm text-[10px] font-mono text-black"
+                style={{ backgroundColor: "#66cc66" }}
+                aria-hidden
+              >
+                R
+              </span>
+              <span
+                className={`font-mono text-xs ${repsVisible ? "text-text-primary" : "text-text-muted"}`}
+              >
+                Incoming Reps
+              </span>
+            </button>
+          )}
         </div>
       )}
     </div>
