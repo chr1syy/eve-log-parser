@@ -352,9 +352,12 @@ export default function DamageDealtChart({
             <Brush
               key={syncIndices ? brushRemountKey : undefined}
               dataKey="timestampMs"
-              height={32}
-              stroke="#00d4ff"
-              travellerWidth={8}
+              height={28}
+              stroke="#00707f"
+              strokeOpacity={0.75}
+              travellerWidth={6}
+              fill="#00707f"
+              fillOpacity={0.14}
               // Update internal UI state immediately while dragging; notify
               // parent after a short debounce so we don't fight pointer
               // interactions.
