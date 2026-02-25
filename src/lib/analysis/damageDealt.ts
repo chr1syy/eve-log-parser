@@ -1,4 +1,5 @@
 import type { LogEntry, HitQuality } from "../types";
+import { detectFightBoundaries } from "./fightBoundaries";
 
 export interface TargetEngagement {
   target: string; // pilotName or NPC name
@@ -212,6 +213,10 @@ export interface TackleWindow {
 export interface DamageDealtTimeSeries {
   points: DamageDealtPoint[];
   tackleWindows: TackleWindow[];
+  // Start timestamps (ms since epoch) for detected fight segments based on
+  // outgoing damage activity. Useful for aligning UI segments with other
+  // analyses (eg. damage-taken).
+  fightBoundaries?: number[];
 }
 
 const BAD_HIT_QUALITIES = new Set<HitQuality>(["Glances Off", "Grazes"]);
@@ -287,7 +292,14 @@ export function generateDamageDealtTimeSeries(
 
   const tackleWindows = computeTackleWindows(entries);
 
-  if (dealtEntries.length === 0) return { points: [], tackleWindows };
+  // Fight boundaries detected from outgoing damage events. Use the same
+  // default gap threshold as the damage-taken pipeline (60s) by leaving
+  // the gapMs parameter unspecified so the detectFightBoundaries default
+  // applies.
+  const fightBoundaries = detectFightBoundaries(dealtEntries);
+
+  if (dealtEntries.length === 0)
+    return { points: [], tackleWindows, fightBoundaries };
 
   // All shot events (hits + misses) sorted for bad-hit % calculation
   const allShots = [...dealtEntries, ...missEntries].sort(
@@ -405,5 +417,5 @@ export function generateDamageDealtTimeSeries(
     });
   }
 
-  return { points, tackleWindows };
+  return { points, tackleWindows, fightBoundaries };
 }
