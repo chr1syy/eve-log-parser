@@ -395,12 +395,20 @@ export default function DamageDealtPage() {
     // clicking) remain snappy while expensive background work runs.
     startTransition(() => {
       setZoomedWindow(undefined);
-      setZoomedTarget((prev) =>
-        prev?.target === engagement.target &&
-        prev?.shipType === engagement.shipType
-          ? null
-          : engagement,
-      );
+      setZoomedTarget((prev) => {
+        const toggledOff =
+          prev?.target === engagement.target &&
+          prev?.shipType === engagement.shipType;
+        // If the user clicked the same target to toggle zoom off, force a
+        // brush reset so the brush handles return to the full domain. This
+        // avoids a stale brush position remaining after programmatic zoom
+        // changes.
+        if (toggledOff) {
+          setResetBrushKey((k) => k + 1);
+          return null;
+        }
+        return engagement;
+      });
     });
   }, []);
 

@@ -296,18 +296,25 @@ export default function DamageDealtChart({
   // visually resets to the full domain. Skip this if the last zoom source
   // was the brush itself to avoid fighting user interaction.
   useEffect(() => {
+    // When zoom is cleared (zoomedWindow becomes undefined) we also force a
+    // transient remount of the Brush set to the full range so the traveller
+    // visually resets to the full domain. Skip this if the last zoom source
+    // was the brush itself to avoid fighting user interaction — unless the
+    // parent explicitly requested a reset via `resetKey`, in which case we
+    // should honour the reset.
     if (zoomedWindow) return;
-    if (lastZoomSourceRef.current === "brush") {
+    if (lastZoomSourceRef.current === "brush" && resetKey === undefined) {
       lastZoomSourceRef.current = null;
       return;
     }
+
     // ensure data length is available
     const lastIdx = Math.max(0, data.length - 1);
     setSyncIndices({ startIndex: 0, endIndex: lastIdx });
     setBrushRemountKey(`clear-${Date.now()}`);
     const id = window.setTimeout(() => setSyncIndices(undefined), 600);
     return () => window.clearTimeout(id);
-  }, [zoomedWindow, data.length]);
+  }, [zoomedWindow, data.length, resetKey]);
 
   // When the parent increments `resetKey` we must force the Brush to snap to
   // the full domain so the slider handles visually return to the ends. This
