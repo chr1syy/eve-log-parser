@@ -25,7 +25,22 @@ export default function FleetIndexPage() {
   const router = useRouter();
 
   useEffect(() => {
-    fetch("/api/fleet-sessions")
+    let ids: string[] = [];
+    try {
+      ids = JSON.parse(
+        localStorage.getItem("fleet:session-ids") ?? "[]",
+      ) as string[];
+    } catch {
+      /* ignore */
+    }
+
+    if (ids.length === 0) {
+      setLoading(false);
+      return;
+    }
+
+    const query = new URLSearchParams({ ids: ids.join(",") });
+    fetch(`/api/fleet-sessions?${query}`)
       .then((r) => r.json())
       .then((data: SessionRow[]) =>
         setSessions(Array.isArray(data) ? data : []),

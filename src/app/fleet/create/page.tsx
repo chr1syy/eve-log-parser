@@ -55,6 +55,21 @@ export default function CreateFleetSessionPage() {
       }
 
       setCreatedSession(data); // partial, but for display
+
+      // Persist session UUID locally so this browser can see the fleet
+      try {
+        const stored = JSON.parse(
+          localStorage.getItem("fleet:session-ids") ?? "[]",
+        ) as string[];
+        if (!stored.includes(data.id)) {
+          localStorage.setItem(
+            "fleet:session-ids",
+            JSON.stringify([...stored, data.id]),
+          );
+        }
+      } catch {
+        /* localStorage unavailable */
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {

@@ -38,6 +38,21 @@ export default function JoinFleetSessionPage() {
         throw new Error(data.message || data.error || "Failed to join session");
       }
 
+      // Persist session UUID locally
+      try {
+        const stored = JSON.parse(
+          localStorage.getItem("fleet:session-ids") ?? "[]",
+        ) as string[];
+        if (!stored.includes(data.session.id)) {
+          localStorage.setItem(
+            "fleet:session-ids",
+            JSON.stringify([...stored, data.session.id]),
+          );
+        }
+      } catch {
+        /* localStorage unavailable */
+      }
+
       router.push(`/fleet/${data.session.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");

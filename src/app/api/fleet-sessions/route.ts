@@ -27,9 +27,19 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const userSessions = listUserSessions().map((session) => ({
+    const { searchParams } = new URL(request.url);
+    const rawIds = searchParams.get("ids");
+    const ids = rawIds ? rawIds.split(",").filter(Boolean) : [];
+
+    const allSessions = listUserSessions();
+    const filtered =
+      ids.length > 0
+        ? allSessions.filter((s) => ids.includes(s.id))
+        : allSessions;
+
+    const userSessions = filtered.map((session) => ({
       ...session,
       participantCount: session.participants.length,
       logCount: session.logs.length,

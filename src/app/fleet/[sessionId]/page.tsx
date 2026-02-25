@@ -28,6 +28,7 @@ export default function FleetSessionDetailPage() {
   const [data, setData] = useState<SessionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [accessDenied, setAccessDenied] = useState(false);
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -36,6 +37,19 @@ export default function FleetSessionDetailPage() {
     try {
       setLoading(true);
       setError(null);
+      // Check localStorage for access
+      try {
+        const stored = JSON.parse(
+          localStorage.getItem("fleet:session-ids") ?? "[]",
+        ) as string[];
+        if (!stored.includes(id)) {
+          setAccessDenied(true);
+          setLoading(false);
+          return;
+        }
+      } catch {
+        // ignore localStorage errors and continue to fetch
+      }
       const response = await fetch(`/api/fleet-sessions/${id}`);
       if (!response.ok) {
         throw new Error("Session not found");
@@ -51,6 +65,21 @@ export default function FleetSessionDetailPage() {
         );
       }
       setData(sessionData);
+      setAccessDenied(false);
+      // Persist the id locally so this browser can access it in future
+      try {
+        const stored = JSON.parse(
+          localStorage.getItem("fleet:session-ids") ?? "[]",
+        ) as string[];
+        if (!stored.includes(id)) {
+          localStorage.setItem(
+            "fleet:session-ids",
+            JSON.stringify([...stored, id]),
+          );
+        }
+      } catch {
+        /* ignore */
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load session");
     } finally {
@@ -114,6 +143,24 @@ export default function FleetSessionDetailPage() {
             <div className="h-8 bg-bg-secondary rounded mb-4"></div>
             <div className="h-32 bg-bg-secondary rounded"></div>
           </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (accessDenied) {
+    return (
+      <AppLayout title="FLEET SESSION">
+        <div className="space-y-6">
+          <h1 className="text-2xl font-ui uppercase tracking-wider text-text-primary">
+            Access Denied
+          </h1>
+          <p className="text-text-muted">
+            You do not have access to view this session from this browser.
+          </p>
+          <Link href="/fleet">
+            <Button>Back to Fleet Sessions</Button>
+          </Link>
         </div>
       </AppLayout>
     );
