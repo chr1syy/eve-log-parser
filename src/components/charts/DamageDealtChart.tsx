@@ -12,6 +12,7 @@ import {
   ReferenceArea,
   Brush,
 } from "recharts";
+import { useEffect, useRef, useState } from "react";
 import type {
   DamageDealtTimeSeries,
   DamageDealtPoint,
@@ -182,6 +183,31 @@ export default function DamageDealtChart({
     return { startIndex, endIndex };
   })();
 
+  // Internal, immediate brush indices used to drive Brush UI responsively
+  // while the user is dragging. We debounce notifications to the parent so
+  // the page zoom only updates after the user pauses dragging, avoiding
+  // the feel of the brush being "pushed back" by programmatic updates.
+  const [internalBrush, setInternalBrush] = useState<
+    { startIndex?: number; endIndex?: number } | undefined
+  >(brushIndexRange);
+
+  // timer ref for debouncing notifications
+  const notifyTimer = useRef<number | null>(null);
+
+  // Sync internal brush when zoomedWindow changes programmatically (e.g.
+  // user clicked a target). We replace the internal indices so the traveller
+  // snaps to the correct position.
+  useEffect(() => {
+    setInternalBrush(brushIndexRange);
+  }, [brushIndexRange?.startIndex, brushIndexRange?.endIndex]);
+
+  // Clear timer on unmount
+  useEffect(() => {
+    return () => {
+      if (notifyTimer.current) window.clearTimeout(notifyTimer.current);
+    };
+  }, []);
+
   // Clip tackle windows to the visible domain
   const visibleTackleWindows = tackleWindows
     .map((w) => ({
@@ -306,9 +332,24 @@ export default function DamageDealtChart({
               height={32}
               stroke="#00d4ff"
               travellerWidth={8}
-              onChange={handleBrushChange}
-              startIndex={brushIndexRange?.startIndex}
-              endIndex={brushIndexRange?.endIndex}
+              // Use internalBrush for immediate visual feedback while
+              // dragging. onChange will update internalBrush and schedule
+              // a debounced notification to the parent.
+              onChange={(r) => {
+                setInternalBrush(r);
+                // debounce notify to parent
+                if (notifyTimer.current)
+                  window.clearTimeout(notifyTimer.current);
+                // eslint-disable-next-line @typescript-eslint/no-misused-promises
+                notifyTimer.current = window.setTimeout(() => {
+                  handleBrushChange(r);
+                  notifyTimer.current = null;
+                }, 180);
+              }}
+              startIndex={
+                internalBrush?.startIndex ?? brushIndexRange?.startIndex
+              }
+              endIndex={internalBrush?.endIndex ?? brushIndexRange?.endIndex}
             />
           )}
         </ComposedChart>
