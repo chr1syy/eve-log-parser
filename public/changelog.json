@@ -1,0 +1,704 @@
+{
+  "commits": [
+    {
+      "hash": "525f3cd580d0a897fe668a8f6253669b4a2fa1cc",
+      "message": "feat(changelog): agent-driven changelog/apply script; chart brush and DPS/rep zero-behavior fixes\n\nImplement agent-driven changelog flow: add scripts/apply-changelog.mjs, remove automated generation, update release workflow to skip generation. Port brush+reset to Damage Taken chart, add zero-insertion for DPS and Reps time series, make brush visuals red and robust. Update Damage Taken page to defer analysis and wire brush state. Add changelog page viewer.\n\nSession: ses_36ad9c4cfffeqyQS58EzHn5p64",
+      "author": "chr1syy",
+      "timestamp": "2026-02-25T15:56:47Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/525f3cd580d0a897fe668a8f6253669b4a2fa1cc"
+    },
+    {
+      "hash": "4f22d0d4bce56b5ba4ba94849f5c865b98083b88",
+      "message": "chore(docs): remove Auto Run Docs from tracking and add to .gitignore\n\nSession: ses_36e60eab7ffe8CMGJFHWXJlRRL",
+      "author": "chr1syy",
+      "timestamp": "2026-02-25T14:10:43Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/4f22d0d4bce56b5ba4ba94849f5c865b98083b88"
+    },
+    {
+      "hash": "1a9b2fed65d967b7e716a365350a26baa526dc03",
+      "message": "fix(charts): restore Brush and tune visuals; adjust time-series gap fill\n\nRestore Recharts Brush (replacing experimental RangeSlider), debounce brush commits, apply visual styles to make selection and travellers blue, and revert aggressive fill-opacity that blocked selection color. Tweak LONG_GAP_MS and zero-fill logic in generateDamageDealtTimeSeries.\n\nSession: ses_36e60eab7ffe8CMGJFHWXJlRRL",
+      "author": "chr1syy",
+      "timestamp": "2026-02-25T14:09:08Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/1a9b2fed65d967b7e716a365350a26baa526dc03"
+    },
+    {
+      "hash": "b0ab34d6f3e07ac6d6ac04e718b39e83ea480fa2",
+      "message": "feat(charts): add custom RangeSlider and move interaction off Brush to make handles and selection reliable",
+      "author": "chr1syy",
+      "timestamp": "2026-02-25T13:21:41Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/b0ab34d6f3e07ac6d6ac04e718b39e83ea480fa2"
+    },
+    {
+      "hash": "8243c9f1e1bef4c0a6d0df16eeddcf261ce651df",
+      "message": "fix(charts): improve traveller visibility (size, stroke, shadow); release transient sync on first user change; shorten debounce",
+      "author": "chr1syy",
+      "timestamp": "2026-02-25T13:18:42Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/8243c9f1e1bef4c0a6d0df16eeddcf261ce651df"
+    },
+    {
+      "hash": "55c023f4b7c38bc5ecdc58721c28c66434ce7277",
+      "message": "fix(charts): extend transient sync duration so selection persists visibly after programmatic snap",
+      "author": "chr1syy",
+      "timestamp": "2026-02-25T13:18:25Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/55c023f4b7c38bc5ecdc58721c28c66434ce7277"
+    },
+    {
+      "hash": "a174b322cc9ec8d965dd1574156f79774ba56653",
+      "message": "style(charts): make Brush traveller clearly visible (white fill, dark stroke, larger)",
+      "author": "chr1syy",
+      "timestamp": "2026-02-25T13:16:54Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/a174b322cc9ec8d965dd1574156f79774ba56653"
+    },
+    {
+      "hash": "0ebbd74ab1e61ee2cb245f38af981c84e93ed95e",
+      "message": "style(charts): use lighter handle (traveller) rendering for Brush to reduce contrast",
+      "author": "chr1syy",
+      "timestamp": "2026-02-25T13:15:03Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/0ebbd74ab1e61ee2cb245f38af981c84e93ed95e"
+    },
+    {
+      "hash": "88ba5d4ad0494dc78afb85811305e4fc9c2c197a",
+      "message": "style(charts): make Brush less prominent — darker, more opaque, smaller traveller",
+      "author": "chr1syy",
+      "timestamp": "2026-02-25T13:12:14Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/88ba5d4ad0494dc78afb85811305e4fc9c2c197a"
+    },
+    {
+      "hash": "a8549a0ae6740696d8202d934b19975eb461edfa",
+      "message": "feat(analysis): insert zero-value timestamps for long gaps (>3min) so charts drop to 0 instead of interpolating",
+      "author": "chr1syy",
+      "timestamp": "2026-02-25T12:58:08Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/a8549a0ae6740696d8202d934b19975eb461edfa"
+    },
+    {
+      "hash": "6d2b3a783e7b4944febcd00b0384e39108210236",
+      "message": "fix(charts): reset Brush traveller when zoom is cleared so visual selector follows domain",
+      "author": "chr1syy",
+      "timestamp": "2026-02-25T12:53:45Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/6d2b3a783e7b4944febcd00b0384e39108210236"
+    },
+    {
+      "hash": "54ddc015a4751e3be7d1167791659892d3821149",
+      "message": "resolve(rebase): keep local Auto Run Docs content during rebase",
+      "author": "chr1syy",
+      "timestamp": "2026-02-25T14:09:27Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/54ddc015a4751e3be7d1167791659892d3821149"
+    },
+    {
+      "hash": "f94edde5d61fb6256d8a7686d0fc8d615ff4ba86",
+      "message": "Merge pull request #27 from chr1syy/revert-main\n\nRevert main",
+      "author": "Chris",
+      "timestamp": "2026-02-25T12:55:11Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/f94edde5d61fb6256d8a7686d0fc8d615ff4ba86"
+    },
+    {
+      "hash": "2c8bcbf80450073fc30fb9d05fa38ba1e826ad41",
+      "message": "Revert \"MAESTRO: mark Phase 02 TypeScript verification as completed\"\n\nThis reverts commit 157ec4c36c756e9b06ed83668be48d5ea7f289a1.",
+      "author": "chr1syy",
+      "timestamp": "2026-02-25T12:04:54Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/2c8bcbf80450073fc30fb9d05fa38ba1e826ad41"
+    },
+    {
+      "hash": "3b0cfd143c8dacbf5086043f63e7bc828bc84edc",
+      "message": "Revert \"MAESTRO: mark Phase 05 verification as completed and add tsc notes\"\n\nThis reverts commit be0a90e0b461c783f5a21d02d426cde49b6c6930.",
+      "author": "chr1syy",
+      "timestamp": "2026-02-25T12:04:54Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/3b0cfd143c8dacbf5086043f63e7bc828bc84edc"
+    },
+    {
+      "hash": "2444c79c099da00c23bc4229fda80bac37f4445b",
+      "message": "Revert \"MAESTRO: record TypeScript check result in FLEET-ANALYSIS-06.md\"\n\nThis reverts commit 9d136317dff05755d6071c7cf872244b0fc5af2b.",
+      "author": "chr1syy",
+      "timestamp": "2026-02-25T12:04:54Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/2444c79c099da00c23bc4229fda80bac37f4445b"
+    },
+    {
+      "hash": "eaac63b4dcecd3ff55c130a3e3ae2863b38669cd",
+      "message": "Revert \"MAESTRO: confirm import removals for fleet components and record results\"\n\nThis reverts commit ffaca62d8b8d932eb3562e22966dc1fcc048cae6.",
+      "author": "chr1syy",
+      "timestamp": "2026-02-25T12:04:54Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/eaac63b4dcecd3ff55c130a3e3ae2863b38669cd"
+    },
+    {
+      "hash": "d1d33dc42d568de20f4e45edb38b3a3d2d95363f",
+      "message": "Revert \"MAESTRO: update notes in FLEET-ANALYSIS-06 (CLAUDE.md symlink)\"\n\nThis reverts commit 0ed98b5c9999d35bff781f631d405679675a229e.",
+      "author": "chr1syy",
+      "timestamp": "2026-02-25T12:04:54Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/d1d33dc42d568de20f4e45edb38b3a3d2d95363f"
+    },
+    {
+      "hash": "851fe0c687fd879d51687884ee5b4a13908495fe",
+      "message": "Revert \"MAESTRO: annotate automated smoke test attempt in FLEET-ANALYSIS-06\"\n\nThis reverts commit 26c7ee87d49e0ac3842eaee8e1657917aefb6060.",
+      "author": "chr1syy",
+      "timestamp": "2026-02-25T12:04:54Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/851fe0c687fd879d51687884ee5b4a13908495fe"
+    },
+    {
+      "hash": "c3ca163d8aad94f6a21b61e5d136134811ca3691",
+      "message": "Revert \"MAESTRO: add agent run summary and manual smoke-test instructions (cannot run npm/browser in environment)\"\n\nThis reverts commit 56c09c03190088b9e09635bbc2ba61b84220b955.",
+      "author": "chr1syy",
+      "timestamp": "2026-02-25T12:04:54Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/c3ca163d8aad94f6a21b61e5d136134811ca3691"
+    },
+    {
+      "hash": "39664a46269efbf6ee1186a19ca6ab35f312b6a9",
+      "message": "Revert \"MAESTRO: note smoke test couldn't run in automated environment; leave checkbox for manual verification\"\n\nThis reverts commit adf5d08f8ec7cddc07030afd25d61e6aab0b4222.",
+      "author": "chr1syy",
+      "timestamp": "2026-02-25T12:04:54Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/39664a46269efbf6ee1186a19ca6ab35f312b6a9"
+    },
+    {
+      "hash": "adf5d08f8ec7cddc07030afd25d61e6aab0b4222",
+      "message": "MAESTRO: note smoke test couldn't run in automated environment; leave checkbox for manual verification",
+      "author": "chr1syy",
+      "timestamp": "2026-02-25T08:35:30Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/adf5d08f8ec7cddc07030afd25d61e6aab0b4222"
+    },
+    {
+      "hash": "56c09c03190088b9e09635bbc2ba61b84220b955",
+      "message": "MAESTRO: add agent run summary and manual smoke-test instructions (cannot run npm/browser in environment)",
+      "author": "chr1syy",
+      "timestamp": "2026-02-25T08:34:03Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/56c09c03190088b9e09635bbc2ba61b84220b955"
+    },
+    {
+      "hash": "26c7ee87d49e0ac3842eaee8e1657917aefb6060",
+      "message": "MAESTRO: annotate automated smoke test attempt in FLEET-ANALYSIS-06",
+      "author": "chr1syy",
+      "timestamp": "2026-02-25T08:32:45Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/26c7ee87d49e0ac3842eaee8e1657917aefb6060"
+    },
+    {
+      "hash": "0ed98b5c9999d35bff781f631d405679675a229e",
+      "message": "MAESTRO: update notes in FLEET-ANALYSIS-06 (CLAUDE.md symlink)",
+      "author": "chr1syy",
+      "timestamp": "2026-02-25T08:30:36Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/0ed98b5c9999d35bff781f631d405679675a229e"
+    },
+    {
+      "hash": "ffaca62d8b8d932eb3562e22966dc1fcc048cae6",
+      "message": "MAESTRO: confirm import removals for fleet components and record results",
+      "author": "chr1syy",
+      "timestamp": "2026-02-25T08:26:29Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/ffaca62d8b8d932eb3562e22966dc1fcc048cae6"
+    },
+    {
+      "hash": "9d136317dff05755d6071c7cf872244b0fc5af2b",
+      "message": "MAESTRO: record TypeScript check result in FLEET-ANALYSIS-06.md",
+      "author": "chr1syy",
+      "timestamp": "2026-02-25T08:19:57Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/9d136317dff05755d6071c7cf872244b0fc5af2b"
+    },
+    {
+      "hash": "be0a90e0b461c783f5a21d02d426cde49b6c6930",
+      "message": "MAESTRO: mark Phase 05 verification as completed and add tsc notes",
+      "author": "chr1syy",
+      "timestamp": "2026-02-25T08:18:12Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/be0a90e0b461c783f5a21d02d426cde49b6c6930"
+    },
+    {
+      "hash": "157ec4c36c756e9b06ed83668be48d5ea7f289a1",
+      "message": "MAESTRO: mark Phase 02 TypeScript verification as completed",
+      "author": "chr1syy",
+      "timestamp": "2026-02-25T07:58:39Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/157ec4c36c756e9b06ed83668be48d5ea7f289a1"
+    },
+    {
+      "hash": "55f5a2b542e81f00131a3fb22c463fe8a54ce648",
+      "message": "fix(charts): transient syncIndices for programmatic snap; maintain internalBrush for responsive dragging",
+      "author": "chr1syy",
+      "timestamp": "2026-02-25T07:53:32Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/55f5a2b542e81f00131a3fb22c463fe8a54ce648"
+    },
+    {
+      "hash": "31d4cb9fcaf22d00714fb51cb4d0153fb1d52306",
+      "message": "fix(charts): make programmatic brush sync transient so user drag is uncontrolled; improve responsiveness",
+      "author": "chr1syy",
+      "timestamp": "2026-02-25T07:46:37Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/31d4cb9fcaf22d00714fb51cb4d0153fb1d52306"
+    },
+    {
+      "hash": "df8d0cab91a0c2edfc3dc8bd3a9c61479302cc1c",
+      "message": "fix(charts): debounce parent range updates and use internal brush state for responsive dragging feel",
+      "author": "chr1syy",
+      "timestamp": "2026-02-25T07:23:05Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/df8d0cab91a0c2edfc3dc8bd3a9c61479302cc1c"
+    },
+    {
+      "hash": "6337dfe638693481915252bb780ce8a4a2ec4d07",
+      "message": "fix(charts): control Brush start/end indices to match zoomed window so handles track visible domain",
+      "author": "chr1syy",
+      "timestamp": "2026-02-25T07:13:15Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/6337dfe638693481915252bb780ce8a4a2ec4d07"
+    },
+    {
+      "hash": "ffd9453160f65ee2c5ba2504be012f8c08021fe4",
+      "message": "MAESTRO: document TS verification failure (node not found) in FLEET-ANALYSIS-01.md",
+      "author": "chr1syy",
+      "timestamp": "2026-02-25T06:29:30Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/ffd9453160f65ee2c5ba2504be012f8c08021fe4"
+    },
+    {
+      "hash": "5a57d96dd9ef99537f0120a1dbdcc4fadd13ddf8",
+      "message": "fix(charts): keep full data for Recharts Brush and add unit tests for resolveBrushRange to prevent brush jump",
+      "author": "chr1syy",
+      "timestamp": "2026-02-24T21:50:09Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/5a57d96dd9ef99537f0120a1dbdcc4fadd13ddf8"
+    },
+    {
+      "hash": "f3dc195bd61208342269b43c6436ac3b03a2e5d7",
+      "message": "Merge pull request #25 from chr1syy/feat-chart-range\n\nAdd chart range selection for damage dealt",
+      "author": "Chris",
+      "timestamp": "2026-02-24T20:43:00Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/f3dc195bd61208342269b43c6436ac3b03a2e5d7"
+    },
+    {
+      "hash": "14393f5967cadc312dfcf11f491c791258d81ad8",
+      "message": "MAESTRO: address chart range review feedback",
+      "author": "chr1syy",
+      "timestamp": "2026-02-24T19:54:22Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/14393f5967cadc312dfcf11f491c791258d81ad8"
+    },
+    {
+      "hash": "0befd5fec9214e3806bf135b0ac0f7ad27c5da27",
+      "message": "MAESTRO: add damage-dealt range sync test",
+      "author": "chr1syy",
+      "timestamp": "2026-02-24T16:07:38Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/0befd5fec9214e3806bf135b0ac0f7ad27c5da27"
+    },
+    {
+      "hash": "6ae8f4a266bf6a0cb6c60eaae9cc30c554b6f8fb",
+      "message": "MAESTRO: cover brush range mapping",
+      "author": "chr1syy",
+      "timestamp": "2026-02-24T16:04:13Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/6ae8f4a266bf6a0cb6c60eaae9cc30c554b6f8fb"
+    },
+    {
+      "hash": "251e8056501d98b5aba53bee696c058372ca64f5",
+      "message": "MAESTRO: wire chart range zoom state",
+      "author": "chr1syy",
+      "timestamp": "2026-02-24T16:01:47Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/251e8056501d98b5aba53bee696c058372ca64f5"
+    },
+    {
+      "hash": "d179405334acb29f79374bf2a7a76fb8bb7ba5f2",
+      "message": "MAESTRO: add brush range selection",
+      "author": "chr1syy",
+      "timestamp": "2026-02-24T15:59:28Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/d179405334acb29f79374bf2a7a76fb8bb7ba5f2"
+    },
+    {
+      "hash": "2896b1377581a658783b929f2faf2c22124acb01",
+      "message": "ui: align damage-in attacker column\n\nMatch Damage In table layout to Damage Out by stacking attacker name with ship badge and removing the separate ship column.\n\nSession: ses_36ff7543affeOqbRHiRUKy3dZH",
+      "author": "chr1syy",
+      "timestamp": "2026-02-24T14:52:38Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/2896b1377581a658783b929f2faf2c22124acb01"
+    },
+    {
+      "hash": "77701e49d606b51f7c9be9c6461e26b4e2ef7f24",
+      "message": "fix: filter NPC entries and bake version arg\n\nEnsure hostile NPCs are excluded when hiding NPCs, including names without corp tickers, and carry VERSION into runtime image.\n\nSession: ses_36ff7543affeOqbRHiRUKy3dZH",
+      "author": "chr1syy",
+      "timestamp": "2026-02-24T14:45:33Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/77701e49d606b51f7c9be9c6461e26b4e2ef7f24"
+    },
+    {
+      "hash": "b0b6b55e47eedde86e83dafdbd90d4cfd1ba70e2",
+      "message": "fix: move shield rep fixture out of gitignored data/ dir\n\ndata/ is covered by .gitignore so test_shield_reps.txt was never\ncommitted, causing CI to fail with ENOENT on the fixture read.\n\nMove the file to src/__tests__/fixtures/ (not gitignored) and update\nFIXTURE_PATH in test_shield_log.test.ts accordingly. All 183 tests\npass locally.\n\nSession: ec40f2e7-4a69-49ff-b849-4b40a5ce59ad\n\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>",
+      "author": "chr1syy",
+      "timestamp": "2026-02-24T14:21:47Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/b0b6b55e47eedde86e83dafdbd90d4cfd1ba70e2"
+    },
+    {
+      "hash": "97d56c4640958f5f6083f224ffe82daebcc68d71",
+      "message": "docs: clean up README — remove duplicate sections and merge artifact\n\nThe README contained the entire document duplicated from line 470\nonward, two inline merge conflict artifacts (`# Triggers automated\nupdates via Watchtower` and `# **Deployment**: Docker + GitHub\nActions` becoming broken lines), and a dangling `>>>>>>> origin/main`\nmarker on the final line — all leftover from an unresolved merge.\n\nChanges:\n- Remove ~540 lines of duplicated content, keeping the first copy\n- Strip the leftover git conflict marker\n- Add the unique API Endpoints section that only appeared in the\n  second copy\n- Remove \"Shield repair tracking\" from Planned (implemented)\n- Update Repairs tab description to mention shield boost and\n  maintenance bot support\n- Refresh last-updated date to 2026-02-24\n\nSession: ec40f2e7-4a69-49ff-b849-4b40a5ce59ad\n\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>",
+      "author": "chr1syy",
+      "timestamp": "2026-02-24T14:13:39Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/97d56c4640958f5f6083f224ffe82daebcc68d71"
+    },
+    {
+      "hash": "9821f670185760ba787d949a090592e515374655",
+      "message": "Fix shield rep test: pass absolute path as File name for jsdom compat\n\njsdom's File/Blob implementation (v23) does not expose text(),\narrayBuffer(), or stream() methods. readLogText() therefore falls\nthrough to its Node.js filesystem fallback, which resolves the file\nby file.name. The old helper passed only the basename\n(\"test_shield_reps.txt\"), causing a silent ENOENT and an empty parse\nresult (0 rep-received entries).\n\nFix: pass the full absolute FIXTURE_PATH as the File name so the\nNode.js fallback resolves correctly via isAbsolute() -> direct read.\nAll 183 tests pass (11 test files).\n\nSession: ec40f2e7-4a69-49ff-b849-4b40a5ce59ad\n\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>",
+      "author": "chr1syy",
+      "timestamp": "2026-02-24T14:10:30Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/9821f670185760ba787d949a090592e515374655"
+    },
+    {
+      "hash": "9c60aa569575dab0d20d3ef5e534f025ef5c28f5",
+      "message": "Merge pull request #23 from chr1syy/fix-shield-reps\n\nAdd shield booster and shield maintenance bot rep tracking",
+      "author": "Chris",
+      "timestamp": "2026-02-24T13:49:06Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/9c60aa569575dab0d20d3ef5e534f025ef5c28f5"
+    },
+    {
+      "hash": "2d134fdb4cff14b3d3d37a5c224a89a9e8331048",
+      "message": "Merge origin/main — resolve shield rep conflicts\n\nBoth branches independently added shield rep support. Resolved by:\n- eveLogParser.ts: keep HEAD's consolidated includes() checks + unified\n  regexes; remove now-dead separate else-if for remote shield boosted to\n- parser.test.ts: keep all tests from both sides; use main's fixture\n  amounts (300/150) where duplicated, retain HEAD's extra test cases\n  (SourceShip booster, Light Shield Maintenance Bot II, TargetShip outgoing)\n\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>",
+      "author": "chr1syy",
+      "timestamp": "2026-02-24T13:38:07Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/2d134fdb4cff14b3d3d37a5c224a89a9e8331048"
+    },
+    {
+      "hash": "266bd522f6de65489163f70193eb4ededd8923cb",
+      "message": "Fix test_shield_log.test.ts per Copilot review\n\n- Import test/expect from vitest (no globals configured)\n- Wrap fixture in File and await parseLogFile (it's async, takes File not string)\n- Replace absolute path with path.resolve(__dirname, ...) for CI portability\n\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>",
+      "author": "chr1syy",
+      "timestamp": "2026-02-24T13:25:27Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/266bd522f6de65489163f70193eb4ededd8923cb"
+    },
+    {
+      "hash": "11c0bd63b35f9f027e5db653c14e1597723e9a01",
+      "message": "Switch compose to GHCR latest\n\nUse the published GHCR image with watchtower auto-updates and document the latest tag in the release summary.",
+      "author": "chr1syy",
+      "timestamp": "2026-02-24T13:03:14Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/11c0bd63b35f9f027e5db653c14e1597723e9a01"
+    },
+    {
+      "hash": "8fc51fbb010f5f91d2849db62c7907e46cd712bb",
+      "message": "Harden chart timestamps\n\nAllow DPS tooltip formatting to handle non-Date timestamps and relax VersionInfo to accept missing package versions.",
+      "author": "chr1syy",
+      "timestamp": "2026-02-24T11:59:32Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/8fc51fbb010f5f91d2849db62c7907e46cd712bb"
+    },
+    {
+      "hash": "613e09136102414c41966d8d38d9e0d59c3e02c6",
+      "message": "Handle missing version as undefined\n\nReturn undefined when package.json has no version so tests match expected behavior and tag-based versioning remains intact.",
+      "author": "chr1syy",
+      "timestamp": "2026-02-24T11:37:12Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/613e09136102414c41966d8d38d9e0d59c3e02c6"
+    },
+    {
+      "hash": "bd37692ef76c1f2a48b15af1b13a09f2a393d4ea",
+      "message": "Handle missing version normalization\n\nAllow version normalization to accept undefined values and default to an empty string when package.json lacks a version.\n\nSession: ses_3709a7f5bffe5vucRGwljTu6yL",
+      "author": "chr1syy",
+      "timestamp": "2026-02-24T11:31:31Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/bd37692ef76c1f2a48b15af1b13a09f2a393d4ea"
+    },
+    {
+      "hash": "c109c33f64fb8edd2af485b2cbfd033fe7434b41",
+      "message": "Normalize version string\n\nStrip leading v from version sources so getVersionInfo matches test expectations when tags are used.\n\nSession: ses_3709a7f5bffe5vucRGwljTu6yL",
+      "author": "chr1syy",
+      "timestamp": "2026-02-24T11:26:55Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/c109c33f64fb8edd2af485b2cbfd033fe7434b41"
+    },
+    {
+      "hash": "9158647983044614a9b0137d69534673a1b668b1",
+      "message": "Merge pull request #18 from chr1syy/feat-cicd\n\nfeat: cicd",
+      "author": "Chris",
+      "timestamp": "2026-02-24T11:21:10Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/9158647983044614a9b0137d69534673a1b668b1"
+    },
+    {
+      "hash": "d36a1570ec6a868c197f6d4a98f013805f63ac13",
+      "message": "Merge origin/main into feat-cicd",
+      "author": "chr1syy",
+      "timestamp": "2026-02-24T11:08:49Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/d36a1570ec6a868c197f6d4a98f013805f63ac13"
+    },
+    {
+      "hash": "3faf27c4044349aef72047c1c69de38d8726d603",
+      "message": "Prefer tag-based version\n\nUse VERSION or GIT_TAG when available, with package.json fallback.\n\nSession: ses_37111cfb7ffe6Pb2i5If1EJxGv",
+      "author": "chr1syy",
+      "timestamp": "2026-02-24T10:47:02Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/3faf27c4044349aef72047c1c69de38d8726d603"
+    },
+    {
+      "hash": "e20161f29065c10bd6768783ce1329add563cfbe",
+      "message": "Harden log parsing and tests\n\nHandle File-like log inputs and miss tracking, update changelog tooling and test setup.\n\nSession: ses_37111cfb7ffe6Pb2i5If1EJxGv",
+      "author": "chr1syy",
+      "timestamp": "2026-02-24T09:59:47Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/e20161f29065c10bd6768783ce1329add563cfbe"
+    },
+    {
+      "hash": "0380f4afe734b1ebc8cbfc58c5aaf185a334e98d",
+      "message": "MAESTRO: Fix version.test.ts — wire up vi.mock for fs/child_process, use vi.hoisted + vi.resetModules + dynamic imports to handle module-scope caching, replace brittle changelog assertion with fixture-based mock\n\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>",
+      "author": "chr1syy",
+      "timestamp": "2026-02-24T07:43:21Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/0380f4afe734b1ebc8cbfc58c5aaf185a334e98d"
+    },
+    {
+      "hash": "be5af0c0431451416071d133f01dce773155e917",
+      "message": "MAESTRO: Refactor version.ts caching, harden changelog limit param, parameterize changelog script\n\n- version.ts: compute git commit/tag/build-time once at module load; prefer\n  GIT_SHA / GIT_TAG / BUILD_TIME env vars (injected at Docker build time) before\n  falling back to execSync / new Date()\n- Dockerfile: expose GIT_SHA, GIT_TAG, BUILD_TIME as ARG + ENV in the runtime\n  stage so the baked values are available at container startup\n- release.yml: add \"Set build metadata\" step to capture BUILD_TIME; pass\n  GIT_SHA, GIT_TAG, BUILD_TIME as build-args to docker/build-push-action;\n  add \"Generate changelog\" step with GITHUB_TOKEN env var for authenticated\n  GitHub API calls in CI\n- changelog/route.ts: replace bare parseInt with NaN-safe parsing that falls\n  back to the default limit of 50 when the query param is invalid\n- generate-changelog.js: resolve repo from CHANGELOG_REPO / GITHUB_REPOSITORY\n  env vars (falling back to chr1syy/eve-log-parser); add Authorization header\n  when GITHUB_TOKEN is present; build COMMITS_URL from resolved REPO constant\n\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>",
+      "author": "chr1syy",
+      "timestamp": "2026-02-24T07:34:55Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/be5af0c0431451416071d133f01dce773155e917"
+    },
+    {
+      "hash": "33d7052120432a275d9aff80142d3ffa12a979e7",
+      "message": "MAESTRO: Fix PR #18 review issues — merge artifacts, Dockerfile curl, type dedup, React import, useMemo dep\n\n- README.md: remove orphaned conflict markers (<<<<<<< HEAD, >>>>>>> origin/main), fix 4-backtick fences to 3-backtick, remove duplicate shell commands already present in Quick Start\n- Dockerfile: add `RUN apk add --no-cache curl` in runtime stage so HEALTHCHECK curl command is available\n- src/app/api/changelog/route.ts: remove duplicate CommitEntry/ChangelogResponse interfaces; import from lib/types instead\n- src/__tests__/integration/changelog.test.tsx: add `import type { ReactNode } from \"react\"` and replace React.ReactNode with ReactNode in mock provider\n- src/app/damage-dealt/page.tsx: wrap handleTargetClick with useCallback([]) and add it to engagementColumns useMemo dep array to prevent stale closures\n\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>",
+      "author": "chr1syy",
+      "timestamp": "2026-02-24T07:31:32Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/33d7052120432a275d9aff80142d3ffa12a979e7"
+    },
+    {
+      "hash": "b6884c69aaa84dd1eb7f525b3a721bf4d35d2463",
+      "message": "Merge pull request #21 from chr1syy/fix-attacker-ship\n\nfix: attacker ship",
+      "author": "Chris",
+      "timestamp": "2026-02-24T07:30:51Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/b6884c69aaa84dd1eb7f525b3a721bf4d35d2463"
+    },
+    {
+      "hash": "e8e2d9f1556a8498ae78608ed1fd7ce92bcea39c",
+      "message": "Merge origin/main into fix-attacker-ship\n\nResolved conflict in src/app/damage-dealt/page.tsx:\n- Kept useCallback import and handleTargetClick wrapped in useCallback (PR fix)\n- Kept full [maxDps, handleTargetClick] dep array without eslint-disable (PR fix)\n- Dropped unused `r` variable in DPS column render (our branch was cleaner)\n- Accepted excludeDrones state, timeSeries dep, and DamageDealtChart prop from main\n- Accepted chartHeaderAction as always-defined (main's refactor for drone toggle)\n\nSession: 8bf91daa-200e-444b-bea8-e635b72040ed\n\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>",
+      "author": "chr1syy",
+      "timestamp": "2026-02-24T07:29:08Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/e8e2d9f1556a8498ae78608ed1fd7ce92bcea39c"
+    },
+    {
+      "hash": "5b82663ea3063999e1ed7c8e16e2031e5f29453c",
+      "message": "fix: address Copilot PR review comments\n\n- damageTaken.test.ts: use .find() instead of index-based assertions to\n  avoid sort-order dependency (results are sorted by totalDamage desc)\n- damageTaken.ts: derive shipType from misses fallback\n  (damage[0]?.shipType ?? misses[0]?.shipType) so all-miss groups retain\n  attacker ship type\n- damage-dealt/page.tsx: wrap handleTargetClick in useCallback and add\n  to engagementColumns useMemo dep array to satisfy exhaustive-deps\n- LogsContext.tsx: keep first eslint-disable for react-hooks/set-state-in-effect\n  (rule IS present in this project), remove unused second suppression\n- DpsTakenChart.tsx: type tooltip payload as T | undefined instead of\n  bare T assertion to reflect that .find() may return undefined\n- useShareLog.test.ts: replace no-op expect(true).toBe(true) with\n  expectTypeOf assertions on ShareState and UseShareLogResult types\n\nSession: 8bf91daa-200e-444b-bea8-e635b72040ed\n\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>",
+      "author": "chr1syy",
+      "timestamp": "2026-02-24T07:16:55Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/5b82663ea3063999e1ed7c8e16e2031e5f29453c"
+    },
+    {
+      "hash": "c8913955970975f46b27985b603aed01d99c0283",
+      "message": "Resolve merge conflicts from main branch\n\n- Merged CI/CD workflow with ghcr.io publishing\n- Updated README with deployment instructions\n- Resolved docker-compose.yml with production config\n- Fixed damage-dealt page excludeDrones feature\n\nses_37430ba7bffeTQmYINssR3AEBm",
+      "author": "chr1syy",
+      "timestamp": "2026-02-23T21:38:11Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/c8913955970975f46b27985b603aed01d99c0283"
+    },
+    {
+      "hash": "a30fca0c448b3431dbc6c3e10959bedb15a3bbe0",
+      "message": "Add docker-compose.yml for local development\n\nInclude docker-compose configuration for easy local testing and deployment setup.\n\nSession: ses_37430ba7bffeTQmYINssR3AEBm",
+      "author": "chr1syy",
+      "timestamp": "2026-02-23T21:33:33Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/a30fca0c448b3431dbc6c3e10959bedb15a3bbe0"
+    },
+    {
+      "hash": "4bb05b6be65bf7141159c2b3d22d99a97e14304b",
+      "message": "Add deployment and Watchtower documentation, update README\n\n- Create docs/DEPLOYMENT.md with Docker deployment guide\n- Create docs/WATCHTOWER.md with auto-update setup instructions\n- Update README.md with project overview, features, and deployment info\n\nses_37430ba7bffeTQmYINssR3AEBm",
+      "author": "chr1syy",
+      "timestamp": "2026-02-23T21:32:10Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/4bb05b6be65bf7141159c2b3d22d99a97e14304b"
+    },
+    {
+      "hash": "fa1ad949ce54b6a254df182b513fe0c0d600ef1f",
+      "message": "Bake changelog into Docker container at build time\n\n- Add generate-changelog script to fetch commits from GitHub API\n- Update Dockerfile to run changelog generation during build\n- Modify API route to serve baked changelog data instead of runtime fetches\n- Eliminates rate limiting concerns and improves performance\n\nses_37430ba7bffeTQmYINssR3AEBm",
+      "author": "chr1syy",
+      "timestamp": "2026-02-23T21:30:20Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/fa1ad949ce54b6a254df182b513fe0c0d600ef1f"
+    },
+    {
+      "hash": "ea9fe778e98eff2f6aba1ed1cde62ffdf67bf06c",
+      "message": "Implement real changelog data fetching from GitHub API\n\n- Replace mock commits with GitHub API fetch for chr1syy/eve-log-parser\n- Add fallback to mock data on API failure\n- Include commit URLs from GitHub\n\nses_37430ba7bffeTQmYINssR3AEBm",
+      "author": "chr1syy",
+      "timestamp": "2026-02-23T21:27:46Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/ea9fe778e98eff2f6aba1ed1cde62ffdf67bf06c"
+    },
+    {
+      "hash": "2b5ced60234b502a8db19fe405fa6ef28e2c3ade",
+      "message": "docs: add comprehensive README, LICENSE, and CONTRIBUTING guides\n\nAdd professional-grade documentation to the EVE Log Parser project:\n\n- README.md: Complete project overview with features, quick start, project structure,\n  development guide, testing info, troubleshooting, roadmap, and community links.\n  Replaces the generic Next.js bootstrap template with project-specific content.\n\n- LICENSE: MIT license with third-party acknowledgments, EVE Online trademark notice,\n  and warranty disclaimer to clarify fan-work status.\n\n- CONTRIBUTING.md: Comprehensive contributor guide including:\n  * Setup instructions and development workflow\n  * Coding standards (TypeScript, React, CSS, naming conventions)\n  * Testing guidelines with examples\n  * Conventional commit message format\n  * Full PR process walkthrough\n  * Issue reporting guidelines\n  * Architecture patterns for extending parser/analysis modules\n  * Performance considerations and resources\n\nThese updates establish clear expectations for contributors, improve onboarding for\nnew developers, and present the project professionally for open-source distribution.\n\nSession: ses_37428a782ffeIetxYu2gMW9LtG",
+      "author": "chr1syy",
+      "timestamp": "2026-02-23T21:19:35Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/2b5ced60234b502a8db19fe405fa6ef28e2c3ade"
+    },
+    {
+      "hash": "951a3d8683b39527201b8ef0d5c1843555cf141e",
+      "message": "MAESTRO: Add support for parsing shield repair events in eveLogParser.ts and add corresponding tests",
+      "author": "chr1syy",
+      "timestamp": "2026-02-23T21:18:37Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/951a3d8683b39527201b8ef0d5c1843555cf141e"
+    },
+    {
+      "hash": "ca84f9b92ca89fc548f962676215c2486d865823",
+      "message": "MAESTRO: Mark Phase 4 tasks as complete in EVE-SSO-01.md",
+      "author": "chr1syy",
+      "timestamp": "2026-02-23T19:52:24Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/ca84f9b92ca89fc548f962676215c2486d865823"
+    },
+    {
+      "hash": "545c733bbc9b98af639fb88b9de49fc84903b21a",
+      "message": "MAESTRO: Updated SHIELD-REPS-03.md with failure note for Task 3.4",
+      "author": "chr1syy",
+      "timestamp": "2026-02-23T21:19:43Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/545c733bbc9b98af639fb88b9de49fc84903b21a"
+    },
+    {
+      "hash": "390c7459e5457e4f5a6acdf5b48926a59735dca0",
+      "message": "Resolve dependency conflicts and fix lint errors\n\n- Updated @testing-library/react to v16 for React 19 compatibility\n- Fixed Dockerfile npm commands for multi-stage build\n- Corrected lint issues: type errors, unused variables, React hooks\n- Added eslint disables where necessary\n\nses_37430ba7bffeTQmYINssR3AEBm",
+      "author": "chr1syy",
+      "timestamp": "2026-02-23T20:46:43Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/390c7459e5457e4f5a6acdf5b48926a59735dca0"
+    },
+    {
+      "hash": "bb41b3d39d5c66332a5ec5983b6aaab5175c3fa5",
+      "message": "Merge pull request #20 from chr1syy/fix-drone-filter\n\nfix: drone filter",
+      "author": "Chris",
+      "timestamp": "2026-02-23T20:35:44Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/bb41b3d39d5c66332a5ec5983b6aaab5175c3fa5"
+    },
+    {
+      "hash": "b4f3831d3f48b44a0717abf21806ffe9761c52d0",
+      "message": "fix: remove unused zoomedWindow parameter from generateDamageDealtTimeSeries\n\nRemove the unused zoomedWindow parameter from the generateDamageDealtTimeSeries\nfunction signature in damageDealt.ts. This parameter was defined but never used\nin the function body, creating confusion about the function's intended behavior.\n\nUpdate all call sites to remove the undefined argument:\n- src/app/damage-dealt/page.tsx: Remove undefined argument when calling the function\n- src/__tests__/damageDealt.test.ts: Update all test calls to use new signature\n\nThis simplifies the API by removing the unused parameter and improves code clarity.\n\nSession:",
+      "author": "chr1syy",
+      "timestamp": "2026-02-23T20:33:04Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/b4f3831d3f48b44a0717abf21806ffe9761c52d0"
+    },
+    {
+      "hash": "814fa9dc1298f44a5609b2f7d7f9073d50218f09",
+      "message": "Fix ESLint errors and warnings\n\nResolved TypeScript and ESLint issues including unused variables, improper types, and module naming conflicts.\n\nSession: ses_3740454a3ffenpzsmq3ZjAT3NZ",
+      "author": "chr1syy",
+      "timestamp": "2026-02-23T20:27:18Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/814fa9dc1298f44a5609b2f7d7f9073d50218f09"
+    },
+    {
+      "hash": "96a849eff9641e9c62d93dd5e4567bdcb88cc7b2",
+      "message": "Merge pull request #19 from chr1syy/fix-npc-filtering\n\nfix: npc filtering",
+      "author": "Chris",
+      "timestamp": "2026-02-23T19:59:21Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/96a849eff9641e9c62d93dd5e4567bdcb88cc7b2"
+    },
+    {
+      "hash": "cd8593499cee168697067d9a784dca32ea1af0a1",
+      "message": "MAESTRO: Add drone filtering toggle to damage-dealt chart\n\n- Add excludeDrones parameter to generateDamageDealtTimeSeries function\n- Filter both damage-dealt and miss-outgoing entries when excludeDrones is true\n- Add excludeDrones state management to damage-dealt page\n- Create toggle button in chart header to switch between 'EXCLUDE DRONES' and 'INCLUDE DRONES'\n- Update DamageDealtChart to display filter status in legend\n- Add comprehensive unit tests for drone filter logic\n- Maintain backward compatibility: default behavior includes drones\n- Filter updates DPS calculations and bad hit percentage in real-time\n- Tackle windows remain unaffected by filter setting",
+      "author": "chr1syy",
+      "timestamp": "2026-02-23T19:46:22Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/cd8593499cee168697067d9a784dca32ea1af0a1"
+    },
+    {
+      "hash": "3ad22cc9d52638bfef89a152984efe89ca111651",
+      "message": "Add ChangelogList and VersionFooter components\n\n- Implement ChangelogList component for displaying commits\n- Add VersionFooter component for version display in layout\n\nSession: ses_37430ba7bffeTQmYINssR3AEBm",
+      "author": "chr1syy",
+      "timestamp": "2026-02-23T19:32:58Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/3ad22cc9d52638bfef89a152984efe89ca111651"
+    },
+    {
+      "hash": "4eb6cd5163a63219b024fc950e0538fcd9f58976",
+      "message": "MAESTRO: Added unit tests for analyzeDamageTaken including shipType validation",
+      "author": "chr1syy",
+      "timestamp": "2026-02-23T19:20:22Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/4eb6cd5163a63219b024fc950e0538fcd9f58976"
+    },
+    {
+      "hash": "c518e3160c0491db601801a2718d7000d5871da3",
+      "message": "MAESTRO: Add ship column to WeaponTable in damage-taken page",
+      "author": "chr1syy",
+      "timestamp": "2026-02-23T19:14:54Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/c518e3160c0491db601801a2718d7000d5871da3"
+    },
+    {
+      "hash": "d629c461c3a26b72919441b536ac707a0e467e5b",
+      "message": "Refactor changelog page and version display components\n\n- Update changelog page layout and styling\n- Modify version header component for better display\n- Adjust app layout for version footer integration\n- Update NPC filter logic\n- Add integration tests for changelog functionality\n- Remove outdated test file\n\nSession: ses_37430ba7bffeTQmYINssR3AEBm",
+      "author": "chr1syy",
+      "timestamp": "2026-02-23T19:13:11Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/d629c461c3a26b72919441b536ac707a0e467e5b"
+    },
+    {
+      "hash": "b88373db3a954e63e542bd9ea15d17a9eae28050",
+      "message": "MAESTRO: Add shipType extraction in analyzeDamageTaken function for attacker ship display",
+      "author": "chr1syy",
+      "timestamp": "2026-02-23T19:12:53Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/b88373db3a954e63e542bd9ea15d17a9eae28050"
+    },
+    {
+      "hash": "2bc7ba6e824dcaf62643fbb7e487b5699f0a67e3",
+      "message": "MAESTRO: Add shipType field to IncomingWeaponSummary interface for attacker ship display",
+      "author": "chr1syy",
+      "timestamp": "2026-02-23T19:12:08Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/2bc7ba6e824dcaf62643fbb7e487b5699f0a67e3"
+    },
+    {
+      "hash": "d71fe3b13ab1dc0ae417397593c93d36c158736f",
+      "message": "MAESTRO: Add workflow permissions for CI/CD",
+      "author": "chr1syy",
+      "timestamp": "2026-02-23T18:55:51Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/d71fe3b13ab1dc0ae417397593c93d36c158736f"
+    },
+    {
+      "hash": "93f380dc7be8f586380104f20324b73458b09a78",
+      "message": "MAESTRO: Add job summary step to release workflow for image details and changelog link",
+      "author": "chr1syy",
+      "timestamp": "2026-02-23T18:55:09Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/93f380dc7be8f586380104f20324b73458b09a78"
+    },
+    {
+      "hash": "18ca630a57e8a7b94da03c9eaa2b3ecdc1ce8758",
+      "message": "MAESTRO: Added Docker build and push step to release workflow",
+      "author": "chr1syy",
+      "timestamp": "2026-02-23T18:54:02Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/18ca630a57e8a7b94da03c9eaa2b3ecdc1ce8758"
+    },
+    {
+      "hash": "2ca4ae62b6f723a0d5e1986417023802ca94304b",
+      "message": "MAESTRO: Add Docker buildx setup and GitHub Container Registry login to release workflow",
+      "author": "chr1syy",
+      "timestamp": "2026-02-23T18:53:40Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/2ca4ae62b6f723a0d5e1986417023802ca94304b"
+    },
+    {
+      "hash": "a8c20af2d759b89657390d21f96e18eaa4711f7b",
+      "message": "MAESTRO: Create GitHub Actions workflow for release builds",
+      "author": "chr1syy",
+      "timestamp": "2026-02-23T18:53:03Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/a8c20af2d759b89657390d21f96e18eaa4711f7b"
+    },
+    {
+      "hash": "2fd673b3ed217528d8e0a22bce8a38ca67d6ce04",
+      "message": "MAESTRO: Create docker-compose.yml with app service configuration",
+      "author": "chr1syy",
+      "timestamp": "2026-02-23T18:52:15Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/2fd673b3ed217528d8e0a22bce8a38ca67d6ce04"
+    },
+    {
+      "hash": "25a37800e5ed00b2d346214e8790c4cabe8b8de7",
+      "message": "MAESTRO: Created .dockerignore file",
+      "author": "chr1syy",
+      "timestamp": "2026-02-23T18:51:45Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/25a37800e5ed00b2d346214e8790c4cabe8b8de7"
+    },
+    {
+      "hash": "1a7fc2d9c8499c88baccd88df59abc261a35cc5e",
+      "message": "MAESTRO: Create Dockerfile with multi-stage build for CI/CD deployment",
+      "author": "chr1syy",
+      "timestamp": "2026-02-23T18:51:18Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/1a7fc2d9c8499c88baccd88df59abc261a35cc5e"
+    },
+    {
+      "hash": "42fb0490458c42968cb42730968d269f6ac474cc",
+      "message": "MAESTRO: Add integration test for changelog page with rendering, API fetch, empty state, and responsive layout tests",
+      "author": "chr1syy",
+      "timestamp": "2026-02-23T18:44:50Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/42fb0490458c42968cb42730968d269f6ac474cc"
+    },
+    {
+      "hash": "9a4ed2fed0cdab58d8f46b2274c991607babe6b2",
+      "message": "Add tests for filterOutHostileNpcs function\n\nAdded comprehensive test cases for the filterOutHostileNpcs function to ensure it correctly filters out hostile Sansha's Nation NPCs from log entries. The tests cover various NPC types including Centatis Wraith, Centatis Daemon, Centus Tyrant, Centus Dread Lord, Centatis Behemoth, Centatis Devil, and Sansha's Horror.\n\nSession:",
+      "author": "chr1syy",
+      "timestamp": "2026-02-23T18:40:37Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/9a4ed2fed0cdab58d8f46b2274c991607babe6b2"
+    },
+    {
+      "hash": "0466921d5808b6427edb3dfe51f4e13e90b79160",
+      "message": "MAESTRO: Added shield booster rep-outgoing test case",
+      "author": "chr1syy",
+      "timestamp": "2026-02-23T17:04:45Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/0466921d5808b6427edb3dfe51f4e13e90b79160"
+    },
+    {
+      "hash": "9577280dffd50e67eecaf70c215ad52c1eba6f5b",
+      "message": "MAESTRO: Add shield maintenance bot rep-received test case",
+      "author": "chr1syy",
+      "timestamp": "2026-02-23T17:04:09Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/9577280dffd50e67eecaf70c215ad52c1eba6f5b"
+    },
+    {
+      "hash": "689a26a23c692db19ef46bb32aa56065a1005d73",
+      "message": "MAESTRO: Add shield booster rep-received test case to parser.test.ts",
+      "author": "chr1syy",
+      "timestamp": "2026-02-23T17:03:35Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/689a26a23c692db19ef46bb32aa56065a1005d73"
+    },
+    {
+      "hash": "f9d622395025a5395dfba41beac18e049101a027",
+      "message": "MAESTRO: Add shield booster pattern detection to parser",
+      "author": "chr1syy",
+      "timestamp": "2026-02-23T17:03:10Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/f9d622395025a5395dfba41beac18e049101a027"
+    },
+    {
+      "hash": "53134b1eb79fecae95a21558f49a58b39251f3d6",
+      "message": "MAESTRO: Create VersionHeader component for changelog displaying version info",
+      "author": "chr1syy",
+      "timestamp": "2026-02-23T16:40:55Z",
+      "url": "https://github.com/chr1syy/eve-log-parser/commit/53134b1eb79fecae95a21558f49a58b39251f3d6"
+    }
+  ]
+}
