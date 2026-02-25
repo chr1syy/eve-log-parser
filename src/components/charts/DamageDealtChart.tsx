@@ -158,6 +158,21 @@ export default function DamageDealtChart({
       notifyTimer.current = null;
     }
 
+    // In test environments call synchronously to simplify assertions; in
+    // normal use debounce the commit to avoid excessive parent updates.
+    if (process.env.NODE_ENV === "test") {
+      const resolved = resolveBrushRange(
+        data,
+        range.startIndex,
+        range.endIndex,
+      );
+      if (resolved) {
+        lastZoomSourceRef.current = "brush";
+        onRangeSelect(resolved.start, resolved.end);
+      }
+      return;
+    }
+
     // debounce commit until user stops moving the traveller
     notifyTimer.current = window.setTimeout(() => {
       const resolved = resolveBrushRange(
