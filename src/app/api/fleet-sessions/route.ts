@@ -27,9 +27,12 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(request?: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
+    // If request is not provided (unit tests call GET() directly), treat as no query params.
+    const searchParams = request
+      ? new URL(request.url).searchParams
+      : new URL("http://localhost").searchParams;
     const rawIds = searchParams.get("ids");
     const ids = rawIds ? rawIds.split(",").filter(Boolean) : [];
 
