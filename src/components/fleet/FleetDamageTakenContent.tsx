@@ -13,7 +13,6 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
@@ -178,7 +177,7 @@ function FleetPilotDamageTakenChart({ entries }: { entries: LogEntry[] }) {
               );
             }}
           />
-          <Legend />
+          {/* Legend intentionally removed for compact fleet view */}
           {pilots.map((p, i) => (
             <Line
               key={p}

@@ -18,10 +18,7 @@ import StatCard from "@/components/dashboard/StatCard";
 import DataTable from "@/components/ui/DataTable";
 import type { Column } from "@/components/ui/DataTable";
 import { analyzeDamageDealt } from "@/lib/analysis/damageDealt";
-import type {
-  TargetEngagement,
-  WeaponApplicationSummary,
-} from "@/lib/analysis/damageDealt";
+import type { WeaponApplicationSummary } from "@/lib/analysis/damageDealt";
 import type { LogEntry } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
