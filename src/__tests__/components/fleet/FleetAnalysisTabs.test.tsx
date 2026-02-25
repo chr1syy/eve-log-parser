@@ -25,18 +25,18 @@ describe("FleetAnalysisTabs", () => {
     status: "ACTIVE",
   };
 
-  it("renders disabled tabs when analysisReady is false", () => {
+  it("renders tabs with notice when analysisReady is false", () => {
     render(
       <FleetAnalysisTabs sessionData={mockSession} analysisReady={false} />,
     );
 
     expect(
-      screen.getByText("Upload at least one log to see fleet analysis"),
+      screen.getByText("Upload logs to populate fleet analysis metrics"),
     ).toBeInTheDocument();
 
-    // Check that tabs are disabled
-    const overviewTab = screen.getByText("Overview");
-    expect(overviewTab).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Overview" }),
+    ).toBeInTheDocument();
   });
 
   it("renders tabs when analysisReady is true", () => {
@@ -82,8 +82,10 @@ describe("FleetAnalysisTabs", () => {
     // Click Damage Dealt
     fireEvent.click(screen.getByRole("button", { name: "Damage Dealt" }));
 
-    // Should show placeholder
-    expect(screen.getByText("Coming in Phase 2")).toBeInTheDocument();
+    // No entries passed → empty state
+    expect(
+      screen.getByText("No outgoing damage in uploaded logs"),
+    ).toBeInTheDocument();
   });
 
   it("does not render FleetOverviewTab for non-overview tabs", () => {

@@ -81,7 +81,9 @@ describe("POST /api/fleet-sessions/[id]/join", () => {
 
   it("accepts correct code", async () => {
     const mockRequest = {
-      json: vi.fn().mockResolvedValue({ code: sessionCode }),
+      json: vi
+        .fn()
+        .mockResolvedValue({ code: sessionCode, pilotName: "Pilot One" }),
     } as any;
 
     const response = await joinSession(mockRequest, {
@@ -93,7 +95,9 @@ describe("POST /api/fleet-sessions/[id]/join", () => {
 
   it("rejects incorrect code", async () => {
     const mockRequest = {
-      json: vi.fn().mockResolvedValue({ code: "WRONG-CODE" }),
+      json: vi
+        .fn()
+        .mockResolvedValue({ code: "WRONG-CODE", pilotName: "Pilot One" }),
     } as any;
 
     const response = await joinSession(mockRequest, {

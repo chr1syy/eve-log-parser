@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession, deleteSession } from "@/lib/fleet/sessionStore";
-import type { FleetSession, FleetParticipant, FleetLog } from "@/types/fleet";
+import { mergeFleetLogs } from "@/lib/fleet/logMerging";
+import { calculateParticipantStats } from "@/lib/fleet/participantStats";
+import type { ParsedLog } from "@/lib/types";
+import type { FleetParticipant, FleetLog } from "@/types/fleet";
 
 function isAnalysisReady(logs: FleetLog[]): boolean {
   if (logs.length < 2) return false;
@@ -60,13 +63,66 @@ export async function GET(
       return NextResponse.json({ error: "Session not found" }, { status: 404 });
     }
 
-    const analysisReady = isAnalysisReady(session.logs);
+    const parsedLogs = session.logs
+      .map((log) => {
+        try {
+          const parsed = JSON.parse(log.logData) as ParsedLog;
+          const entries = parsed.entries.map((entry) => ({
+            ...entry,
+            timestamp: new Date(entry.timestamp as unknown as string),
+          }));
+          return {
+            pilot: log.pilotName,
+            shipType: log.shipType,
+            entries,
+          };
+        } catch {
+          return null;
+        }
+      })
+      .filter(
+        (
+          log,
+        ): log is {
+          pilot: string;
+          shipType: string;
+          entries: ParsedLog["entries"];
+        } => Boolean(log),
+      );
+
+    const baseParticipants: FleetParticipant[] =
+      session.participants.length > 0
+        ? session.participants
+        : session.logs.map((log) => ({
+            pilotName: log.pilotName,
+            shipType: log.shipType,
+            damageDealt: 0,
+            damageTaken: 0,
+            repsGiven: 0,
+            repsTaken: 0,
+            status: "ready" as const,
+            logId: log.id,
+          }));
+
+    const mergedEntries = mergeFleetLogs(parsedLogs);
+    const computedParticipants = calculateParticipantStats(
+      mergedEntries,
+      baseParticipants,
+    );
+
+    const analysisReady = session.logs.length > 0;
+
+    const sessionWithParticipants = {
+      ...session,
+      participants: computedParticipants,
+    };
 
     return NextResponse.json({
-      session,
-      participants: session.participants,
+      session: sessionWithParticipants,
+      participants: computedParticipants,
       logs: session.logs,
       analysisReady,
+      mergedEntries,
     });
   } catch (error) {
     console.error("Error retrieving fleet session:", error);

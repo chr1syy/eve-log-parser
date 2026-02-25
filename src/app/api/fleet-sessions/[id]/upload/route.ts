@@ -20,12 +20,12 @@ export async function POST(
 
     const formData = await request.formData();
     const file = formData.get("file") as File;
-    const pilotName = formData.get("pilotName") as string;
-    const shipType = (formData.get("shipType") as string) || "";
+    const pilotNameRaw = (formData.get("pilotName") as string) || "";
+    const shipTypeRaw = (formData.get("shipType") as string) || "";
 
-    if (!file || !pilotName) {
+    if (!file) {
       return NextResponse.json(
-        { success: false, message: "Missing file or pilotName" },
+        { success: false, message: "Missing log file" },
         { status: 400 },
       );
     }
@@ -33,30 +33,53 @@ export async function POST(
     // Parse the log file
     const parsedLog = await parseLogFile(file);
 
-    // Extract pilot name and timestamp range from parsed log (for validation if needed)
-    const extractedPilotName = parsedLog.characterName;
-    // Timestamp range: parsedLog.sessionStart to parsedLog.sessionEnd
+    const resolvedPilotName =
+      pilotNameRaw.trim() || parsedLog.characterName?.trim() || "";
+    if (!resolvedPilotName) {
+      return NextResponse.json(
+        { success: false, message: "Missing pilot name" },
+        { status: 400 },
+      );
+    }
+    const resolvedShipType = shipTypeRaw.trim() || "Unknown";
 
     // Create FleetLog
     const fleetLog: FleetLog = {
       id: randomUUID(),
       sessionId: id,
-      pilotName,
-      shipType,
+      pilotName: resolvedPilotName,
+      shipType: resolvedShipType,
       logData: JSON.stringify(parsedLog),
       uploadedAt: new Date(),
-      pilotId: pilotName, // Using pilotName as pilotId for now
+      pilotId: resolvedPilotName, // Using pilotName as pilotId for now
     };
 
     // Add log to session's logs array
     const updatedLogs = [...session.logs, fleetLog];
 
-    // Update participant status to "ready" and set logId
-    const updatedParticipants = session.participants.map((participant) =>
-      participant.pilotName === pilotName
-        ? { ...participant, status: "ready" as const, logId: fleetLog.id }
-        : participant,
+    const existingParticipant = session.participants.find(
+      (participant) => participant.pilotName === resolvedPilotName,
     );
+
+    const updatedParticipants = existingParticipant
+      ? session.participants.map((participant) =>
+          participant.pilotName === resolvedPilotName
+            ? { ...participant, status: "ready" as const, logId: fleetLog.id }
+            : participant,
+        )
+      : [
+          ...session.participants,
+          {
+            pilotName: resolvedPilotName,
+            shipType: resolvedShipType,
+            damageDealt: 0,
+            damageTaken: 0,
+            repsGiven: 0,
+            repsTaken: 0,
+            status: "ready" as const,
+            logId: fleetLog.id,
+          },
+        ];
 
     // Update the session
     const updatedSession = updateSession(id, {

@@ -34,7 +34,8 @@ describe("JoinFleetSessionPage", () => {
     vi.clearAllMocks();
     mockFetch.mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({}),
+      json: () =>
+        Promise.resolve({ success: true, session: { id: "session-1" } }),
     });
   });
 
@@ -47,6 +48,8 @@ describe("JoinFleetSessionPage", () => {
 
     expect(screen.getByText("Join Fleet Session")).toBeInTheDocument();
     expect(screen.getByLabelText("Fleet Session Code")).toBeInTheDocument();
+    expect(screen.getByLabelText("Pilot Name")).toBeInTheDocument();
+    expect(screen.getByLabelText("Ship Type (Optional)")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("FLEET-XXXXXX")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Join Session" }),
@@ -81,15 +84,21 @@ describe("JoinFleetSessionPage", () => {
       screen.getByLabelText("Fleet Session Code"),
       "FLEET-ABC123",
     );
+    await user.type(screen.getByLabelText("Pilot Name"), "Pilot One");
+    await user.type(screen.getByLabelText("Ship Type (Optional)"), "Drake");
     await user.click(screen.getByRole("button", { name: "Join Session" }));
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(
-        "/api/fleet-sessions/ABC123/join",
+        "/api/fleet-sessions/FLEET-ABC123/join",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code: "FLEET-ABC123" }),
+          body: JSON.stringify({
+            code: "FLEET-ABC123",
+            pilotName: "Pilot One",
+            shipType: "Drake",
+          }),
         },
       );
     });
@@ -105,6 +114,7 @@ describe("JoinFleetSessionPage", () => {
     );
 
     await user.type(screen.getByLabelText("Fleet Session Code"), "INVALID");
+    await user.type(screen.getByLabelText("Pilot Name"), "Pilot One");
     await user.click(screen.getByRole("button", { name: "Join Session" }));
 
     expect(
@@ -119,7 +129,8 @@ describe("JoinFleetSessionPage", () => {
 
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: () => Promise.resolve({}),
+      json: () =>
+        Promise.resolve({ success: true, session: { id: "session-1" } }),
     });
 
     render(
@@ -132,10 +143,11 @@ describe("JoinFleetSessionPage", () => {
       screen.getByLabelText("Fleet Session Code"),
       "FLEET-ABC123",
     );
+    await user.type(screen.getByLabelText("Pilot Name"), "Pilot One");
     await user.click(screen.getByRole("button", { name: "Join Session" }));
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith("/fleet/ABC123");
+      expect(mockPush).toHaveBeenCalledWith("/fleet/session-1");
     });
   });
 
@@ -157,6 +169,7 @@ describe("JoinFleetSessionPage", () => {
       screen.getByLabelText("Fleet Session Code"),
       "FLEET-ABC123",
     );
+    await user.type(screen.getByLabelText("Pilot Name"), "Pilot One");
     await user.click(screen.getByRole("button", { name: "Join Session" }));
 
     await waitFor(() => {
@@ -179,6 +192,7 @@ describe("JoinFleetSessionPage", () => {
       screen.getByLabelText("Fleet Session Code"),
       "FLEET-ABC123",
     );
+    await user.type(screen.getByLabelText("Pilot Name"), "Pilot One");
     await user.click(screen.getByRole("button", { name: "Join Session" }));
 
     await waitFor(() => {

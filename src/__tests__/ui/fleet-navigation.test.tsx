@@ -25,7 +25,7 @@ vi.mock("next/navigation", () => ({
     return "/";
   },
   useParams() {
-    return {};
+    return { sessionId: "test-session-id" };
   },
 }));
 
@@ -251,6 +251,7 @@ describe("Fleet Navigation & Integration Tests", () => {
         json: async () => ({
           success: true,
           message: "Joined session successfully",
+          session: { id: "session-1" },
         }),
       });
 
@@ -261,23 +262,31 @@ describe("Fleet Navigation & Integration Tests", () => {
       );
 
       const codeInput = screen.getByLabelText("Fleet Session Code");
+      const pilotInput = screen.getByLabelText("Pilot Name");
+      const shipInput = screen.getByLabelText("Ship Type (Optional)");
       const submitButton = screen.getByRole("button", { name: "Join Session" });
 
       await user.type(codeInput, "FLEET-ABC123");
+      await user.type(pilotInput, "Pilot One");
+      await user.type(shipInput, "Drake");
       await user.click(submitButton);
 
       // Verify API call
       expect(mockFetch).toHaveBeenCalledWith(
-        "/api/fleet-sessions/ABC123/join",
+        "/api/fleet-sessions/FLEET-ABC123/join",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code: "FLEET-ABC123" }),
+          body: JSON.stringify({
+            code: "FLEET-ABC123",
+            pilotName: "Pilot One",
+            shipType: "Drake",
+          }),
         },
       );
 
       // Verify redirect
-      expect(mockPush).toHaveBeenCalledWith("/fleet/ABC123");
+      expect(mockPush).toHaveBeenCalledWith("/fleet/session-1");
     });
 
     it("shows error for invalid code", async () => {
@@ -296,9 +305,11 @@ describe("Fleet Navigation & Integration Tests", () => {
       );
 
       const codeInput = screen.getByLabelText("Fleet Session Code");
+      const pilotInput = screen.getByLabelText("Pilot Name");
       const submitButton = screen.getByRole("button", { name: "Join Session" });
 
       await user.type(codeInput, "INVALID");
+      await user.type(pilotInput, "Pilot One");
       await user.click(submitButton);
 
       await waitFor(() => {
@@ -326,9 +337,11 @@ describe("Fleet Navigation & Integration Tests", () => {
       );
 
       const codeInput = screen.getByLabelText("Fleet Session Code");
+      const pilotInput = screen.getByLabelText("Pilot Name");
       const submitButton = screen.getByRole("button", { name: "Join Session" });
 
       await user.type(codeInput, "FLEET-WRONG0");
+      await user.type(pilotInput, "Pilot One");
       await user.click(submitButton);
 
       await waitFor(() => {
@@ -410,7 +423,7 @@ describe("Fleet Navigation & Integration Tests", () => {
 
       render(
         <FleetProvider>
-          <FleetSessionDetailPage params={{ sessionId: "test-session-id" }} />
+          <FleetSessionDetailPage />
         </FleetProvider>,
       );
 
@@ -465,7 +478,7 @@ describe("Fleet Navigation & Integration Tests", () => {
 
       render(
         <FleetProvider>
-          <FleetSessionDetailPage params={{ sessionId: "test-session-id" }} />
+          <FleetSessionDetailPage />
         </FleetProvider>,
       );
 
@@ -558,7 +571,7 @@ describe("Fleet Navigation & Integration Tests", () => {
 
       render(
         <FleetProvider>
-          <FleetSessionDetailPage params={{ sessionId: "test-session-id" }} />
+          <FleetSessionDetailPage />
         </FleetProvider>,
       );
 

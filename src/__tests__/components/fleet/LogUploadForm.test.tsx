@@ -26,7 +26,7 @@ describe("LogUploadForm", () => {
     render(<LogUploadForm sessionId={sessionId} onSuccess={mockOnSuccess} />);
 
     expect(screen.getByLabelText("Log File (.txt)")).toBeInTheDocument();
-    expect(screen.getByLabelText("Pilot Name")).toBeInTheDocument();
+    expect(screen.getByLabelText(/Pilot Name/)).toBeInTheDocument();
     expect(screen.getByLabelText("Ship Type (Optional)")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Upload Log" }),
@@ -73,7 +73,7 @@ describe("LogUploadForm", () => {
     render(<LogUploadForm sessionId={sessionId} onSuccess={mockOnSuccess} />);
 
     const fileInput = screen.getByLabelText("Log File (.txt)");
-    const pilotInput = screen.getByLabelText("Pilot Name");
+    const pilotInput = screen.getByLabelText(/Pilot Name/);
     const shipInput = screen.getByLabelText("Ship Type (Optional)");
     const submitButton = screen.getByRole("button", { name: "Upload Log" });
 
@@ -116,7 +116,7 @@ describe("LogUploadForm", () => {
     render(<LogUploadForm sessionId={sessionId} onSuccess={mockOnSuccess} />);
 
     const fileInput = screen.getByLabelText("Log File (.txt)");
-    const pilotInput = screen.getByLabelText("Pilot Name");
+    const pilotInput = screen.getByLabelText(/Pilot Name/);
     const submitButton = screen.getByRole("button", { name: "Upload Log" });
 
     const file = createMockFile("combat-log.txt");
@@ -151,7 +151,7 @@ describe("LogUploadForm", () => {
     render(<LogUploadForm sessionId={sessionId} onSuccess={mockOnSuccess} />);
 
     const fileInput = screen.getByLabelText("Log File (.txt)");
-    const pilotInput = screen.getByLabelText("Pilot Name");
+    const pilotInput = screen.getByLabelText(/Pilot Name/);
     const submitButton = screen.getByRole("button", { name: "Upload Log" });
 
     const file = createMockFile("combat-log.txt");
@@ -179,7 +179,7 @@ describe("LogUploadForm", () => {
     render(<LogUploadForm sessionId={sessionId} onSuccess={mockOnSuccess} />);
 
     const fileInput = screen.getByLabelText("Log File (.txt)");
-    const pilotInput = screen.getByLabelText("Pilot Name");
+    const pilotInput = screen.getByLabelText(/Pilot Name/);
     const submitButton = screen.getByRole("button", { name: "Upload Log" });
 
     const file = createMockFile("combat-log.txt");
@@ -210,9 +210,7 @@ describe("LogUploadForm", () => {
     fireEvent.submit(form!);
 
     await waitFor(() => {
-      expect(
-        screen.getByText("Please select a file and enter pilot name"),
-      ).toBeInTheDocument();
+      expect(screen.getByText("Please select a log file")).toBeInTheDocument();
       expect(mockFetch).not.toHaveBeenCalled();
     });
   });

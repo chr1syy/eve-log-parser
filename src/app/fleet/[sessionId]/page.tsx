@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import AppLayout from "@/components/layout/AppLayout";
 import Button from "@/components/ui/Button";
@@ -8,32 +9,47 @@ import DataTable, { Column } from "@/components/ui/DataTable";
 import LogUploadForm from "@/components/fleet/LogUploadForm";
 import FleetAnalysisTabs from "@/components/fleet/FleetAnalysisTabs";
 import type { FleetSession, FleetParticipant, FleetLog } from "@/types/fleet";
+import type { LogEntry } from "@/lib/types";
 
 interface SessionData {
   session: FleetSession;
   participants: FleetParticipant[];
   logs: FleetLog[];
   analysisReady: boolean;
+  mergedEntries?: LogEntry[];
 }
 
-export default function FleetSessionDetailPage({
-  params,
-}: {
-  params: { sessionId: string };
-}) {
+export default function FleetSessionDetailPage() {
+  const params = useParams();
+  const rawSessionId = (params as { sessionId?: string | string[] })?.sessionId;
+  const sessionId = Array.isArray(rawSessionId)
+    ? rawSessionId[0]
+    : rawSessionId;
   const [data, setData] = useState<SessionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showUploadForm, setShowUploadForm] = useState(false);
+  const [copyError, setCopyError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
-  const fetchSession = async () => {
+  const fetchSession = async (id: string) => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/fleet-sessions/${params.sessionId}`);
+      setError(null);
+      const response = await fetch(`/api/fleet-sessions/${id}`);
       if (!response.ok) {
         throw new Error("Session not found");
       }
       const sessionData = await response.json();
+      // Revive timestamp strings → Date objects on merged entries
+      if (Array.isArray(sessionData.mergedEntries)) {
+        sessionData.mergedEntries = sessionData.mergedEntries.map(
+          (entry: LogEntry & { timestamp: string }) => ({
+            ...entry,
+            timestamp: new Date(entry.timestamp),
+          }),
+        );
+      }
       setData(sessionData);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load session");
@@ -43,23 +59,51 @@ export default function FleetSessionDetailPage({
   };
 
   useEffect(() => {
-    fetchSession();
-  }, [params.sessionId]);
+    if (!sessionId) return;
+    fetchSession(sessionId);
+  }, [sessionId]);
 
   const handleCopyCode = async () => {
     if (data?.session.code) {
+      setCopyError(null);
+      setCopied(false);
       try {
-        await navigator.clipboard.writeText(data.session.code);
-        // TODO: Show success message
+        if (
+          typeof navigator !== "undefined" &&
+          navigator.clipboard?.writeText
+        ) {
+          await navigator.clipboard.writeText(data.session.code);
+          setCopied(true);
+          window.setTimeout(() => setCopied(false), 2000);
+          return;
+        }
+
+        const textarea = document.createElement("textarea");
+        textarea.value = data.session.code;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "absolute";
+        textarea.style.left = "-9999px";
+        document.body.appendChild(textarea);
+        textarea.select();
+        const success = document.execCommand("copy");
+        document.body.removeChild(textarea);
+        if (!success) {
+          throw new Error("Copy failed");
+        }
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 2000);
       } catch (err) {
         console.error("Failed to copy:", err);
+        setCopyError("Copy failed. Please select and copy manually.");
       }
     }
   };
 
   const handleUploadSuccess = () => {
     setShowUploadForm(false);
-    fetchSession(); // Refresh data
+    if (sessionId) {
+      fetchSession(sessionId); // Refresh data
+    }
   };
 
   if (loading) {
@@ -92,6 +136,7 @@ export default function FleetSessionDetailPage({
   }
 
   const { session, participants, logs, analysisReady } = data;
+  const sessionWithParticipants = { ...session, participants };
 
   const participantColumns: Column<FleetParticipant>[] = [
     {
@@ -168,13 +213,19 @@ export default function FleetSessionDetailPage({
             <div className="flex items-center gap-4">
               <span className="font-mono text-lg">{session.code}</span>
               <Button size="sm" onClick={handleCopyCode}>
-                Copy Code
+                {copied ? "Copied" : "Copy Code"}
               </Button>
             </div>
           </div>
           <p className="text-text-muted mb-2">
             Share this code with your fleet members to join the session.
           </p>
+          {copied && (
+            <p className="text-sm text-green-400 mb-2">Code copied.</p>
+          )}
+          {copyError && (
+            <p className="text-sm text-red-400 mb-2">{copyError}</p>
+          )}
           <div className="text-sm text-text-muted">
             Created: {new Date(session.createdAt).toLocaleString()}
             {logs.length > 0 && (
@@ -185,26 +236,25 @@ export default function FleetSessionDetailPage({
           </div>
         </div>
 
-        {analysisReady ? (
-          <FleetAnalysisTabs
-            sessionData={session}
-            analysisReady={analysisReady}
-          />
-        ) : (
-          <div className="space-y-6">
-            <div className="text-center py-12">
-              <p className="text-text-muted">
-                Upload at least one log to see fleet analysis
-              </p>
-            </div>
-            <div className="bg-bg-secondary border border-border rounded p-4">
-              <LogUploadForm
-                sessionId={session.id}
-                onSuccess={handleUploadSuccess}
-              />
-            </div>
+        <div className="space-y-6">
+          <div className="text-center py-6">
+            <p className="text-text-muted">
+              Upload logs at any time to update fleet analysis
+            </p>
           </div>
-        )}
+          <div className="bg-bg-secondary border border-border rounded p-4">
+            <LogUploadForm
+              sessionId={session.id}
+              onSuccess={handleUploadSuccess}
+            />
+          </div>
+        </div>
+
+        <FleetAnalysisTabs
+          sessionData={sessionWithParticipants}
+          analysisReady={analysisReady}
+          entries={data.mergedEntries ?? []}
+        />
 
         {/* Participants Section */}
         <div>

@@ -131,8 +131,8 @@ describe("Fleet Component Integration Tests", () => {
     const damageTab = screen.getByRole("button", { name: "Damage Dealt" });
     await user.click(damageTab);
 
-    // Verify tab switched - should show placeholder text
-    expect(screen.getByText("Coming in Phase 2")).toBeInTheDocument();
+    // Verify tab switched - no entries provided so shows empty state
+    expect(screen.getByText("No outgoing damage in uploaded logs")).toBeInTheDocument();
 
     // Click back to Overview
     const overviewTab = screen.getByText("Overview");
@@ -142,21 +142,16 @@ describe("Fleet Component Integration Tests", () => {
     expect(screen.getByText("Fight Duration")).toBeInTheDocument();
   });
 
-  it("shows disabled tabs when analysisReady=false", () => {
+  it("shows analysis notice when analysisReady=false", () => {
     render(
       <FleetAnalysisTabs sessionData={mockSessionData} analysisReady={false} />,
     );
 
-    // Verify disabled tabs are shown
-    const overviewTab = screen.getByText("Overview");
-    expect(overviewTab).toBeDisabled();
-
-    const damageTab = screen.getByText("Damage Dealt");
-    expect(damageTab).toBeDisabled();
-
-    // Verify upload message
     expect(
-      screen.getByText("Upload at least one log to see fleet analysis"),
+      screen.getByText("Upload logs to populate fleet analysis metrics"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Overview" }),
     ).toBeInTheDocument();
   });
 });

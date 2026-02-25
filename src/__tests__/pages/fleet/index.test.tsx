@@ -1,9 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import FleetIndexPage from "@/app/fleet/page";
-import * as FleetContext from "@/contexts/FleetContext";
 import { LogsProvider } from "@/contexts/LogsContext";
-import { EXAMPLE_FLEET_SESSIONS } from "@/lib/fleet/constants";
 
 // Mock next/navigation
 vi.mock("next/navigation", () => ({
@@ -17,29 +15,17 @@ vi.mock("next/navigation", () => ({
   useParams: () => ({}),
 }));
 
-// Mock fetch globally
-const mockFetch = vi.fn();
-global.fetch = mockFetch;
-
 // Test wrapper component
 function TestWrapper({ children }: { children: React.ReactNode }) {
-  return (
-    <LogsProvider>
-      <FleetContext.FleetProvider>{children}</FleetContext.FleetProvider>
-    </LogsProvider>
-  );
+  return <LogsProvider>{children}</LogsProvider>;
 }
 
 describe("FleetIndexPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({}),
-    });
   });
 
-  it("renders fleet index page with session list", () => {
+  it("renders fleet index page with actions", () => {
     render(
       <TestWrapper>
         <FleetIndexPage />
@@ -53,13 +39,10 @@ describe("FleetIndexPage", () => {
     expect(screen.getByText("Create New Fleet Session")).toBeInTheDocument();
     expect(screen.getByText("Join Existing Session")).toBeInTheDocument();
 
-    // Check active sessions section
-    expect(screen.getByText("Active Sessions")).toBeInTheDocument();
-
-    // Check that session codes are displayed
-    expect(screen.getByText("FLEET-ABC123")).toBeInTheDocument();
     expect(
-      screen.getByText("Blood Raider Outpost Assault"),
+      screen.getByText(
+        "Fleet sessions are private. Only pilots with the session code can join.",
+      ),
     ).toBeInTheDocument();
   });
 
@@ -82,85 +65,17 @@ describe("FleetIndexPage", () => {
     expect(joinButton).toBeEnabled();
   });
 
-  it("displays session table with correct data", () => {
+  it("displays the privacy notice", () => {
     render(
       <TestWrapper>
         <FleetIndexPage />
       </TestWrapper>,
     );
 
-    // Check session code rendering (should be monospace)
-    const sessionCode = screen.getByText("FLEET-ABC123");
-    expect(sessionCode).toHaveClass("font-mono");
-
-    // Check fight name
     expect(
-      screen.getByText("Blood Raider Outpost Assault"),
+      screen.getByText(
+        "Fleet sessions are private. Only pilots with the session code can join.",
+      ),
     ).toBeInTheDocument();
-
-    // Check participant count (2 participants in session-1)
-    expect(screen.getByText("2")).toBeInTheDocument();
-
-    // Check status (ACTIVE)
-    expect(screen.getByText("ACTIVE")).toBeInTheDocument();
-
-    // Check action buttons
-    expect(screen.getByText("View")).toBeInTheDocument();
-    expect(screen.getByText("Delete")).toBeInTheDocument();
-  });
-
-  it("shows archived sessions when collapsed button is clicked", () => {
-    render(
-      <TestWrapper>
-        <FleetIndexPage />
-      </TestWrapper>,
-    );
-
-    // Initially collapsed
-    expect(
-      screen.queryByText("Angel Cartel Mining Op Disruption"),
-    ).not.toBeInTheDocument();
-
-    // Click to expand
-    const expandButton = screen.getByText("Completed/Archived Sessions (1)");
-    fireEvent.click(expandButton);
-
-    // Should now show archived session
-    expect(
-      screen.getByText("Angel Cartel Mining Op Disruption"),
-    ).toBeInTheDocument();
-    expect(screen.getByText("FLEET-XYZ789")).toBeInTheDocument();
-  });
-
-  it("handles delete session action", async () => {
-    render(
-      <TestWrapper>
-        <FleetIndexPage />
-      </TestWrapper>,
-    );
-
-    const deleteButton = screen.getAllByText("Delete")[0];
-    fireEvent.click(deleteButton);
-
-    // Should call fetch with DELETE method
-    expect(mockFetch).toHaveBeenCalledWith("/api/fleet-sessions/session-1", {
-      method: "DELETE",
-    });
-  });
-
-  it("displays empty state when no active sessions", () => {
-    const sessionsSpy = vi
-      .spyOn(FleetContext, "useFleetSessions")
-      .mockReturnValue([]);
-
-    render(
-      <TestWrapper>
-        <FleetIndexPage />
-      </TestWrapper>,
-    );
-
-    expect(screen.getByText("No active sessions")).toBeInTheDocument();
-
-    sessionsSpy.mockRestore();
   });
 });

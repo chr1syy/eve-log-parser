@@ -67,13 +67,11 @@ describe("Fleet Workflow E2E Tests", () => {
 
       // Step 2: PilotA joins the session
       const joinReq = {
-        json: vi
-          .fn()
-          .mockResolvedValue({
-            code: sessionCode,
-            pilotName: "PilotA",
-            shipType: "Typhoon",
-          }),
+        json: vi.fn().mockResolvedValue({
+          code: sessionCode,
+          pilotName: "PilotA",
+          shipType: "Typhoon",
+        }),
       } as any;
       const joinRes = (await joinSession(joinReq, {
         params: { id: sessionId },
@@ -105,8 +103,8 @@ describe("Fleet Workflow E2E Tests", () => {
       expect(getRes.logs).toHaveLength(1);
       expect(getRes.participants).toHaveLength(1);
       expect(getRes.participants[0].pilotName).toBe("PilotA");
-      expect(getRes.participants[0].status).toBe("ready");
-      expect(getRes.analysisReady).toBe(false);
+      expect(getRes.participants[0].status).toBe("active");
+      expect(getRes.analysisReady).toBe(true);
     });
   });
 
@@ -221,7 +219,7 @@ describe("Fleet Workflow E2E Tests", () => {
         {} as any,
         { params: { id: sessionId } } as any,
       )) as any;
-      expect(getRes.analysisReady).toBe(false);
+      expect(getRes.analysisReady).toBe(true);
       expect(getRes.logs).toHaveLength(2);
     });
   });
@@ -238,13 +236,11 @@ describe("Fleet Workflow E2E Tests", () => {
 
       // Join with correct code → success
       const joinCorrectReq = {
-        json: vi
-          .fn()
-          .mockResolvedValue({
-            code: sessionCode,
-            pilotName: "PilotX",
-            shipType: "Typhoon",
-          }),
+        json: vi.fn().mockResolvedValue({
+          code: sessionCode,
+          pilotName: "PilotX",
+          shipType: "Typhoon",
+        }),
       } as any;
       const joinCorrectRes = (await joinSession(joinCorrectReq, {
         params: { id: sessionId },

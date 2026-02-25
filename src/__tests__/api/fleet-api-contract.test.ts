@@ -225,7 +225,7 @@ describe("API Contract Tests", () => {
       expect((response as any).message).toBe("Session not found");
     });
 
-    it("returns 400 for missing file or pilotName", async () => {
+    it("returns 400 for missing log file", async () => {
       const mockFormData = new FormData();
       // Missing pilotName
 
@@ -238,7 +238,7 @@ describe("API Contract Tests", () => {
       } as any);
 
       expect((response as any).success).toBe(false);
-      expect((response as any).message).toBe("Missing file or pilotName");
+      expect((response as any).message).toBe("Missing log file");
     });
 
     it("handles 500 error on parse failure", async () => {
@@ -390,13 +390,11 @@ describe("API Contract Tests", () => {
         json: vi.fn().mockResolvedValue({}), // Missing code and pilotName
       } as any;
 
-      await joinSession(mockRequest, {
+      const response = await joinSession(mockRequest, {
         params: Promise.resolve({ id: sessionId }),
       } as any);
-
-      // The route doesn't explicitly check for missing fields, but let's assume it would error
-      // Actually, looking at the code, it will try to access undefined and might fail
-      // But for contract test, we can test the success case
+      expect((response as any).success).toBe(false);
+      expect((response as any).message).toBe("Pilot name is required");
     });
   });
 });

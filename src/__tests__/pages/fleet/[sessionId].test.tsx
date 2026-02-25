@@ -14,7 +14,7 @@ vi.mock("next/navigation", () => ({
   }),
   usePathname: () => "/",
   useSearchParams: () => new URLSearchParams(),
-  useParams: () => ({}),
+  useParams: () => ({ sessionId: "session-1" }),
 }));
 
 // Mock fetch globally
@@ -63,7 +63,7 @@ describe("FleetSessionDetailPage", () => {
 
     render(
       <TestWrapper>
-        <FleetSessionDetailPage params={{ sessionId: "session-1" }} />
+        <FleetSessionDetailPage />
       </TestWrapper>,
     );
 
@@ -97,7 +97,7 @@ describe("FleetSessionDetailPage", () => {
 
     render(
       <TestWrapper>
-        <FleetSessionDetailPage params={{ sessionId: "session-1" }} />
+        <FleetSessionDetailPage />
       </TestWrapper>,
     );
 
@@ -111,8 +111,8 @@ describe("FleetSessionDetailPage", () => {
     expect(screen.getAllByText("Lieutenant Beta").length).toBeGreaterThan(0);
 
     // Check ship types
-    expect(screen.getByText("Abaddon")).toBeInTheDocument();
-    expect(screen.getByText("Raven")).toBeInTheDocument();
+    expect(screen.getAllByText("Abaddon").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Raven").length).toBeGreaterThan(0);
 
     // Check statuses (mapped to display text)
     expect(screen.getAllByText("Analyzing").length).toBeGreaterThan(0);
@@ -134,7 +134,7 @@ describe("FleetSessionDetailPage", () => {
 
     render(
       <TestWrapper>
-        <FleetSessionDetailPage params={{ sessionId: "session-1" }} />
+        <FleetSessionDetailPage />
       </TestWrapper>,
     );
 
@@ -152,7 +152,7 @@ describe("FleetSessionDetailPage", () => {
 
     // A second upload form should now be visible
     expect(screen.getAllByText("Log File (.txt)").length).toBeGreaterThan(1);
-    expect(screen.getAllByText("Pilot Name").length).toBeGreaterThan(1);
+    expect(screen.getAllByText(/Pilot Name/).length).toBeGreaterThan(1);
     expect(screen.getAllByText("Ship Type (Optional)").length).toBeGreaterThan(
       1,
     );
@@ -174,7 +174,7 @@ describe("FleetSessionDetailPage", () => {
 
     render(
       <TestWrapper>
-        <FleetSessionDetailPage params={{ sessionId: "session-1" }} />
+        <FleetSessionDetailPage />
       </TestWrapper>,
     );
 
@@ -203,7 +203,7 @@ describe("FleetSessionDetailPage", () => {
 
     render(
       <TestWrapper>
-        <FleetSessionDetailPage params={{ sessionId: "invalid-id" }} />
+        <FleetSessionDetailPage />
       </TestWrapper>,
     );
 

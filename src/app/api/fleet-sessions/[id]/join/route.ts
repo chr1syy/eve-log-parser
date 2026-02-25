@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession, updateSession } from "@/lib/fleet/sessionStore";
-import type { FleetParticipant } from "@/types/fleet";
+import {
+  findSessionByCode,
+  getSession,
+} from "@/lib/fleet/sessionStore";
 
 export async function POST(
   request: NextRequest,
@@ -9,81 +11,40 @@ export async function POST(
   try {
     const { id } = await params;
     const body = await request.json();
-    const {
-      code,
-      pilotName,
-      shipType = "",
-    } = body as {
-      code: string;
-      pilotName: string;
-      shipType?: string;
-    };
+    const { code } = body as { code: string };
 
-    const session = getSession(id);
+    const normalizedCode = code?.trim().toUpperCase();
+    const session =
+      getSession(id) ||
+      (normalizedCode ? findSessionByCode(normalizedCode) : undefined) ||
+      (id ? findSessionByCode(id) : undefined);
+
     if (!session) {
-      return NextResponse.json({
-        success: false,
-        message: "Invalid code or session not found",
-        session: null,
-      });
+      return NextResponse.json(
+        { success: false, message: "Invalid code or session not found", session: null },
+        { status: 404 },
+      );
     }
 
-    if (session.code.toLowerCase() !== code.toLowerCase()) {
-      return NextResponse.json({
-        success: false,
-        message: "Invalid code or session not found",
-        session: null,
-      });
+    if (!normalizedCode || session.code.toUpperCase() !== normalizedCode) {
+      return NextResponse.json(
+        { success: false, message: "Invalid session code", session: null },
+        { status: 400 },
+      );
     }
 
-    // Check if pilot already joined
-    const existingParticipant = session.participants.find(
-      (p) => p.pilotName === pilotName,
-    );
-    if (existingParticipant) {
-      return NextResponse.json({
-        success: false,
-        message: "Pilot already joined this session",
-        session: null,
-      });
-    }
-
-    // Add participant
-    const newParticipant: FleetParticipant = {
-      pilotName,
-      shipType,
-      damageDealt: 0,
-      damageTaken: 0,
-      repsGiven: 0,
-      repsTaken: 0,
-      status: "pending",
-      logId: "", // Will be set when log is uploaded
-    };
-
-    const updatedParticipants = [...session.participants, newParticipant];
-    const updatedSession = updateSession(id, {
-      participants: updatedParticipants,
-    });
-
-    if (!updatedSession) {
-      return NextResponse.json({
-        success: false,
-        message: "Failed to update session",
-        session: null,
-      });
-    }
-
+    // Return session ID so the client can navigate — participant registration
+    // happens automatically when the pilot uploads their combat log.
     return NextResponse.json({
       success: true,
-      message: "Joined session successfully",
-      session: updatedSession,
+      message: "Session found",
+      session: { id: session.id },
     });
   } catch (error) {
     console.error("Error joining fleet session:", error);
-    return NextResponse.json({
-      success: false,
-      message: "Internal server error",
-      session: null,
-    });
+    return NextResponse.json(
+      { success: false, message: "Internal server error", session: null },
+      { status: 500 },
+    );
   }
 }

@@ -18,6 +18,8 @@ export default function CreateFleetSessionPage() {
   const [createdSession, setCreatedSession] = useState<FleetSession | null>(
     null,
   );
+  const [copyError, setCopyError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const dispatch = useFleetSessionDispatch();
   const router = useRouter();
 
@@ -61,13 +63,35 @@ export default function CreateFleetSessionPage() {
   };
 
   const handleCopyCode = async () => {
-    if (createdSession) {
-      try {
+    if (!createdSession) return;
+    setCopyError(null);
+    setCopied(false);
+
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(createdSession.code);
-        // TODO: Show copy success message
-      } catch (err) {
-        console.error("Failed to copy code:", err);
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 2000);
+        return;
       }
+
+      const textarea = document.createElement("textarea");
+      textarea.value = createdSession.code;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "absolute";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      const success = document.execCommand("copy");
+      document.body.removeChild(textarea);
+      if (!success) {
+        throw new Error("Copy failed");
+      }
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy code:", err);
+      setCopyError("Copy failed. Please select and copy manually.");
     }
   };
 
@@ -85,9 +109,15 @@ export default function CreateFleetSessionPage() {
             <div className="flex items-center gap-4 mb-4">
               <span className="font-mono text-lg">{createdSession.code}</span>
               <Button size="sm" onClick={handleCopyCode}>
-                Copy Code
+                {copied ? "Copied" : "Copy Code"}
               </Button>
             </div>
+            {copied && (
+              <p className="text-sm text-green-400 mb-2">Code copied.</p>
+            )}
+            {copyError && (
+              <p className="text-sm text-red-400 mb-2">{copyError}</p>
+            )}
             <Link href={`/fleet/${createdSession.id}`}>
               <Button>Go to Session</Button>
             </Link>

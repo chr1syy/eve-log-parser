@@ -1,144 +1,178 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
 import AppLayout from "@/components/layout/AppLayout";
 import Button from "@/components/ui/Button";
 import DataTable, { Column } from "@/components/ui/DataTable";
-import {
-  useFleetSessions,
-  useFleetSessionDispatch,
-} from "@/contexts/FleetContext";
-import type { FleetSession } from "@/types/fleet";
 
 export const dynamic = "force-dynamic";
 
+interface SessionRow {
+  id: string;
+  code: string;
+  fightName?: string;
+  status: string;
+  participantCount: number;
+  logCount: number;
+  createdAt: string;
+}
+
 export default function FleetIndexPage() {
-  const sessions = useFleetSessions();
-  const dispatch = useFleetSessionDispatch();
-  const [collapsed, setCollapsed] = useState(true);
+  const [sessions, setSessions] = useState<SessionRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
-  const activeSessions = sessions.filter(
-    (s) => s.status !== "COMPLETED" && s.status !== "ARCHIVED",
-  );
-  const archivedSessions = sessions.filter(
-    (s) => s.status === "COMPLETED" || s.status === "ARCHIVED",
-  );
+  useEffect(() => {
+    fetch("/api/fleet-sessions")
+      .then((r) => r.json())
+      .then((data: SessionRow[]) =>
+        setSessions(Array.isArray(data) ? data : []),
+      )
+      .catch(() => setSessions([]))
+      .finally(() => setLoading(false));
+  }, []);
 
-  const handleDelete = async (sessionId: string) => {
-    try {
-      const res = await fetch(`/api/fleet-sessions/${sessionId}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        dispatch({ type: "DELETE_SESSION", payload: sessionId });
-      } else {
-        // TODO: Show error message
-        console.error("Failed to delete session");
-      }
-    } catch (error) {
-      console.error("Error deleting session:", error);
-    }
+  const handleDelete = async (id: string) => {
+    await fetch(`/api/fleet-sessions/${id}`, { method: "DELETE" });
+    setSessions((prev) => prev.filter((s) => s.id !== id));
   };
 
-  const columns: Column<FleetSession>[] = [
+  const columns: Column<Record<string, unknown>>[] = [
     {
       key: "code",
-      label: "Session Code",
-      render: (value) => <span className="font-mono">{value as string}</span>,
+      label: "Fleet ID",
+      sortable: true,
+      render: (v, row) => {
+        const r = row as unknown as SessionRow;
+        return (
+          <Link href={`/fleet/${r.id}`}>
+            <span className="font-mono text-cyan-glow hover:underline cursor-pointer">
+              {String(v)}
+            </span>
+          </Link>
+        );
+      },
     },
     {
       key: "fightName",
-      label: "Fight Name",
-      render: (value) => (value as string) || "Unnamed Fight",
+      label: "Name",
+      sortable: true,
+      render: (v) =>
+        v ? (
+          <span className="text-text-primary">{String(v)}</span>
+        ) : (
+          <span className="text-text-muted italic">Unnamed</span>
+        ),
     },
     {
-      key: "participants",
-      label: "Participants",
-      render: (_, row) => row.participants.length,
-      numeric: true,
+      key: "id",
+      label: "UUID",
+      render: (v) => (
+        <span className="font-mono text-xs text-text-muted">{String(v)}</span>
+      ),
     },
     {
       key: "status",
       label: "Status",
-      render: (value) => (
-        <span className="uppercase text-xs">{value as string}</span>
+      sortable: true,
+      render: (v) => (
+        <span className="uppercase text-xs font-mono text-text-secondary">
+          {String(v)}
+        </span>
+      ),
+    },
+    {
+      key: "participantCount",
+      label: "Pilots",
+      sortable: true,
+      numeric: true,
+      render: (v) => <span className="font-mono text-xs">{String(v)}</span>,
+    },
+    {
+      key: "logCount",
+      label: "Logs",
+      sortable: true,
+      numeric: true,
+      render: (v) => <span className="font-mono text-xs">{String(v)}</span>,
+    },
+    {
+      key: "createdAt",
+      label: "Created",
+      sortable: true,
+      render: (v) => (
+        <span className="font-mono text-xs text-text-secondary">
+          {new Date(String(v)).toLocaleString()}
+        </span>
       ),
     },
     {
       key: "actions",
-      label: "Actions",
-      render: (_, row) => (
-        <div className="flex gap-2">
-          <Link href={`/fleet/${row.id}`}>
-            <Button size="sm" variant="secondary">
+      label: "",
+      render: (_, row) => {
+        const r = row as unknown as SessionRow;
+        return (
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => router.push(`/fleet/${r.id}`)}
+            >
               View
             </Button>
-          </Link>
-          <Button
-            size="sm"
-            variant="danger"
-            onClick={() => handleDelete(row.id)}
-          >
-            Delete
-          </Button>
-        </div>
-      ),
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => handleDelete(r.id)}
+            >
+              Delete
+            </Button>
+          </div>
+        );
+      },
     },
   ];
 
   return (
     <AppLayout title="FLEET MANAGEMENT">
       <div className="space-y-6">
-        <h1 className="text-2xl font-ui uppercase tracking-wider text-text-primary">
-          Fleet Session Management
-        </h1>
-
-        <div className="flex gap-4">
-          <Link href="/fleet/create">
-            <Button>Create New Fleet Session</Button>
-          </Link>
-          <Link href="/fleet/join">
-            <Button variant="secondary">Join Existing Session</Button>
-          </Link>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-ui uppercase tracking-wider text-text-primary">
+            Fleet Sessions
+          </h1>
+          <div className="flex gap-4">
+            <Link href="/fleet/create">
+              <Button>Create New Session</Button>
+            </Link>
+            <Link href="/fleet/join">
+              <Button variant="secondary">Join Session</Button>
+            </Link>
+          </div>
         </div>
 
-        <div>
-          <h2 className="text-lg font-ui uppercase tracking-wider text-text-primary mb-3">
-            Active Sessions
-          </h2>
+        {loading ? (
+          <div className="animate-pulse h-32 bg-bg-secondary rounded" />
+        ) : (
           <DataTable
-            columns={columns as unknown as Column<Record<string, unknown>>[]}
-            data={activeSessions as unknown as Record<string, unknown>[]}
+            columns={columns}
+            data={sessions as unknown as Record<string, unknown>[]}
             searchable
+            searchPlaceholder="SEARCH SESSIONS..."
+            rowKey={(row) => String((row as unknown as SessionRow).id)}
+            defaultSortKey="createdAt"
+            defaultSortDirection="desc"
             emptyState={
-              <span className="text-text-muted">No active sessions</span>
+              <div className="text-center py-12">
+                <p className="text-text-muted font-mono text-sm uppercase tracking-widest">
+                  No fleets yet
+                </p>
+                <p className="text-text-muted text-xs mt-2">
+                  Create or join a fleet session to get started.
+                </p>
+              </div>
             }
           />
-        </div>
-
-        {archivedSessions.length > 0 && (
-          <div>
-            <button
-              onClick={() => setCollapsed(!collapsed)}
-              className="text-lg font-ui uppercase tracking-wider text-text-primary mb-3 flex items-center gap-2"
-            >
-              <span>{collapsed ? "+" : "-"}</span>
-              Completed/Archived Sessions ({archivedSessions.length})
-            </button>
-            {!collapsed && (
-              <DataTable
-                columns={
-                  columns as unknown as Column<Record<string, unknown>>[]
-                }
-                data={archivedSessions as unknown as Record<string, unknown>[]}
-                searchable={false}
-                emptyState={
-                  <span className="text-text-muted">No archived sessions</span>
-                }
-              />
-            )}
-          </div>
         )}
       </div>
     </AppLayout>

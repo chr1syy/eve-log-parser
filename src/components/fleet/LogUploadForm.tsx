@@ -19,7 +19,7 @@ export default function LogUploadForm({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
       if (!selectedFile.name.endsWith(".txt")) {
@@ -35,13 +35,25 @@ export default function LogUploadForm({
       }
       setFile(selectedFile);
       setError(null);
+
+      if (!pilotName.trim()) {
+        try {
+          const text = await selectedFile.text();
+          const listenerMatch = text.match(/^Listener:\s+(.+)$/m);
+          if (listenerMatch) {
+            setPilotName(listenerMatch[1].trim());
+          }
+        } catch {
+          // ignore read errors
+        }
+      }
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file || !pilotName.trim()) {
-      setError("Please select a file and enter pilot name");
+    if (!file) {
+      setError("Please select a log file");
       return;
     }
 
@@ -51,8 +63,12 @@ export default function LogUploadForm({
     try {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("pilotName", pilotName.trim());
-      formData.append("shipType", shipType.trim());
+      if (pilotName.trim()) {
+        formData.append("pilotName", pilotName.trim());
+      }
+      if (shipType.trim()) {
+        formData.append("shipType", shipType.trim());
+      }
 
       const response = await fetch(`/api/fleet-sessions/${sessionId}/upload`, {
         method: "POST",
@@ -94,14 +110,25 @@ export default function LogUploadForm({
         >
           Log File (.txt)
         </label>
-        <input
-          id="file"
-          type="file"
-          accept=".txt"
-          onChange={handleFileChange}
-          className="w-full px-3 py-2 bg-bg-secondary border border-border rounded text-text-primary"
-          required
-        />
+        <div className="flex items-center gap-3">
+          <input
+            id="file"
+            type="file"
+            accept=".txt"
+            onChange={handleFileChange}
+            className="sr-only"
+            required
+          />
+          <label
+            htmlFor="file"
+            className="px-3 py-2 bg-bg-secondary border border-border rounded text-text-primary cursor-pointer"
+          >
+            Choose File
+          </label>
+          <span className="text-sm text-text-muted">
+            {file ? file.name : "No file selected"}
+          </span>
+        </div>
       </div>
 
       <div>
@@ -109,7 +136,7 @@ export default function LogUploadForm({
           htmlFor="pilotName"
           className="block text-sm font-medium text-text-primary mb-2"
         >
-          Pilot Name
+          Pilot Name (auto-detect if blank)
         </label>
         <input
           id="pilotName"
@@ -117,8 +144,7 @@ export default function LogUploadForm({
           value={pilotName}
           onChange={(e) => setPilotName(e.target.value)}
           className="w-full px-3 py-2 bg-bg-secondary border border-border rounded text-text-primary placeholder-text-muted"
-          placeholder="Enter pilot name"
-          required
+          placeholder="Leave blank to auto-detect"
         />
       </div>
 

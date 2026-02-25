@@ -16,28 +16,29 @@ export default function JoinFleetSessionPage() {
     setLoading(true);
     setError(null);
 
-    // Extract id from code (assuming format FLEET-XXXXXX)
-    const id = code.replace(/^FLEET-/, "");
-    if (!id || id === code) {
+    if (!code.startsWith("FLEET-")) {
       setError("Invalid session code format. Code should start with FLEET-");
       setLoading(false);
       return;
     }
 
     try {
-      const response = await fetch(`/api/fleet-sessions/${id}/join`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
-      });
+      const response = await fetch(
+        `/api/fleet-sessions/${encodeURIComponent(code)}/join`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code }),
+        },
+      );
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to join session");
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || data.error || "Failed to join session");
       }
 
-      // On success, redirect to session page
-      router.push(`/fleet/${id}`);
+      router.push(`/fleet/${data.session.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -51,6 +52,10 @@ export default function JoinFleetSessionPage() {
         <h1 className="text-2xl font-ui uppercase tracking-wider text-text-primary">
           Join Fleet Session
         </h1>
+        <p className="text-text-muted text-sm">
+          Enter the session code shared by your fleet commander. Upload your
+          combat log once you&apos;re in.
+        </p>
 
         <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
           <div>
