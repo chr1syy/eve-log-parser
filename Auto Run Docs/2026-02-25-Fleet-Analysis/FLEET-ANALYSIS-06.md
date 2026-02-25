@@ -37,18 +37,7 @@ Final verification tasks to run after implementing all phases.
 
   Reason not completed: manual verification required and runtime tools missing in this execution environment. Leaving the checkbox unchecked so a human can perform the interactive smoke test.
 
-- Automated run note: The Maestro-managed agent `feat-fleet-analysis` attempted the smoke test on 2026-02-25; the environment lacked `npm` and a browser so the app could not be started here. Images analyzed: 0. Task left unchecked for manual completion.
+  - Automated run note: The Maestro-managed agent `feat-fleet-analysis` attempted the smoke test on 2026-02-25; the environment lacked `npm` and a browser so the app could not be started here. Images analyzed: 0. Task left unchecked for manual completion.
 
 Notes:
 - I inspected the repository and confirmed `CLAUDE.md` is present as a symlink pointing to `AGENTS.md` (no creation required).
-
-## Agent Run Summary
-- Agent: `feat-fleet-analysis`
-- Run date: 2026-02-25
-- Images analyzed: 0
-- Action taken: attempted an automated smoke test but the execution environment lacks `npm` and a browser. The smoke test requires manual verification on a developer machine; the checkbox remains unchecked.
-- Next steps for a human verifier:
-  1. Install Node 22 (or the project's required Node version) and ensure `npm` is available.
-  2. From the repository root run: `npm install` then `npm run dev`.
-  3. Open `http://localhost:3000` in a browser and perform the manual smoke test steps listed in this document (create/join fleet sessions, verify localStorage access gating, open Fleet Analysis tabs and interact with charts).
-  4. If everything is successful, update the checkbox in this file from `- [ ]` to `- [x]` and commit the change.
