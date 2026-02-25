@@ -300,6 +300,33 @@ export function generateDamageDealtTimeSeries(
   const timestamps = dealtEntries.map((e) => e.timestamp.getTime());
   const uniqueTs = Array.from(new Set(timestamps)).sort((a, b) => a - b);
 
+  // If there are large gaps with no activity we insert zero-value sample
+  // timestamps inside the gap so the chart drops to 0 instead of
+  // interpolating between widely separated points. Use a threshold of
+  // 3 minutes (LONG_GAP_MS) — gaps longer than this will get two zero
+  // samples inserted: one after the last activity window and one before
+  // the next activity window (taking WINDOW_MS into account so the zero
+  // point falls outside the rolling window that computes DPS).
+  const LONG_GAP_MS = 3 * 60 * 1000; // 3 minutes
+  const expandedTs: number[] = [];
+  for (let i = 0; i < uniqueTs.length; i++) {
+    const t = uniqueTs[i];
+    expandedTs.push(t);
+    if (i < uniqueTs.length - 1) {
+      const next = uniqueTs[i + 1];
+      const gap = next - t;
+      if (gap > LONG_GAP_MS) {
+        const zeroAfter = t + WINDOW_MS + 1; // just outside the rolling window after t
+        const zeroBefore = next - WINDOW_MS - 1; // just before next's rolling window
+        if (zeroAfter < zeroBefore) {
+          expandedTs.push(zeroAfter);
+          expandedTs.push(zeroBefore);
+        }
+      }
+    }
+  }
+  const timestampsToUse = expandedTs.length > 0 ? expandedTs : uniqueTs;
+
   // Sliding window pointers for damage (O(n))
   let damageStart = 0;
   let damageEnd = 0;
@@ -309,7 +336,7 @@ export function generateDamageDealtTimeSeries(
   let shotStart = 0;
   let shotEnd = 0;
 
-  for (const t of uniqueTs) {
+  for (const t of timestampsToUse) {
     const windowStart = t - WINDOW_MS;
 
     // Advance damageStart pointer: remove entries older than window
