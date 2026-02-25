@@ -161,6 +161,27 @@ export default function DamageDealtChart({
   const domainMin = zoomedWindow ? zoomedWindow.start.getTime() : fullDomainMin;
   const domainMax = zoomedWindow ? zoomedWindow.end.getTime() : fullDomainMax;
 
+  // Compute brush indices for controlled Brush positioning when a zoomed
+  // window is active. This keeps the brush handles aligned with the visible
+  // domain instead of appearing to float when the X axis domain changes.
+  const brushIndexRange = (() => {
+    if (!zoomedWindow) return undefined;
+    const startMs = zoomedWindow.start.getTime();
+    const endMs = zoomedWindow.end.getTime();
+    let startIndex: number | undefined = undefined;
+    let endIndex: number | undefined = undefined;
+    for (let i = 0; i < data.length; i++) {
+      const ts = data[i].timestampMs;
+      if (startIndex === undefined && ts >= startMs) startIndex = i;
+      if (ts <= endMs) endIndex = i;
+      if (startIndex !== undefined && ts > endMs) break;
+    }
+    // If no points fall within the window, clamp to nearest indices
+    if (startIndex === undefined) startIndex = 0;
+    if (endIndex === undefined) endIndex = data.length - 1;
+    return { startIndex, endIndex };
+  })();
+
   // Clip tackle windows to the visible domain
   const visibleTackleWindows = tackleWindows
     .map((w) => ({
@@ -286,6 +307,8 @@ export default function DamageDealtChart({
               stroke="#00d4ff"
               travellerWidth={8}
               onChange={handleBrushChange}
+              startIndex={brushIndexRange?.startIndex}
+              endIndex={brushIndexRange?.endIndex}
             />
           )}
         </ComposedChart>

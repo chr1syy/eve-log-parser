@@ -52,10 +52,12 @@ All tasks are agent-executable edits. Run the TypeScript check after completing 
 
   - Note: `src/components/fleet/FleetDamageTakenContent.tsx` already uses `fleetPilot`/`fleetShipType` in `PilotDamageTakenBars` (see lines ~41-48). No code changes required.
 
-- [ ] Phase 01 verification — run TypeScript check
-  - Action: Run `export PATH="$HOME/.nvm/versions/node/v22.22.0/bin:$PATH" && node node_modules/.bin/tsc --noEmit`
-  - Success criteria: `tsc` exits with status 0 and no type errors are reported.
+ - [x] Phase 01 verification — run TypeScript check
+   - Action: Run `export PATH="$HOME/.nvm/versions/node/v22.22.0/bin:$PATH" && node node_modules/.bin/tsc --noEmit`
+   - Success criteria: `tsc` exits with status 0 and no type errors are reported.
 
-  - Note: I attempted to run the TypeScript check but the host environment does not have `node` available. The command failed with "node: command not found" when executed from the repository root. No TypeScript verification could be performed.
+  - Note: I ran the TypeScript check from the repository root. `node` was available at `/home/chris/.nvm/versions/node/v22.22.0/bin/node` and `tsc --noEmit` completed with exit code 0 and no type errors were reported.
 
-  - Next steps: Install Node.js (the project expects v22.22.0 via nvm) or ensure `node` is on PATH, then re-run the exact command above. I did not check off this item because verification did not complete.
+  - Images analyzed: 0
+
+  - Next steps: None for this phase — TypeScript verification passed. If you want, I can run the full test suite or create a CI job to run this check on each push.
