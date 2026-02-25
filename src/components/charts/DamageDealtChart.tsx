@@ -13,7 +13,8 @@ import {
   Brush,
 } from "recharts";
 import { useEffect, useMemo, useRef, useState } from "react";
-import RangeSlider from "./RangeSlider";
+// RangeSlider was experimental and removed — prefer Recharts Brush for selection
+// import RangeSlider from "./RangeSlider";
 import type {
   DamageDealtTimeSeries,
   DamageDealtPoint,
@@ -138,21 +139,34 @@ export default function DamageDealtChart({
   // Expand window slightly so chart doesn't look empty if only 1 point is visible
   const displayPoints = visiblePoints.length > 0 ? visiblePoints : points;
 
+  // Debounced brush commit: avoid updating parent on every mousemove to
+  // prevent a re-render tug-of-war between programmatic updates and user drag.
   const handleBrushChange = (range?: {
     startIndex?: number;
     endIndex?: number;
   }) => {
     if (!onRangeSelect) return;
+    if (!range) return;
 
-    const resolved = resolveBrushRange(
-      data,
-      range?.startIndex,
-      range?.endIndex,
-    );
-
-    if (resolved) {
-      onRangeSelect(resolved.start, resolved.end);
+    // clear any pending notify
+    if (notifyTimer.current) {
+      window.clearTimeout(notifyTimer.current);
+      notifyTimer.current = null;
     }
+
+    // debounce commit until user stops moving the traveller
+    notifyTimer.current = window.setTimeout(() => {
+      const resolved = resolveBrushRange(
+        data,
+        range.startIndex,
+        range.endIndex,
+      );
+      if (resolved) {
+        lastZoomSourceRef.current = "brush";
+        onRangeSelect(resolved.start, resolved.end);
+      }
+      notifyTimer.current = null;
+    }, 300);
   };
 
   const fullDomainMin = data[0]?.timestampMs ?? 0;
@@ -213,6 +227,50 @@ export default function DamageDealtChart({
     const id = window.setTimeout(() => setSyncIndices(undefined), 600);
     return () => window.clearTimeout(id);
   }, [brushIndexRange?.startIndex, brushIndexRange?.endIndex]);
+
+  // Recharts may render inline or with other stylesheet rules that win over
+  // our component CSS. To ensure the selected area and travellers appear in
+  // the desired blue, force inline styles on the SVG elements after mount
+  // and whenever the brush is remounted.
+  useEffect(() => {
+    const applyInlineStyles = () => {
+      const root = document.querySelector(".damage-brush");
+      if (!root) return;
+      // target possible slide elements
+      const slides = root.querySelectorAll<SVGElement>(
+        ".recharts-brush-slide-rect, .recharts-brush-slide",
+      );
+      slides.forEach((el) => {
+        try {
+          el.style.fill = "#00d4ff";
+          el.style.fillOpacity = "0.36";
+        } catch (e) {
+          // ignore
+        }
+      });
+
+      // target travellers (handles)
+      const travellers = root.querySelectorAll<SVGElement>(
+        ".recharts-brush-traveller, .recharts-brush-traveller-rect",
+      );
+      travellers.forEach((el) => {
+        try {
+          el.style.fill = "#00d4ff";
+          el.style.stroke = "rgba(2,6,23,0.8)";
+        } catch (e) {
+          // ignore
+        }
+      });
+    };
+
+    // Apply once immediately and then observe mutations so re-renders keep styles
+    applyInlineStyles();
+    const root = document.querySelector(".damage-brush");
+    if (!root) return;
+    const mo = new MutationObserver(applyInlineStyles);
+    mo.observe(root, { childList: true, subtree: true, attributes: true });
+    return () => mo.disconnect();
+  }, [brushRemountKey, data.length]);
 
   // When zoom is cleared (zoomedWindow becomes undefined) we also force a
   // transient remount of the Brush set to the full range so the traveller
@@ -354,20 +412,49 @@ export default function DamageDealtChart({
           />
           {onRangeSelect && (
             <>
-              <div className="mb-2">
-                <RangeSlider
-                  length={data.length}
-                  startIndex={brushIndexRange?.startIndex ?? 0}
-                  endIndex={
-                    brushIndexRange?.endIndex ?? Math.max(0, data.length - 1)
-                  }
-                  onChangeComplete={(s, e) => {
-                    handleBrushChange({ startIndex: s, endIndex: e });
-                    // mark the source so we don't remount the slider from effect
-                    lastZoomSourceRef.current = "slider";
-                  }}
-                />
-              </div>
+              {/* Recharts Brush: render over the full dataset so indices remain stable */}
+              <Brush
+                key={brushRemountKey}
+                className="damage-brush"
+                dataKey="timestampMs"
+                height={20}
+                travellerWidth={12}
+                stroke="#005f99"
+                startIndex={
+                  syncIndices?.startIndex ?? brushIndexRange?.startIndex
+                }
+                endIndex={syncIndices?.endIndex ?? brushIndexRange?.endIndex}
+                onChange={(r) => handleBrushChange(r)}
+              />
+              {/* Visual tweaks: darker blue selected slide and darker grey background */}
+              <style jsx global>{`
+                /* background track where the slide sits (unselected areas) */
+                .damage-brush .recharts-brush-slide {
+                  /* use a subtle grey background for the track — do not force
+                     fill-opacity here so the selected element can control its
+                     own opacity and color */
+                  fill: #374151; /* slate-700 */
+                }
+
+                /* selected movable area: force a blue tone. Some Recharts builds
+                   render the selected region as .recharts-brush-slide itself,
+                   so target both .recharts-brush-slide-rect and .recharts-brush-slide
+                   when it has a selection-related class. Use !important to win
+                   over other stylesheet rules. */
+                .damage-brush .recharts-brush-slide-rect,
+                .damage-brush .recharts-brush-slide.selected,
+                .damage-brush .recharts-brush-slide[fill-opacity="0.36"] {
+                  fill: #00d4ff !important; /* page cyan */
+                  fill-opacity: 0.36 !important;
+                }
+
+                /* draggable handles */
+                .damage-brush .recharts-brush-traveller,
+                .damage-brush .recharts-brush-traveller-rect {
+                  fill: #00d4ff !important;
+                  stroke: rgba(2, 6, 23, 0.8) !important;
+                }
+              `}</style>
             </>
           )}
         </ComposedChart>

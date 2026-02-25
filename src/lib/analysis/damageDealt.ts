@@ -307,7 +307,7 @@ export function generateDamageDealtTimeSeries(
   // samples inserted: one after the last activity window and one before
   // the next activity window (taking WINDOW_MS into account so the zero
   // point falls outside the rolling window that computes DPS).
-  const LONG_GAP_MS = 3 * 60 * 1000; // 3 minutes
+  const LONG_GAP_MS = 1.5 * 60 * 1000; // 1.5 minutes
   const expandedTs: number[] = [];
   for (let i = 0; i < uniqueTs.length; i++) {
     const t = uniqueTs[i];
