@@ -7,7 +7,16 @@ import Badge from "@/components/ui/Badge";
 import StatCard from "@/components/dashboard/StatCard";
 import DataTable from "@/components/ui/DataTable";
 import type { Column } from "@/components/ui/DataTable";
-import DpsTakenChart from "@/components/charts/DpsTakenChart";
+import {
+  ComposedChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
 import { analyzeDamageTaken } from "@/lib/analysis/damageTaken";
 import { analyzeReps } from "@/lib/analysis/repAnalysis";
 import { filterOutHostileNpcs } from "@/lib/npcFilter";
@@ -30,6 +39,161 @@ function fmtTime(d: Date): string {
     second: "2-digit",
     hour12: false,
   });
+}
+
+// Per-pilot damage taken chart helpers
+const PILOT_COLORS = [
+  "#e53e3e",
+  "#3182ce",
+  "#dd6b20",
+  "#805ad5",
+  "#38a169",
+  "#d53f8c",
+  "#00a3bf",
+  "#f6ad55",
+  "#63b3ed",
+  "#f687b3",
+];
+
+function computePerPilotDamageTaken(entries: LogEntry[]) {
+  const damageEvents = entries.filter((e) => e.eventType === "damage-received");
+  if (damageEvents.length === 0)
+    return { pilots: [] as string[], data: [] as any[] };
+
+  const bucketMs = 30 * 1000; // 30s buckets
+  const tsSorted = damageEvents
+    .map((e) => e.timestamp.getTime())
+    .sort((a, b) => a - b);
+  const start = Math.floor(tsSorted[0] / bucketMs) * bucketMs;
+  const end = Math.ceil(tsSorted[tsSorted.length - 1] / bucketMs) * bucketMs;
+  const bucketCount = Math.max(1, Math.floor((end - start) / bucketMs) + 1);
+
+  // Collect pilots and total damage per pilot
+  const pilotTotals = new Map<string, number>();
+  const eventsByBucket: Array<Record<string, number>> = new Array(bucketCount)
+    .fill(0)
+    .map(() => ({}));
+
+  for (const e of damageEvents) {
+    const pilot = e.fleetPilot ?? e.pilotName ?? "Unknown";
+    const amount = e.amount ?? 0;
+    pilotTotals.set(pilot, (pilotTotals.get(pilot) ?? 0) + amount);
+    const idx = Math.floor((e.timestamp.getTime() - start) / bucketMs);
+    const bucket = eventsByBucket[idx] ?? {};
+    bucket[pilot] = (bucket[pilot] ?? 0) + amount;
+    eventsByBucket[idx] = bucket;
+  }
+
+  const pilots = Array.from(pilotTotals.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([p]) => p);
+
+  const data = eventsByBucket.map((bucket, i) => {
+    const ts = start + i * bucketMs;
+    const row: Record<string, any> = {
+      timestampMs: ts,
+      timestamp: new Date(ts),
+      timeLabel: fmtTime(new Date(ts)),
+    };
+    for (const p of pilots) {
+      row[p] = bucket[p] ?? 0;
+    }
+    return row;
+  });
+
+  return { pilots, data };
+}
+
+function FleetPilotDamageTakenChart({ entries }: { entries: LogEntry[] }) {
+  const { pilots, data } = useMemo(
+    () => computePerPilotDamageTaken(entries),
+    [entries],
+  );
+
+  if (!data || data.length === 0 || pilots.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-48 text-text-muted font-mono text-xs">
+        NO INCOMING DAMAGE DATA
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <ResponsiveContainer width="100%" height={280}>
+        <ComposedChart
+          data={data}
+          margin={{ top: 4, right: 8, left: 0, bottom: 0 }}
+        >
+          <CartesianGrid
+            strokeDasharray="3 3"
+            stroke="#1a254060"
+            vertical={false}
+          />
+          <XAxis
+            dataKey="timestampMs"
+            type="number"
+            domain={["dataMin", "dataMax"]}
+            tick={{
+              fill: "#8892a4",
+              fontSize: 10,
+              fontFamily: "JetBrains Mono, monospace",
+            }}
+            axisLine={{ stroke: "#1a2540" }}
+            tickLine={false}
+            tickFormatter={(ts: number) => fmtTime(new Date(ts))}
+          />
+          <YAxis
+            tick={{
+              fill: "#8892a4",
+              fontSize: 10,
+              fontFamily: "JetBrains Mono, monospace",
+            }}
+            axisLine={false}
+            tickLine={false}
+            width={56}
+          />
+          <Tooltip
+            content={({ active, payload }: any) => {
+              if (!active || !payload?.length) return null;
+              const point = payload[0]?.payload;
+              return (
+                <div className="bg-overlay border border-[#00d4ff40] px-3 py-2 rounded-sm font-mono text-xs backdrop-blur">
+                  <p className="text-text-secondary mb-1">
+                    {fmtTime(point.timestamp)}
+                  </p>
+                  {pilots.map((p, i) => (
+                    <p key={p} className="text-text-primary">
+                      <span
+                        style={{ color: PILOT_COLORS[i % PILOT_COLORS.length] }}
+                      >
+                        {p}:
+                      </span>{" "}
+                      {(point[p] ?? 0).toLocaleString(undefined, {
+                        maximumFractionDigits: 0,
+                      })}
+                    </p>
+                  ))}
+                </div>
+              );
+            }}
+          />
+          <Legend />
+          {pilots.map((p, i) => (
+            <Line
+              key={p}
+              type="monotone"
+              dataKey={p}
+              stroke={PILOT_COLORS[i % PILOT_COLORS.length]}
+              strokeWidth={2}
+              dot={false}
+              animationDuration={600}
+            />
+          ))}
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
 // ── Per-pilot damage taken bars ───────────────────────────────────────────────
@@ -255,13 +419,9 @@ export default function FleetDamageTakenContent({
         )}
       </div>
 
-      {/* DPS over time */}
-      <Panel title="INCOMING DPS OVER TIME (10s ROLLING)">
-        <DpsTakenChart
-          timeSeries={damageAnalysis.dpsTimeSeries}
-          fights={damageAnalysis.fights}
-          repTimeSeries={repAnalysis?.incomingRepTimeSeries}
-        />
+      {/* Per-pilot incoming DPS chart */}
+      <Panel title="INCOMING DPS — PER PILOT (30s buckets)">
+        <FleetPilotDamageTakenChart entries={filteredEntries} />
       </Panel>
 
       {/* Peak DPS */}
