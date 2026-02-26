@@ -13,7 +13,12 @@ export const DRONE_NAMES = [
   "Bouncer",
   "Berserker",
   "Acolyte",
+  // Include Praetor base name and common explicit variants so entries like
+  // "Praetor II" or "Praetor I" are unambiguously detected as drones
   "Praetor",
+  "Praetor I",
+  "Praetor II",
+  "Praetor III",
   "Gecko",
 ];
 
