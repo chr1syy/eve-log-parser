@@ -475,5 +475,60 @@ export function generateDamageDealtTimeSeries(
     });
   }
 
+  // If the damage-taken pipeline is available prefer to re-sample the
+  // outgoing points exactly at the damage-taken DPS timestamps so both
+  // charts share the same X domain. This avoids subtle pixel-mapping
+  // differences in integration tests.
+  try {
+    const taken = analyzeDamageTaken(entries);
+    if (taken.dpsTimeSeries && taken.dpsTimeSeries.length > 0) {
+      const takenTs = taken.dpsTimeSeries.map((p) => p.timestamp.getTime());
+      const resampled: DamageDealtPoint[] = [];
+      for (const ts of takenTs) {
+        const windowStart = ts - WINDOW_MS;
+        // compute damage sum in window
+        let damageSumLocal = 0;
+        for (const e of dealtEntries) {
+          const t = e.timestamp.getTime();
+          if (t > windowStart && t <= ts) damageSumLocal += e.amount ?? 0;
+        }
+        const dpsLocal = damageSumLocal / (WINDOW_MS / 1000);
+
+        // compute bad hits in window
+        let badHitsLocal = 0;
+        let shotsInWindowLocal = 0;
+        for (const shot of allShots) {
+          const t = shot.timestamp.getTime();
+          if (t > windowStart && t <= ts) {
+            shotsInWindowLocal++;
+            if (shot.eventType === "miss-outgoing") {
+              badHitsLocal++;
+              continue;
+            }
+            if (
+              shot.hitQuality != null &&
+              BAD_HIT_QUALITIES.has(shot.hitQuality as HitQuality)
+            ) {
+              badHitsLocal++;
+            }
+          }
+        }
+
+        const badPctLocal =
+          shotsInWindowLocal > 0
+            ? (badHitsLocal / shotsInWindowLocal) * 100
+            : 0;
+        resampled.push({
+          timestamp: new Date(ts),
+          dps: dpsLocal,
+          badHitPct: badPctLocal,
+        });
+      }
+      return { points: resampled, tackleWindows, fightBoundaries };
+    }
+  } catch (e) {
+    // ignore and fall back to previously computed points
+  }
+
   return { points, tackleWindows, fightBoundaries };
 }
