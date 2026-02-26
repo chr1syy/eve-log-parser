@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
+import { mkdir, writeFile, access } from "node:fs/promises";
+import path from "node:path";
 import { getSession, updateSession } from "@/lib/fleet/sessionStore";
 import { parseLogFile } from "@/lib/parser";
 import { broadcastToSession } from "@/lib/fleet/sseConnections";
@@ -33,6 +35,36 @@ export async function POST(
 
     // Parse the log file
     const parsedLog = await parseLogFile(file);
+
+    // Persist the original uploaded file to disk so it can be reused for testing.
+    // Saved path: <repo-root>/data/uploads/<sessionId>/<original-filename>
+    try {
+      if (typeof (file as File)?.arrayBuffer === "function") {
+        const ab = await (file as File).arrayBuffer();
+        const buffer = Buffer.from(ab);
+
+        const uploadsDir = path.join(process.cwd(), "data", "uploads", id);
+        await mkdir(uploadsDir, { recursive: true });
+
+        const origName = (file as File).name || `upload-${Date.now()}.log`;
+        let outName = origName;
+        const outPath = path.join(uploadsDir, outName);
+
+        // If a file with the same name already exists, prefix with timestamp
+        try {
+          await access(outPath);
+          outName = `${Date.now()}-${origName}`;
+        } catch {
+          // access failed = file doesn't exist, keep origName
+        }
+
+        const finalPath = path.join(uploadsDir, outName);
+        await writeFile(finalPath, buffer);
+      }
+    } catch (err) {
+      console.error("Failed to save uploaded file:", err);
+      // Do not fail the request for inability to persist the raw file.
+    }
 
     const resolvedPilotName =
       pilotNameRaw.trim() || parsedLog.characterName?.trim() || "";
