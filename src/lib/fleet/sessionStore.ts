@@ -163,3 +163,88 @@ export function listUserSessions(): FleetSession[] {
 }
 
 export { sessionStore };
+
+// Helper: derive a human-friendly display name for a FleetLog.
+// Order of preference: explicit displayName -> pilotName -> parsed log.characterName -> shipType
+// -> original uploaded filename in data/uploads/<sessionId> (most-recent) -> upload-<short-id>.log
+export function getDisplayNameForLog(log: FleetLog): string {
+  if (!log)
+    return `upload-${(Math.random() + 1).toString(36).substring(7)}.log`;
+
+  if (log.displayName && String(log.displayName).trim().length > 0) {
+    return String(log.displayName).trim();
+  }
+
+  if (log.pilotName && String(log.pilotName).trim().length > 0) {
+    return String(log.pilotName).trim();
+  }
+
+  // Try to parse characterName from log.logData (stored as JSON string of ParsedLog)
+  try {
+    if (log.logData) {
+      const parsed = JSON.parse(log.logData) as { characterName?: string };
+      if (
+        parsed?.characterName &&
+        String(parsed.characterName).trim().length > 0
+      ) {
+        return String(parsed.characterName).trim();
+      }
+    }
+  } catch {
+    // ignore parse errors
+  }
+
+  if (log.shipType && String(log.shipType).trim().length > 0) {
+    return String(log.shipType).trim();
+  }
+
+  // Look for uploaded original filename under data/uploads/<sessionId>
+  try {
+    const uploadsDir = join(process.cwd(), "data", "uploads", log.sessionId);
+    if (existsSync(uploadsDir)) {
+      const entries = readFileSync(uploadsDir, "utf-8");
+      // Use fs.readdirSync instead of readFileSync to list directory
+    }
+  } catch {
+    // ignore
+  }
+
+  // We need to lazily require readdirSync/statSync to keep top imports small
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { readdirSync, statSync } = require("fs");
+    const uploadsDir = join(process.cwd(), "data", "uploads", log.sessionId);
+    if (existsSync(uploadsDir)) {
+      const files = readdirSync(uploadsDir).filter((f: string) => {
+        try {
+          return statSync(join(uploadsDir, f)).isFile();
+        } catch {
+          return false;
+        }
+      });
+      if (files.length === 1) return files[0];
+      if (files.length > 1) {
+        // pick most-recently modified file
+        let latest = files[0];
+        let latestTime = 0;
+        for (const f of files) {
+          try {
+            const mtime = statSync(join(uploadsDir, f)).mtime.getTime();
+            if (mtime > latestTime) {
+              latestTime = mtime;
+              latest = f;
+            }
+          } catch {
+            // ignore
+          }
+        }
+        return latest;
+      }
+    }
+  } catch {
+    // ignore any fs errors
+  }
+
+  // final fallback
+  return `upload-${String(log.id).slice(0, 8)}.log`;
+}
