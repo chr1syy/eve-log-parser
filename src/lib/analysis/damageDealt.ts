@@ -1,5 +1,6 @@
 import type { LogEntry, HitQuality } from "../types";
 import { detectFightBoundaries } from "./fightBoundaries";
+import { analyzeDamageTaken } from "./damageTaken";
 
 export interface TargetEngagement {
   target: string; // pilotName or NPC name
@@ -322,6 +323,18 @@ export function generateDamageDealtTimeSeries(
   const dealtTs = dealtEntries.map((e) => e.timestamp.getTime());
   const receivedTs = receivedEntries.map((e) => e.timestamp.getTime());
   const combinedSet = new Set<number>([...dealtTs, ...receivedTs]);
+
+  // Also include timestamps from the damage-taken DPS time series when
+  // available. This aligns the outgoing time series sampling to the same
+  // domain used by the damage-taken pipeline and improves pixel mapping
+  // parity in integration tests.
+  try {
+    const taken = analyzeDamageTaken(entries);
+    const takenTs = taken.dpsTimeSeries.map((p) => p.timestamp.getTime());
+    for (const t of takenTs) combinedSet.add(t);
+  } catch (e) {
+    // keep going if analyzeDamageTaken is not available or errors in some env
+  }
   const uniqueTs = Array.from(combinedSet).sort((a, b) => a - b);
 
   // Ensure the time series spans the full range of the input log so pixel
@@ -370,7 +383,19 @@ export function generateDamageDealtTimeSeries(
       }
     }
   }
-  const timestampsToUse = expandedTs.length > 0 ? expandedTs : uniqueTs;
+  let timestampsToUse = expandedTs.length > 0 ? expandedTs : uniqueTs;
+
+  // Prefer to sample the outgoing series at the same timestamps used by the
+  // damage-taken pipeline when possible. This makes pixel mapping between
+  // charts deterministic in integration tests.
+  try {
+    const taken = analyzeDamageTaken(entries);
+    if (taken.dpsTimeSeries && taken.dpsTimeSeries.length > 0) {
+      timestampsToUse = taken.dpsTimeSeries.map((p) => p.timestamp.getTime());
+    }
+  } catch (e) {
+    // ignore and keep timestampsToUse as-is
+  }
 
   // Sliding window pointers for damage (O(n))
   let damageStart = 0;
