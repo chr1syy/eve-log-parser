@@ -9,7 +9,7 @@ export function calculateParticipantStats(
 
   for (const participant of participants) {
     const pilotEntries = mergedEntries.filter(
-      (entry) => entry.pilotName === participant.pilotName,
+      (entry) => entry.fleetPilot === participant.pilotName,
     );
 
     // Calculate damageDealt: sum damage-dealt amounts

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   findSessionByCode,
   getSession,
+  updateSession,
 } from "@/lib/fleet/sessionStore";
 
 export async function POST(
@@ -11,7 +12,11 @@ export async function POST(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { code, pilotName } = body as { code: string; pilotName?: string };
+    const { code, pilotName, shipType } = body as {
+      code: string;
+      pilotName?: string;
+      shipType?: string;
+    };
 
     if (!pilotName) {
       return NextResponse.json(
@@ -40,8 +45,27 @@ export async function POST(
       );
     }
 
-    // Return session ID so the client can navigate — participant registration
-    // happens automatically when the pilot uploads their combat log.
+    // Register participant if not already present
+    const alreadyJoined = session.participants.some(
+      (p) => p.pilotName === pilotName,
+    );
+    if (!alreadyJoined) {
+      const updatedParticipants = [
+        ...session.participants,
+        {
+          pilotName,
+          shipType: shipType?.trim() || "",
+          damageDealt: 0,
+          damageTaken: 0,
+          repsGiven: 0,
+          repsTaken: 0,
+          status: "pending" as const,
+          logId: "",
+        },
+      ];
+      updateSession(session.id, { participants: updatedParticipants });
+    }
+
     return NextResponse.json({
       success: true,
       message: "Joined session successfully",

@@ -136,9 +136,13 @@ curl "http://localhost:3000/api/fleet-sessions/7b2d7fd2-ecaf-4f3b-bdb7-1c6f1e4d2
 
 ### POST `/api/fleet-sessions/{id}/join`
 
-Join an existing session by code and register a pilot.
+Join an existing session by code and register a pilot. The pilot is added to the session's participant list immediately; `shipType` is a hint that can be left blank and overridden once the combat log is uploaded.
 
 Request (JSON):
+
+- `code` (required) — fleet session code, e.g. `"FLEET-1A2B3C"`
+- `pilotName` (required) — character name joining the session
+- `shipType` (optional) — ship name; stored as a placeholder until log upload
 
 ```json
 {
@@ -154,37 +158,16 @@ Response (200 JSON):
 {
   "success": true,
   "message": "Joined session successfully",
-  "session": {
-    "id": "7b2d7fd2-ecaf-4f3b-bdb7-1c6f1e4d2b5a",
-    "code": "FLEET-1A2B3C",
-    "creator": "anonymous",
-    "createdAt": "2026-02-24T12:00:00.000Z",
-    "participants": [
-      {
-        "pilotName": "Diana Wanda",
-        "shipType": "Typhoon",
-        "damageDealt": 0,
-        "damageTaken": 0,
-        "repsGiven": 0,
-        "repsTaken": 0,
-        "status": "pending",
-        "logId": ""
-      }
-    ],
-    "logs": [],
-    "fightName": "Amarr Gate Skirmish",
-    "tags": ["lowsec", "armor"],
-    "status": "PENDING"
-  }
+  "session": { "id": "7b2d7fd2-ecaf-4f3b-bdb7-1c6f1e4d2b5a" }
 }
 ```
 
 Errors:
 
-- `200` → `{ "success": false, "message": "Invalid code or session not found", "session": null }`
-- `200` → `{ "success": false, "message": "Pilot already joined this session", "session": null }`
-- `200` → `{ "success": false, "message": "Failed to update session", "session": null }`
-- `200` → `{ "success": false, "message": "Internal server error", "session": null }`
+- `400` → `{ "success": false, "message": "Pilot name is required", "session": null }`
+- `400` → `{ "success": false, "message": "Invalid code or session not found", "session": null }`
+- `404` → `{ "success": false, "message": "Invalid code or session not found", "session": null }`
+- `500` → `{ "success": false, "message": "Internal server error", "session": null }`
 
 Example:
 

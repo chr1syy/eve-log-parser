@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession, deleteSession } from "@/lib/fleet/sessionStore";
-import { mergeFleetLogs } from "@/lib/fleet/logMerging";
+import { mergeFleetLogs, matchLogsByTimestamp } from "@/lib/fleet/logMerging";
 import { calculateParticipantStats } from "@/lib/fleet/participantStats";
 import type { ParsedLog } from "@/lib/types";
 import type { FleetParticipant } from "@/types/fleet";
@@ -64,7 +64,8 @@ export async function GET(
       baseParticipants,
     );
 
-    const analysisReady = session.logs.length > 0;
+    const analysisReady =
+      parsedLogs.length >= 2 && matchLogsByTimestamp(parsedLogs).overlapping;
 
     const sessionWithParticipants = {
       ...session,

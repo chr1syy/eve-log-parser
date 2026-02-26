@@ -79,8 +79,8 @@ export function aggregateDamageDealt(
 
   for (const entry of entries) {
     if (entry.eventType === "damage-dealt" && entry.amount) {
-      const pilot = entry.pilotName || "Unknown";
-      const target = entry.shipType || "Unknown"; // assuming target is shipType for now
+      const pilot = entry.fleetPilot || "Unknown";
+      const target = entry.pilotName || entry.shipType || "Unknown";
       const type = entry.weapon || "Unknown";
 
       byPilot.set(pilot, (byPilot.get(pilot) || 0) + entry.amount);
@@ -100,8 +100,8 @@ export function aggregateDamageTaken(
 
   for (const entry of entries) {
     if (entry.eventType === "damage-received" && entry.amount) {
-      const pilot = entry.pilotName || "Unknown";
-      const source = entry.shipType || "Unknown"; // source shipType
+      const pilot = entry.fleetPilot || "Unknown";
+      const source = entry.pilotName || entry.shipType || "Unknown";
 
       byPilot.set(pilot, (byPilot.get(pilot) || 0) + entry.amount);
       bySource.set(source, (bySource.get(source) || 0) + entry.amount);
@@ -117,8 +117,8 @@ export function aggregateRepFlows(entries: LogEntry[]): RepFlowsAggregation {
 
   for (const entry of entries) {
     if (entry.eventType === "rep-outgoing" && entry.amount) {
-      const from = entry.pilotName || "Unknown";
-      const to = entry.repShipType || entry.shipType || "Unknown";
+      const from = entry.fleetPilot || "Unknown";
+      const to = entry.repShipType || entry.pilotName || entry.shipType || "Unknown";
       const key = `${from}-${to}`;
 
       const existing = flows.get(key) || { from, to, amount: 0, count: 0 };
@@ -141,11 +141,11 @@ export function aggregateCapPressure(
 
   for (const entry of entries) {
     if (entry.eventType === "neut-received" && entry.capAmount) {
-      const pilot = entry.pilotName || "Unknown";
+      const pilot = entry.fleetPilot || "Unknown";
       capDrained.set(pilot, (capDrained.get(pilot) || 0) + entry.capAmount);
     }
     if (entry.eventType === "neut-dealt") {
-      const drainer = entry.pilotName || "Unknown";
+      const drainer = entry.fleetPilot || "Unknown";
       capDrainers.add(drainer);
     }
   }
