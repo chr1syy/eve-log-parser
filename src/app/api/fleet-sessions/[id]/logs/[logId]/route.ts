@@ -7,52 +7,40 @@ export async function PATCH(
 ) {
   try {
     const { id, logId } = await params;
+    const body = await request.json();
+    const { displayName, pilotName, shipType } = body as {
+      displayName?: string;
+      pilotName?: string;
+      shipType?: string;
+    };
+
     const session = getSession(id);
     if (!session) {
-      return NextResponse.json(
-        { success: false, message: "Session not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Session not found" }, { status: 404 });
     }
-
-    const body = await request.json();
-    const allowed: Array<"displayName" | "pilotName" | "shipType"> = [
-      "displayName",
-      "pilotName",
-      "shipType",
-    ];
 
     const updates: Record<string, unknown> = {};
-    for (const key of allowed) {
-      if (Object.prototype.hasOwnProperty.call(body, key)) {
-        updates[key] = (body as any)[key];
-      }
-    }
+    if (typeof displayName === "string") updates.displayName = displayName;
+    if (typeof pilotName === "string") updates.pilotName = pilotName;
+    if (typeof shipType === "string") updates.shipType = shipType;
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json(
-        { success: false, message: "No updatable fields provided" },
+        { error: "No updates provided" },
         { status: 400 },
       );
     }
 
     const updated = updateLogMetadata(id, logId, updates as any);
     if (!updated) {
-      return NextResponse.json(
-        { success: false, message: "Log not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Log not found" }, { status: 404 });
     }
 
-    // Ensure returned log includes displayName
-    return NextResponse.json({
-      success: true,
-      fleetLog: { ...updated, displayName: updated.displayName ?? undefined },
-    });
+    return NextResponse.json({ success: true, log: updated });
   } catch (err) {
     console.error("Error updating log metadata:", err);
     return NextResponse.json(
-      { success: false, message: "Failed to update log" },
+      { error: "Failed to update log" },
       { status: 500 },
     );
   }
