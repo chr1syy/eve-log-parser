@@ -155,17 +155,20 @@ export default function FleetIndexPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-ui uppercase tracking-wider text-text-primary">
-            Fleet Sessions
+            Fleet Session Management
           </h1>
           <div className="flex gap-4">
             <Link href="/fleet/create">
-              <Button>Create New Session</Button>
+              <Button>Create New Fleet Session</Button>
             </Link>
             <Link href="/fleet/join">
-              <Button variant="secondary">Join Session</Button>
+              <Button variant="secondary">Join Existing Session</Button>
             </Link>
           </div>
         </div>
+        <p className="text-text-muted text-sm">
+          Fleet sessions are private. Only pilots with the session code can join.
+        </p>
 
         {loading ? (
           <div className="animate-pulse h-32 bg-bg-secondary rounded" />

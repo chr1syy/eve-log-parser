@@ -91,6 +91,16 @@ describe("Fleet Navigation & Integration Tests", () => {
     mockPush.mockClear();
     mockReplace.mockClear();
     mockFetch.mockReset();
+    // Default fetch response — prevents "Cannot read .then of undefined" errors
+    // when page-level useEffects make fetch calls that tests don't care about.
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => [],
+    });
+    // Allow localStorage access for the test session so pages don't deny access
+    vi.mocked(window.localStorage.getItem).mockImplementation((key: string) =>
+      key === "fleet:session-ids" ? '["test-session-id"]' : null,
+    );
   });
 
   afterEach(() => {

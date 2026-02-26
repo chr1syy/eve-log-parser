@@ -11,7 +11,14 @@ export async function POST(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { code } = body as { code: string };
+    const { code, pilotName } = body as { code: string; pilotName?: string };
+
+    if (!pilotName) {
+      return NextResponse.json(
+        { success: false, message: "Pilot name is required", session: null },
+        { status: 400 },
+      );
+    }
 
     const normalizedCode = code?.trim().toUpperCase();
     const session =
@@ -28,7 +35,7 @@ export async function POST(
 
     if (!normalizedCode || session.code.toUpperCase() !== normalizedCode) {
       return NextResponse.json(
-        { success: false, message: "Invalid session code", session: null },
+        { success: false, message: "Invalid code or session not found", session: null },
         { status: 400 },
       );
     }
@@ -37,7 +44,7 @@ export async function POST(
     // happens automatically when the pilot uploads their combat log.
     return NextResponse.json({
       success: true,
-      message: "Session found",
+      message: "Joined session successfully",
       session: { id: session.id },
     });
   } catch (error) {

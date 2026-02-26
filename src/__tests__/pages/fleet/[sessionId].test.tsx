@@ -41,6 +41,10 @@ function TestWrapper({ children }: { children: React.ReactNode }) {
 describe("FleetSessionDetailPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Allow localStorage access for "session-1" so the page doesn't deny access
+    vi.mocked(window.localStorage.getItem).mockImplementation((key: string) =>
+      key === "fleet:session-ids" ? '["session-1"]' : null,
+    );
     mockFetch.mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({}),
