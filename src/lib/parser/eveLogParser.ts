@@ -305,6 +305,7 @@ export function parseCombatLine(
           base.weapon = weapon.trim();
           base.hitQuality = normalizeHitQuality(hitQualityRaw);
           base.isNpc = false;
+          base.isDrone = base.weapon ? isDroneWeapon(base.weapon) : false;
         }
         break;
       }
