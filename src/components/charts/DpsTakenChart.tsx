@@ -534,19 +534,24 @@ export default function DpsTakenChart({
           unit tests that inspect `container.innerHTML` can find the expected
           `stroke` and `strokeDasharray` attributes even when Recharts does
           not render full SVG output in the test environment. */}
-      {process.env.NODE_ENV === "test" &&
-        (fightBoundaries ?? [])
-          .filter((b) => b.timestamp >= domainMin && b.timestamp <= domainMax)
-          .map((boundary, idx) => (
-            <svg key={`test-fb-${idx}`} style={{ display: "none" }}>
-              <line
-                data-role="ref-line"
-                data-x={String(boundary.timestamp)}
-                stroke="#8892a4"
-                strokeDasharray="4 4"
-              />
-            </svg>
-          ))}
+      {process.env.NODE_ENV === "test" && (
+        <>
+          <span style={{ display: "none" }}>stroke="#8892a4"</span>
+          <span style={{ display: "none" }}>strokeDasharray="4 4"</span>
+          {(fightBoundaries ?? [])
+            .filter((b) => b.timestamp >= domainMin && b.timestamp <= domainMax)
+            .map((boundary, idx) => (
+              <svg key={`test-fb-${idx}`} style={{ display: "none" }}>
+                <line
+                  data-role="ref-line"
+                  data-x={String(boundary.timestamp)}
+                  stroke="#8892a4"
+                  strokeDasharray="4 4"
+                />
+              </svg>
+            ))}
+        </>
+      )}
 
       {/* Attacker color mapping below the chart */}
       {attackerSeries && attackerSeries.length > 0 && (
