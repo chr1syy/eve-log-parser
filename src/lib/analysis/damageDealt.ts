@@ -314,9 +314,36 @@ export function generateDamageDealtTimeSeries(
 
   const points: DamageDealtPoint[] = [];
 
-  // Extract unique timestamps from dealt entries
-  const timestamps = dealtEntries.map((e) => e.timestamp.getTime());
-  const uniqueTs = Array.from(new Set(timestamps)).sort((a, b) => a - b);
+  // Extract unique timestamps from dealt entries. If we derived fight
+  // boundaries from receivedEntries (damage-received) include those
+  // timestamps as well so the outgoing time series covers the same global
+  // domain as the damage-taken pipeline. This helps UI alignment tests that
+  // map timestamps to pixel positions.
+  const dealtTs = dealtEntries.map((e) => e.timestamp.getTime());
+  const receivedTs = receivedEntries.map((e) => e.timestamp.getTime());
+  const combinedSet = new Set<number>([...dealtTs, ...receivedTs]);
+  const uniqueTs = Array.from(combinedSet).sort((a, b) => a - b);
+
+  // Ensure the time series spans the full range of the input log so pixel
+  // mapping between charts that use different sampling strategies aligns.
+  // Add global min/max timestamps from all entries when present.
+  if (entries.length > 0) {
+    const allEntryTs = entries.map((e) => e.timestamp.getTime());
+    const globalMin = Math.min(...allEntryTs);
+    const globalMax = Math.max(...allEntryTs);
+    if (!combinedSet.has(globalMin)) uniqueTs.unshift(globalMin);
+    if (!combinedSet.has(globalMax)) uniqueTs.push(globalMax);
+  }
+
+  // Also ensure the range covers damage-received bounds when available so the
+  // outgoing series maps to the same domain as the damage-taken series.
+  if (receivedEntries.length > 0) {
+    const recTs = receivedEntries.map((e) => e.timestamp.getTime());
+    const recMin = Math.min(...recTs);
+    const recMax = Math.max(...recTs);
+    if (!combinedSet.has(recMin)) uniqueTs.unshift(recMin);
+    if (!combinedSet.has(recMax)) uniqueTs.push(recMax);
+  }
 
   // If there are large gaps with no activity we insert zero-value sample
   // timestamps inside the gap so the chart drops to 0 instead of
