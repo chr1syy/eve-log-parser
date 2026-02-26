@@ -295,6 +295,8 @@ export function parseCombatLine(
           base.isNpc = false;
           base.isDrone = isDroneWeapon(base.weapon);
           base.damageMultiplier = multiplierForOutcome(base.hitQuality ?? "");
+          const ws = classifyWeaponSystem(base.weapon);
+          if (ws !== WeaponSystemType.UNKNOWN) base.weaponSystemType = ws;
           break;
         }
 
@@ -311,6 +313,8 @@ export function parseCombatLine(
           base.isNpc = true;
           base.isDrone = isDroneWeapon(base.weapon);
           base.damageMultiplier = multiplierForOutcome(base.hitQuality ?? "");
+          const ws = classifyWeaponSystem(base.weapon);
+          if (ws !== WeaponSystemType.UNKNOWN) base.weaponSystemType = ws;
           break;
         }
 
@@ -327,6 +331,8 @@ export function parseCombatLine(
           base.isNpc = false;
           base.isDrone = isDroneWeapon(base.weapon);
           base.damageMultiplier = multiplierForOutcome(base.hitQuality ?? "");
+          const ws = classifyWeaponSystem(base.weapon);
+          if (ws !== WeaponSystemType.UNKNOWN) base.weaponSystemType = ws;
         }
         break;
       }
@@ -358,6 +364,8 @@ export function parseCombatLine(
           base.isNpc = false;
           base.isDrone = isDroneWeapon(base.weapon);
           base.damageMultiplier = multiplierForOutcome(base.hitQuality ?? "");
+          const ws = classifyWeaponSystem(base.weapon);
+          if (ws !== WeaponSystemType.UNKNOWN) base.weaponSystemType = ws;
           break;
         }
 
@@ -374,6 +382,8 @@ export function parseCombatLine(
           base.isNpc = true;
           base.isDrone = isDroneWeapon(base.weapon);
           base.damageMultiplier = multiplierForOutcome(base.hitQuality ?? "");
+          const ws = classifyWeaponSystem(base.weapon);
+          if (ws !== WeaponSystemType.UNKNOWN) base.weaponSystemType = ws;
           break;
         }
 
@@ -388,6 +398,7 @@ export function parseCombatLine(
           base.isNpc = true;
           base.isDrone = isDroneWeapon(base.shipType);
           base.damageMultiplier = multiplierForOutcome(base.hitQuality ?? "");
+          // No weapon string to classify here; weaponSystemType stays unset
           break;
         }
 
@@ -403,6 +414,9 @@ export function parseCombatLine(
           base.hitQuality = normalizeHitQuality(hitQualityRaw);
           base.isNpc = false;
           base.isDrone = base.weapon ? isDroneWeapon(base.weapon) : false;
+          base.damageMultiplier = multiplierForOutcome(base.hitQuality ?? "");
+          const ws = classifyWeaponSystem(base.weapon);
+          if (ws !== WeaponSystemType.UNKNOWN) base.weaponSystemType = ws;
         }
         break;
       }
