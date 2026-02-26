@@ -111,8 +111,7 @@ describe("Version Management", () => {
       const { GET: getVersionRoute } = await import(
         "../app/api/version/route"
       );
-      const request = new NextRequest("http://localhost/api/version");
-      const response = await getVersionRoute(request);
+      const response = await getVersionRoute();
       const data = await response.json();
 
       expect(response.status).toBe(200);

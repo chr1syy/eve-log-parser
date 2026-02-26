@@ -127,15 +127,6 @@ export default function DamageDealtChart({
     [fullPoints],
   );
 
-  // Filter to zoomed window if provided for other UI bits (tooltips / labels)
-  const visiblePoints = zoomedWindow
-    ? points.filter((p) => {
-        const t = p.timestamp.getTime();
-        return (
-          t >= zoomedWindow.start.getTime() && t <= zoomedWindow.end.getTime()
-        );
-      })
-    : points;
 
   // Expand window slightly so chart doesn't look empty if only 1 point is visible
   // (kept for parity with previous behaviour; not strictly used here).
@@ -235,7 +226,6 @@ export default function DamageDealtChart({
     // Setting transient sync indices in response to a brushIndexRange change
     // is intentional — disable the rule which warns about setState in
     // effects for this specific case.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSyncIndices(brushIndexRange);
     setBrushRemountKey(
       `${brushIndexRange.startIndex ?? 0}-${brushIndexRange.endIndex ?? 0}-${Date.now()}`,
@@ -246,6 +236,7 @@ export default function DamageDealtChart({
     // remains visible after we clear the controlled props.
     const id = window.setTimeout(() => setSyncIndices(undefined), 600);
     return () => window.clearTimeout(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [brushIndexRange?.startIndex, brushIndexRange?.endIndex]);
 
   // Recharts may render inline or with other stylesheet rules that win over
@@ -264,7 +255,7 @@ export default function DamageDealtChart({
         try {
           el.style.fill = "#00d4ff";
           el.style.fillOpacity = "0.36";
-        } catch (e) {
+        } catch {
           // ignore
         }
       });
@@ -277,7 +268,7 @@ export default function DamageDealtChart({
         try {
           el.style.fill = "#00d4ff";
           el.style.stroke = "rgba(2,6,23,0.8)";
-        } catch (e) {
+        } catch {
           // ignore
         }
       });
@@ -314,7 +305,6 @@ export default function DamageDealtChart({
     // Transiently set controlled indices to force the Brush travellers to
     // snap visually to the full domain. This is deliberate; silence the
     // rule here for clarity.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSyncIndices({ startIndex: 0, endIndex: lastIdx });
     setBrushRemountKey(`clear-${Date.now()}`);
     const id = window.setTimeout(() => setSyncIndices(undefined), 600);
@@ -328,7 +318,6 @@ export default function DamageDealtChart({
   useEffect(() => {
     if (resetKey === undefined) return;
     const lastIdx = Math.max(0, data.length - 1);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSyncIndices({ startIndex: 0, endIndex: lastIdx });
     setBrushRemountKey(`reset-${resetKey}-${Date.now()}`);
     const id = window.setTimeout(() => setSyncIndices(undefined), 600);

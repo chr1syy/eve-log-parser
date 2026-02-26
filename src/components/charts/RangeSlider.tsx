@@ -14,7 +14,6 @@ export default function RangeSlider({
   // Called when user finishes dragging (mouse up / touch end)
   onChangeComplete: (start: number, end: number) => void;
 }) {
-  const clamp = (v: number) => Math.max(0, Math.min(length - 1, v));
   const [left, setLeft] = useState(startIndex ?? 0);
   const [right, setRight] = useState(endIndex ?? Math.max(0, length - 1));
   const draggingRef = useRef<"left" | "right" | null>(null);

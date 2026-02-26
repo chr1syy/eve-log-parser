@@ -47,6 +47,9 @@ export interface LogEntry {
   corpTicker?: string; // e.g. "TGRAD"
   shipType?: string; // e.g. "Typhoon", "Arch Gistii Thug"
   isNpc?: boolean; // true if attacker has no corp ticker
+  // Fleet fields — set by mergeFleetLogs; original pilotName/shipType remain untouched
+  fleetPilot?: string; // the fleet member who owns this log entry
+  fleetShipType?: string; // that fleet member's ship type
 
   // Rep fields (rep-received, rep-outgoing)
   repShipType?: string; // ship type of repper or rep target (from <u> tag)

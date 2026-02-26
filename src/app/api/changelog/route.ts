@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readFileSync } from "fs";
 import { join } from "path";
-import type { CommitEntry, ChangelogResponse } from "../../../lib/types";
+import type { ChangelogResponse } from "../../../lib/types";
 
 export async function GET(
   request: NextRequest,
 ): Promise<NextResponse<ChangelogResponse>> {
   const { searchParams } = new URL(request.url);
-  const from = searchParams.get("from");
-  const to = searchParams.get("to");
   const limitParam = searchParams.get("limit");
   let limit = 50;
   if (limitParam !== null) {

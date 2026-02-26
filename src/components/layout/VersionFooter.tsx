@@ -16,7 +16,7 @@ export default function VersionFooter() {
           const data = await res.json();
           setVersionInfo(data);
         }
-      } catch (err) {
+      } catch {
         // Silently fail for footer
       } finally {
         setLoading(false);

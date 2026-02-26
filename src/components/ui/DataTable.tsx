@@ -21,6 +21,8 @@ interface DataTableProps<T> {
   searchPlaceholder?: string;
   emptyState?: ReactNode;
   rowKey?: (row: T, index: number) => string;
+  defaultSortKey?: string;
+  defaultSortDirection?: "asc" | "desc";
   // Optional click handler for rows (used by pages to make rows actionable)
   onRowClick?: (row: T) => void;
 }
@@ -40,10 +42,15 @@ export default function DataTable<T extends Record<string, unknown>>({
   searchPlaceholder = "SEARCH...",
   emptyState,
   rowKey,
+  defaultSortKey,
+  defaultSortDirection,
   onRowClick,
 }: DataTableProps<T>) {
   const [search, setSearch] = useState("");
-  const [sort, setSort] = useState<SortState>({ key: "", direction: null });
+  const [sort, setSort] = useState<SortState>({
+    key: defaultSortKey || "",
+    direction: defaultSortDirection || null,
+  });
   const [page, setPage] = useState(1);
 
   // Filter data by search query

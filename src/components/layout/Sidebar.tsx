@@ -10,10 +10,12 @@ import {
   Sword,
   ShieldAlert,
   Zap,
+  Users,
 } from "lucide-react";
 
 const navItems = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
+  { label: "Fleet", href: "/fleet", icon: Users, badge: "beta" },
   { label: "Upload", href: "/upload", icon: Upload },
   { label: "Raw Data", href: "/kills", icon: Database },
   { label: "Damage Out", href: "/damage-dealt", icon: Sword },
@@ -44,7 +46,7 @@ export default function Sidebar() {
 
       {/* Nav items */}
       <nav className="flex-1 py-2 overflow-y-auto">
-        {navItems.map(({ label, href, icon: Icon }) => {
+        {navItems.map(({ label, href, icon: Icon, badge }) => {
           const isActive = pathname === href;
           return (
             <Link
@@ -58,6 +60,11 @@ export default function Sidebar() {
             >
               <Icon className="w-5 h-5 flex-shrink-0" />
               <span className="uppercase tracking-wider">{label}</span>
+              {badge && (
+                <span className="ml-auto text-[10px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded border border-cyan-glow/40 text-cyan-glow/70">
+                  {badge}
+                </span>
+              )}
             </Link>
           );
         })}

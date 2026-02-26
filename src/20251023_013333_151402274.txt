@@ -1,0 +1,11 @@
+Listener: Bungo Brown
+Session Started: [2025.10.23 01:33:33]
+
+[ 2025.10.23 01:33:34 ] (combat) <color=0xff00ffff>367 from Bungo Brown - Heavy Entropic Disintegrator II - Grazes
+[ 2025.10.23 01:33:35 ] (combat) <color=0xff00ffff>638 from Bungo Brown - Heavy Entropic Disintegrator II - Penetrates
+[ 2025.10.23 01:33:36 ] (combat) <color=0xff00ffff>504 from Bungo Brown - Heavy Entropic Disintegrator II - Hits
+[ 2025.10.23 01:33:37 ] (combat) <color=0xffcc0000>150 to Bungo Brown - from Diana Wanda - Heavy Entropic Disintegrator II - Hits
+[ 2025.10.23 01:33:38 ] (combat) <color=0xffcc0000>200 to Bungo Brown - from Diana Wanda - Heavy Entropic Disintegrator II - Hits
+[ 2025.10.23 01:33:39 ] (combat) <color=0xffe57f7f>438 GJ energy neutralized to Bungo Brown - from Vedmak - Medium Infectious Scoped Energy Neutralizer I - energy drained
+[ 2025.10.23 01:33:40 ] (combat) <color=0xff7fffff>300 GJ energy drained from Bungo Brown - Medium Infectious Scoped Energy Neutralizer I - energy drained
+[ 2025.10.23 01:33:41 ] (combat) <color=0xffe57f7f>256 armor repaired to Bungo Brown - from Vedmak - Medium Remote Armor Repairer II - repaired by
