@@ -91,10 +91,10 @@ export async function GET(request: NextRequest) {
         // Ensure displayName is present when possible
         if (!meta.displayName) {
           // attempt to derive from characterName or fileName
-          if ((meta as any).characterName)
-            meta.displayName = (meta as any).characterName;
-          else if ((meta as any).fileName)
-            meta.displayName = (meta as any).fileName;
+          if ("characterName" in meta && typeof meta.characterName === "string")
+            meta.displayName = meta.characterName as string;
+          else if ("fileName" in meta && typeof meta.fileName === "string")
+            meta.displayName = meta.fileName as string;
         }
         metas.push(meta);
       } catch {

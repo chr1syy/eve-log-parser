@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateLogMetadata, getSession } from "@/lib/fleet/sessionStore";
+import type { FleetLog } from "@/types/fleet";
 
 export async function PATCH(
   request: NextRequest,
@@ -19,7 +20,9 @@ export async function PATCH(
       return NextResponse.json({ error: "Session not found" }, { status: 404 });
     }
 
-    const updates: Record<string, unknown> = {};
+    const updates: Partial<
+      Pick<FleetLog, "displayName" | "pilotName" | "shipType">
+    > = {};
     if (typeof displayName === "string") updates.displayName = displayName;
     if (typeof pilotName === "string") updates.pilotName = pilotName;
     if (typeof shipType === "string") updates.shipType = shipType;
@@ -31,7 +34,7 @@ export async function PATCH(
       );
     }
 
-    const updated = updateLogMetadata(id, logId, updates as any);
+    const updated = updateLogMetadata(id, logId, updates);
     if (!updated) {
       return NextResponse.json({ error: "Log not found" }, { status: 404 });
     }

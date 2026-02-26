@@ -3,10 +3,16 @@
 // The global variable pattern also survives Next.js HMR module re-evaluation.
 
 import { randomUUID } from "crypto";
-import { readFileSync, writeFileSync, existsSync } from "fs";
+import {
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  readdirSync,
+  statSync,
+} from "fs";
 import { join } from "path";
 import type { FleetSession, FleetLog, FleetSessionCode } from "@/types/fleet";
-import { readFileSync as rf, writeFileSync as wf } from "fs";
+// Note: avoid duplicate fs imports
 
 // ── Persistence ───────────────────────────────────────────────────────────────
 
@@ -202,17 +208,13 @@ export function getDisplayNameForLog(log: FleetLog): string {
   try {
     const uploadsDir = join(process.cwd(), "data", "uploads", log.sessionId);
     if (existsSync(uploadsDir)) {
-      const entries = readFileSync(uploadsDir, "utf-8");
-      // Use fs.readdirSync instead of readFileSync to list directory
+      // directory exists; we'll inspect files in the lazy block below
     }
   } catch {
     // ignore
   }
 
-  // We need to lazily require readdirSync/statSync to keep top imports small
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { readdirSync, statSync } = require("fs");
     const uploadsDir = join(process.cwd(), "data", "uploads", log.sessionId);
     if (existsSync(uploadsDir)) {
       const files = readdirSync(uploadsDir).filter((f: string) => {

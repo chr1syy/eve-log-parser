@@ -30,7 +30,7 @@ describe("updateLogMetadata", () => {
     const session = createSession("test-fight");
 
     const originalUploaded = new Date();
-    const log = {
+    const log: Partial<Record<string, unknown>> = {
       id: "log-123",
       sessionId: session.id,
       pilotName: "Orig Pilot",
@@ -38,7 +38,7 @@ describe("updateLogMetadata", () => {
       logData: "",
       uploadedAt: originalUploaded,
       pilotId: "pilot-1",
-    } as any;
+    };
 
     // Attach the log to the session
     updateSession(session.id, { logs: [log] });

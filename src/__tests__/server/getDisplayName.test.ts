@@ -17,7 +17,7 @@ describe("getDisplayNameForLog", () => {
   });
 
   it("prefers explicit displayName", () => {
-    const log: any = {
+    const log: Partial<Record<string, unknown>> = {
       id: "abc",
       sessionId: "s1",
       displayName: "My Fancy Log",
@@ -33,7 +33,7 @@ describe("getDisplayNameForLog", () => {
     const uploadsDir = join(process.cwd(), "data", "uploads", sessionId);
     mkdirSync(uploadsDir, { recursive: true });
 
-    const logNoDisplay: any = {
+    const logNoDisplay: Partial<Record<string, unknown>> = {
       id: "def12345",
       sessionId,
       pilotName: "Pilot Two",
@@ -42,7 +42,7 @@ describe("getDisplayNameForLog", () => {
     };
     expect(getDisplayNameForLog(logNoDisplay)).toBe("Pilot Two");
 
-    const logNoPilot: any = {
+    const logNoPilot: Partial<Record<string, unknown>> = {
       id: "def12346",
       sessionId,
       shipType: "Raven",
@@ -50,7 +50,7 @@ describe("getDisplayNameForLog", () => {
     };
     expect(getDisplayNameForLog(logNoPilot)).toBe("Char Two");
 
-    const logNoChar: any = {
+    const logNoChar: Partial<Record<string, unknown>> = {
       id: "def12347",
       sessionId,
       shipType: "Raven",
@@ -60,7 +60,7 @@ describe("getDisplayNameForLog", () => {
 
     // create an uploaded file to test filename pick
     writeFileSync(join(uploadsDir, "original.log"), "contents");
-    const logWithFile: any = {
+    const logWithFile: Partial<Record<string, unknown>> = {
       id: "def12348",
       sessionId,
       logData: "",

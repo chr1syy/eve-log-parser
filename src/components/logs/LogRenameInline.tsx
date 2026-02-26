@@ -19,7 +19,8 @@ export default function LogRenameInline({
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  useEffect(() => setName(value ?? ""), [value]);
+  // Initialize name from prop only when user starts editing to avoid
+  // calling setState synchronously inside an effect (causes cascading renders).
 
   useEffect(() => {
     if (editing && inputRef.current) inputRef.current.select();
@@ -89,7 +90,10 @@ export default function LogRenameInline({
           <span className="truncate">{value || placeholder || "Unnamed"}</span>
           <button
             type="button"
-            onClick={() => setEditing(true)}
+            onClick={() => {
+              setName(value ?? "");
+              setEditing(true);
+            }}
             aria-label="Rename log"
             className="text-text-muted hover:text-text-primary"
           >
