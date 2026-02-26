@@ -3,20 +3,34 @@ type: report
 title: Fight Boundaries Acceptance Checklist
 created: 2026-02-26
 tags:
+  - acceptance
   - fight-boundaries
 related:
-  - "[[FIGHT-BOUNDARIES-06-DOCS-AND-ACCEPTANCE]]"
+  - "[[Fight Boundaries — 06 Docs and Acceptance Criteria]]"
 ---
 
-This machine-readable acceptance checklist is intended for automated agents to verify the fight-boundaries feature.
+This machine-readable acceptance checklist defines assertions that an automated agent or test runner can verify for the `DamageDealtChart` fight boundaries feature.
 
 assertions:
 dotted_lines_present: true
 boundaries_match_damage_in: true
 responsive: true
 
+verification:
+
+- name: dotted_lines_present
+  description: "Chart renders dotted vertical separators for each fight boundary (CSS or SVG elements present)."
+  type: boolean
+  expected: true
+- name: boundaries_match_damage_in
+  description: "Detected boundaries align with damage-containing entries (e.g. boundary timestamps correspond to local minima/gaps in damage)."
+  type: boolean
+  expected: true
+- name: responsive
+  description: "Chart layout adapts to viewport size; separators remain visible and correctly positioned at common breakpoints."
+  type: boolean
+  expected: true
+
 notes:
 
-- `dotted_lines_present` expects the `DamageDealtChart` to render `ReferenceLine` elements with `strokeDasharray` set to `"4 4"` and stroke `#8892a4`.
-- `boundaries_match_damage_in` expects the timestamps produced by `detectFightBoundaries(entries)` to align with gaps in incoming damage series (i.e., boundaries correspond to fight starts where damage resumes after a gap).
-- `responsive` asserts that the chart layout adapts to container width/height changes (verified by rendering in different sizes or using `ResponsiveContainer`).
+- The assertions are intended to be consumed by test agents that can render the chart (headless or browser) and inspect DOM/SVG/CSS or run the boundary detection function `detectFightBoundaries(entries)` and compare results to rendered separators.
