@@ -1,4 +1,4 @@
-import { HitQuality, LogEntry, ParsedLog } from "@/lib/types";
+import { HitQuality, LogEntry, ParsedLog, WeaponSystemType } from "@/lib/types";
 import { computeStats } from "./computeStats";
 
 /**
@@ -80,6 +80,61 @@ export function extractUnderlinkText(raw: string): string | null {
 
 function isDroneWeapon(weapon?: string): boolean {
   return isDroneFromConfig(weapon);
+}
+
+/**
+ * Classify a weapon/system name into a WeaponSystemType.
+ * Uses simple case-insensitive substring matching against keyword lists.
+ */
+export function classifyWeaponSystem(name: string): WeaponSystemType {
+  if (!name || typeof name !== "string") return WeaponSystemType.UNKNOWN;
+  const s = name.toLowerCase();
+
+  const turretKeywords = [
+    "artillery",
+    "autocannon",
+    "gatling",
+    "rotary",
+    "laser",
+    "beam",
+    "pulse",
+    "railgun",
+    "blaster",
+  ];
+
+  const missileKeywords = [
+    "missile",
+    "rocket",
+    "torpedo",
+    "cruise",
+    "javelin",
+    "fury",
+    "torrent",
+    "nov(a)",
+  ];
+
+  const droneKeywords = [
+    "drone",
+    "infiltrator",
+    "wasp",
+    "hobgoblin",
+    "hornet",
+    "hobs",
+    "praetor",
+    "gecko",
+  ];
+
+  for (const k of turretKeywords)
+    if (s.includes(k)) return WeaponSystemType.TURRET;
+  for (const k of missileKeywords)
+    if (s.includes(k)) return WeaponSystemType.MISSILE;
+  for (const k of droneKeywords)
+    if (s.includes(k)) return WeaponSystemType.DRONE;
+
+  // Fallback: if config thinks it's a drone, classify as DRONE
+  if (isDroneWeapon(name)) return WeaponSystemType.DRONE;
+
+  return WeaponSystemType.UNKNOWN;
 }
 
 function normalizeHitQuality(raw: string): HitQuality {
