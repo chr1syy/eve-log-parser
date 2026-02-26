@@ -6,6 +6,7 @@ import { randomUUID } from "crypto";
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import { join } from "path";
 import type { FleetSession, FleetLog, FleetSessionCode } from "@/types/fleet";
+import { readFileSync as rf, writeFileSync as wf } from "fs";
 
 // ── Persistence ───────────────────────────────────────────────────────────────
 
@@ -26,7 +27,9 @@ function loadFromDisk(): Map<string, FleetSession> {
         createdAt: new Date(s.createdAt),
         logs: (s.logs ?? []).map((log) => ({
           ...(log as FleetLog & { uploadedAt: string }),
-          uploadedAt: new Date((log as unknown as { uploadedAt: string }).uploadedAt),
+          uploadedAt: new Date(
+            (log as unknown as { uploadedAt: string }).uploadedAt,
+          ),
         })),
       });
     }
@@ -56,8 +59,7 @@ declare global {
 
 // On first evaluation: load from disk. On HMR re-evaluation: reuse existing Map.
 const sessionStore: Map<string, FleetSession> =
-  global.__fleetSessionStore ??
-  (global.__fleetSessionStore = loadFromDisk());
+  global.__fleetSessionStore ?? (global.__fleetSessionStore = loadFromDisk());
 
 // ── Code generator ────────────────────────────────────────────────────────────
 
@@ -103,6 +105,31 @@ export function createSession(
 
 export function getSession(id: string): FleetSession | undefined {
   return sessionStore.get(id);
+}
+
+export function updateLogMetadata(
+  sessionId: string,
+  logId: string,
+  updates: Partial<Pick<FleetLog, "displayName" | "pilotName" | "shipType">>,
+): FleetLog | null {
+  const session = sessionStore.get(sessionId);
+  if (!session) return null;
+
+  const idx = session.logs.findIndex((l) => l.id === logId);
+  if (idx === -1) return null;
+
+  const existing = session.logs[idx];
+  const updated: FleetLog = { ...existing, ...updates };
+  // Ensure uploadedAt remains unchanged
+  updated.uploadedAt = existing.uploadedAt;
+
+  const newLogs = [...session.logs];
+  newLogs[idx] = updated;
+
+  const updatedSession: FleetSession = { ...session, logs: newLogs };
+  sessionStore.set(sessionId, updatedSession);
+  saveToDisk(sessionStore);
+  return updated;
 }
 
 export function findSessionByCode(code: string): FleetSession | undefined {
