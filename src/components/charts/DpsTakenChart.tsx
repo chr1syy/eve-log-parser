@@ -476,21 +476,23 @@ export default function DpsTakenChart({
               animationEasing="ease-out"
             />
           )}
-          {fightBoundaries.map((boundary, idx) => (
-            <ReferenceLine
-              key={idx}
-              x={boundary.timestamp}
-              stroke="#8892a4"
-              strokeDasharray="4 4"
-              label={{
-                value: boundary.label,
-                position: "top",
-                fill: "#8892a4",
-                fontSize: 10,
-                fontFamily: "JetBrains Mono, monospace",
-              }}
-            />
-          ))}
+          {fightBoundaries
+            .filter((b) => b.timestamp >= domainMin && b.timestamp <= domainMax)
+            .map((boundary, idx) => (
+              <ReferenceLine
+                key={idx}
+                x={boundary.timestamp}
+                stroke="#8892a4"
+                strokeDasharray="4 4"
+                label={{
+                  value: boundary.label,
+                  position: "top",
+                  fill: "#8892a4",
+                  fontSize: 10,
+                  fontFamily: "JetBrains Mono, monospace",
+                }}
+              />
+            ))}
           {onRangeSelect && (
             <>
               <Brush

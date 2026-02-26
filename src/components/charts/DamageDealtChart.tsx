@@ -433,14 +433,16 @@ export default function DamageDealtChart({
 
           {/* Tackle windows as blue reference areas */}
           {/* Fight boundary vertical markers (render behind data series) */}
-          {(fightBoundaries ?? []).map((ts, i) => (
-            <ReferenceLine
-              key={`fb-${i}`}
-              x={ts}
-              stroke="#8892a4"
-              strokeDasharray="4 4"
-            />
-          ))}
+          {(fightBoundaries ?? [])
+            .filter((ts) => ts >= domainMin && ts <= domainMax)
+            .map((ts, i) => (
+              <ReferenceLine
+                key={`fb-${i}`}
+                x={ts}
+                stroke="#8892a4"
+                strokeDasharray="4 4"
+              />
+            ))}
           {visibleTackleWindows.map((w, i) => (
             <ReferenceArea
               key={i}
