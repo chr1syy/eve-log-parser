@@ -11,7 +11,9 @@ import {
   ResponsiveContainer,
   ReferenceArea,
   Brush,
-  ReferenceLine,
+  // Use a small test-friendly wrapper so unit tests can inspect stroke props
+  // and the integration test mock can still override Recharts as needed.
+  ReferenceLine as RawReferenceLine,
 } from "recharts";
 import { useEffect, useMemo, useRef, useState } from "react";
 // RangeSlider was experimental and removed — prefer Recharts Brush for selection
@@ -102,6 +104,8 @@ function CustomTooltip({ active, payload, tackleWindows }: any) {
     </div>
   );
 }
+
+import TestReferenceLine from "./TestReferenceLine";
 
 export default function DamageDealtChart({
   series,
@@ -436,7 +440,7 @@ export default function DamageDealtChart({
           {(fightBoundaries ?? [])
             .filter((ts) => ts >= domainMin && ts <= domainMax)
             .map((ts, i) => (
-              <ReferenceLine
+              <TestReferenceLine
                 key={`fb-${i}`}
                 x={ts}
                 stroke="#8892a4"

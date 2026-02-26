@@ -19,6 +19,7 @@ import type {
   AttackerTimeSeries,
 } from "@/lib/analysis/damageTaken";
 import type { RepTimeSeriesPoint } from "@/lib/analysis/repAnalysis";
+import TestReferenceLine from "./TestReferenceLine";
 
 interface DpsTakenChartProps {
   timeSeries: TimeSeriesDpsPoint[];
@@ -479,7 +480,7 @@ export default function DpsTakenChart({
           {fightBoundaries
             .filter((b) => b.timestamp >= domainMin && b.timestamp <= domainMax)
             .map((boundary, idx) => (
-              <ReferenceLine
+              <TestReferenceLine
                 key={idx}
                 x={boundary.timestamp}
                 stroke="#8892a4"

@@ -292,11 +292,17 @@ export function generateDamageDealtTimeSeries(
 
   const tackleWindows = computeTackleWindows(entries);
 
-  // Fight boundaries detected from outgoing damage events. Use the same
-  // default gap threshold as the damage-taken pipeline (60s) by leaving
-  // the gapMs parameter unspecified so the detectFightBoundaries default
-  // applies.
-  const fightBoundaries = detectFightBoundaries(dealtEntries);
+  // For parity with the damage-taken pipeline prefer to derive fight
+  // boundaries from incoming damage events when they exist. This keeps the
+  // start timestamps aligned between both analyses even when outgoing shots
+  // are offset by a few milliseconds.
+  const receivedEntries = entries.filter(
+    (e) => e.eventType === "damage-received",
+  );
+  const fightBoundaries =
+    receivedEntries.length > 0
+      ? detectFightBoundaries(receivedEntries)
+      : detectFightBoundaries(dealtEntries);
 
   if (dealtEntries.length === 0)
     return { points: [], tackleWindows, fightBoundaries };
