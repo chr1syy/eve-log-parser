@@ -15,45 +15,49 @@ describe("fleetAnalysis", () => {
   const baseTime = new Date("2023-01-01T12:00:00Z");
 
   const mockEntries: LogEntry[] = [
-    // Damage dealt by pilot1 to enemy1
+    // Damage dealt by pilot1
     {
       id: "1",
       timestamp: new Date(baseTime.getTime() + 1000),
       rawLine: "damage1",
       eventType: "damage-dealt",
       amount: 100,
+      fleetPilot: "Pilot1",
       pilotName: "Pilot1",
       shipType: "Typhoon",
       weapon: "Heavy Entropic Disintegrator II",
     },
-    // Damage dealt by pilot2 to enemy2
+    // Damage dealt by pilot2
     {
       id: "2",
       timestamp: new Date(baseTime.getTime() + 2000),
       rawLine: "damage2",
       eventType: "damage-dealt",
       amount: 150,
+      fleetPilot: "Pilot2",
       pilotName: "Pilot2",
       shipType: "Tempest",
       weapon: "Nova Cruise Missile",
     },
-    // Damage received by pilot1 from enemy1
+    // Damage received by pilot1
     {
       id: "3",
       timestamp: new Date(baseTime.getTime() + 3000),
       rawLine: "damage3",
       eventType: "damage-received",
       amount: 50,
+      fleetPilot: "Pilot1",
       pilotName: "Pilot1",
       shipType: "Typhoon",
     },
-    // Damage received by pilot2 from enemy2
+    // Damage received by pilot2
     {
       id: "4",
       timestamp: new Date(baseTime.getTime() + 4000),
       rawLine: "damage4",
       eventType: "damage-received",
       amount: 75,
+      fleetPilot: "Pilot2",
       pilotName: "Pilot2",
       shipType: "Tempest",
     },
@@ -64,6 +68,7 @@ describe("fleetAnalysis", () => {
       rawLine: "rep1",
       eventType: "rep-outgoing",
       amount: 200,
+      fleetPilot: "Pilot1",
       pilotName: "Pilot1",
       shipType: "Typhoon",
       repShipType: "Tempest",
@@ -76,27 +81,30 @@ describe("fleetAnalysis", () => {
       rawLine: "rep2",
       eventType: "rep-received",
       amount: 200,
+      fleetPilot: "Pilot2",
       pilotName: "Pilot2",
       shipType: "Tempest",
     },
-    // Cap drained from pilot1 by enemy1
+    // Cap drained from pilot1
     {
       id: "7",
       timestamp: new Date(baseTime.getTime() + 6000),
       rawLine: "cap1",
       eventType: "neut-received",
       capAmount: 100,
+      fleetPilot: "Pilot1",
       pilotName: "Pilot1",
       shipType: "Typhoon",
       capModule: "Heavy Energy Neutralizer II",
     },
-    // Cap dealt by enemy1 to pilot1
+    // Neut dealt by pilot1 (Pilot1 used a neutralizer on Enemy1)
     {
       id: "8",
       timestamp: new Date(baseTime.getTime() + 6000),
       rawLine: "cap2",
       eventType: "neut-dealt",
       capAmount: 100,
+      fleetPilot: "Pilot1",
       pilotName: "Enemy1",
       shipType: "Confessor",
     },
@@ -153,8 +161,8 @@ describe("fleetAnalysis", () => {
 
       expect(result.byPilot.get("Pilot1")).toBe(100);
       expect(result.byPilot.get("Pilot2")).toBe(150);
-      expect(result.byTarget.get("Confessor")).toBe(120); // Enemy1 target
-      expect(result.byTarget.get("Vexor")).toBe(180); // Enemy2 target
+      expect(result.byTarget.get("Enemy1")).toBe(120); // entry 9: no fleetPilot, pilotName=Enemy1
+      expect(result.byTarget.get("Enemy2")).toBe(180); // entry 10: no fleetPilot, pilotName=Enemy2
       expect(result.byType.get("Heavy Entropic Disintegrator II")).toBe(100);
       expect(result.byType.get("Nova Cruise Missile")).toBe(150);
     });
@@ -166,8 +174,8 @@ describe("fleetAnalysis", () => {
 
       expect(result.byPilot.get("Pilot1")).toBe(50);
       expect(result.byPilot.get("Pilot2")).toBe(75);
-      expect(result.bySource.get("Typhoon")).toBe(50);
-      expect(result.bySource.get("Tempest")).toBe(75);
+      expect(result.bySource.get("Pilot1")).toBe(50); // pilotName on damage-received entry
+      expect(result.bySource.get("Pilot2")).toBe(75);
     });
   });
 
@@ -191,7 +199,7 @@ describe("fleetAnalysis", () => {
       const result = aggregateCapPressure(mockEntries);
 
       expect(result.capDrained.get("Pilot1")).toBe(100);
-      expect(result.capDrainers).toContain("Enemy1");
+      expect(result.capDrainers).toContain("Pilot1"); // Pilot1 used a neutralizer
     });
   });
 
@@ -243,6 +251,7 @@ describe("fleetAnalysis", () => {
           rawLine: "damage_p3",
           eventType: "damage-dealt" as const,
           amount: 200,
+          fleetPilot: "Pilot3",
           pilotName: "Pilot3",
           shipType: "Apocalypse",
           weapon: "Mega Pulse Laser II",

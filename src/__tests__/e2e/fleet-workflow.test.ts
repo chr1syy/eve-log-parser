@@ -104,7 +104,7 @@ describe("Fleet Workflow E2E Tests", () => {
       expect(getRes.participants).toHaveLength(1);
       expect(getRes.participants[0].pilotName).toBe("PilotA");
       expect(getRes.participants[0].status).toBe("active");
-      expect(getRes.analysisReady).toBe(true);
+      expect(getRes.analysisReady).toBe(false);
     });
   });
 
@@ -219,7 +219,7 @@ describe("Fleet Workflow E2E Tests", () => {
         {} as any,
         { params: { id: sessionId } } as any,
       )) as any;
-      expect(getRes.analysisReady).toBe(true);
+      expect(getRes.analysisReady).toBe(false);
       expect(getRes.logs).toHaveLength(2);
     });
   });

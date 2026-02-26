@@ -204,7 +204,7 @@ Session Started: 2025.10.23 20:00:00
         {} as any,
         { params: { id: sessionId } } as any,
       )) as any;
-      expect(getRes.analysisReady).toBe(true);
+      expect(getRes.analysisReady).toBe(false);
       expect(getRes.logs).toHaveLength(2);
     });
   });
