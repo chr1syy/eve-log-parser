@@ -272,13 +272,9 @@ describe("Fleet Navigation & Integration Tests", () => {
       );
 
       const codeInput = screen.getByLabelText("Fleet Session Code");
-      const pilotInput = screen.getByLabelText("Pilot Name");
-      const shipInput = screen.getByLabelText("Ship Type (Optional)");
       const submitButton = screen.getByRole("button", { name: "Join Session" });
 
       await user.type(codeInput, "FLEET-ABC123");
-      await user.type(pilotInput, "Pilot One");
-      await user.type(shipInput, "Drake");
       await user.click(submitButton);
 
       // Verify API call
@@ -287,11 +283,7 @@ describe("Fleet Navigation & Integration Tests", () => {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            code: "FLEET-ABC123",
-            pilotName: "Pilot One",
-            shipType: "Drake",
-          }),
+          body: JSON.stringify({ code: "FLEET-ABC123" }),
         },
       );
 
@@ -315,11 +307,9 @@ describe("Fleet Navigation & Integration Tests", () => {
       );
 
       const codeInput = screen.getByLabelText("Fleet Session Code");
-      const pilotInput = screen.getByLabelText("Pilot Name");
       const submitButton = screen.getByRole("button", { name: "Join Session" });
 
       await user.type(codeInput, "INVALID");
-      await user.type(pilotInput, "Pilot One");
       await user.click(submitButton);
 
       await waitFor(() => {
@@ -347,11 +337,9 @@ describe("Fleet Navigation & Integration Tests", () => {
       );
 
       const codeInput = screen.getByLabelText("Fleet Session Code");
-      const pilotInput = screen.getByLabelText("Pilot Name");
       const submitButton = screen.getByRole("button", { name: "Join Session" });
 
       await user.type(codeInput, "FLEET-WRONG0");
-      await user.type(pilotInput, "Pilot One");
       await user.click(submitButton);
 
       await waitFor(() => {

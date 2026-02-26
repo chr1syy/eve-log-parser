@@ -7,8 +7,6 @@ import Button from "@/components/ui/Button";
 
 export default function JoinFleetSessionPage() {
   const [code, setCode] = useState("");
-  const [pilotName, setPilotName] = useState("");
-  const [shipType, setShipType] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -30,7 +28,7 @@ export default function JoinFleetSessionPage() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code, pilotName, shipType }),
+          body: JSON.stringify({ code }),
         },
       );
 
@@ -90,41 +88,6 @@ export default function JoinFleetSessionPage() {
               className="w-full px-3 py-2 bg-bg-secondary border border-border rounded text-text-primary placeholder-text-muted font-mono"
               placeholder="FLEET-XXXXXX"
               required
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="pilotName"
-              className="block text-sm font-medium text-text-primary mb-2"
-            >
-              Pilot Name
-            </label>
-            <input
-              id="pilotName"
-              type="text"
-              value={pilotName}
-              onChange={(e) => setPilotName(e.target.value)}
-              className="w-full px-3 py-2 bg-bg-secondary border border-border rounded text-text-primary placeholder-text-muted font-mono"
-              placeholder="Your pilot name"
-              required
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="shipType"
-              className="block text-sm font-medium text-text-primary mb-2"
-            >
-              Ship Type (Optional)
-            </label>
-            <input
-              id="shipType"
-              type="text"
-              value={shipType}
-              onChange={(e) => setShipType(e.target.value)}
-              className="w-full px-3 py-2 bg-bg-secondary border border-border rounded text-text-primary placeholder-text-muted font-mono"
-              placeholder="e.g. Drake, Abaddon"
             />
           </div>
 

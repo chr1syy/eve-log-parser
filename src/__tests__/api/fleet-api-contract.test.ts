@@ -351,11 +351,7 @@ describe("API Contract Tests", () => {
 
     it("accepts correct code", async () => {
       const mockRequest = {
-        json: vi.fn().mockResolvedValue({
-          code: sessionCode,
-          pilotName: "Test Pilot",
-          shipType: "Typhoon",
-        }),
+        json: vi.fn().mockResolvedValue({ code: sessionCode }),
       } as any;
 
       const response = await joinSession(mockRequest, {
@@ -369,9 +365,7 @@ describe("API Contract Tests", () => {
 
     it("rejects incorrect code", async () => {
       const mockRequest = {
-        json: vi
-          .fn()
-          .mockResolvedValue({ code: "WRONG", pilotName: "Test Pilot" }),
+        json: vi.fn().mockResolvedValue({ code: "WRONG" }),
       } as any;
 
       const response = await joinSession(mockRequest, {
@@ -384,16 +378,16 @@ describe("API Contract Tests", () => {
       );
     });
 
-    it("returns 400 for missing required fields", async () => {
+    it("returns 404 for missing code", async () => {
       const mockRequest = {
-        json: vi.fn().mockResolvedValue({}), // Missing code and pilotName
+        json: vi.fn().mockResolvedValue({}), // Missing code
       } as any;
 
       const response = await joinSession(mockRequest, {
         params: Promise.resolve({ id: sessionId }),
       } as any);
       expect((response as any).success).toBe(false);
-      expect((response as any).message).toBe("Pilot name is required");
+      expect((response as any).message).toBe("Invalid code or session not found");
     });
   });
 });

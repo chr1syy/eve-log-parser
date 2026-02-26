@@ -39,7 +39,7 @@ describe("JoinFleetSessionPage", () => {
     });
   });
 
-  it("renders join form with code input", () => {
+  it("renders join form with code input only", () => {
     render(
       <TestWrapper>
         <JoinFleetSessionPage />
@@ -48,8 +48,8 @@ describe("JoinFleetSessionPage", () => {
 
     expect(screen.getByText("Join Fleet Session")).toBeInTheDocument();
     expect(screen.getByLabelText("Fleet Session Code")).toBeInTheDocument();
-    expect(screen.getByLabelText("Pilot Name")).toBeInTheDocument();
-    expect(screen.getByLabelText("Ship Type (Optional)")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Pilot Name")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Ship Type (Optional)")).not.toBeInTheDocument();
     expect(screen.getByPlaceholderText("FLEET-XXXXXX")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Join Session" }),
@@ -71,7 +71,7 @@ describe("JoinFleetSessionPage", () => {
     expect(input).toHaveValue("FLEET-ABC123");
   });
 
-  it("calls API on form submission with valid code", async () => {
+  it("calls API on form submission with only code", async () => {
     const user = userEvent.setup();
 
     render(
@@ -84,8 +84,6 @@ describe("JoinFleetSessionPage", () => {
       screen.getByLabelText("Fleet Session Code"),
       "FLEET-ABC123",
     );
-    await user.type(screen.getByLabelText("Pilot Name"), "Pilot One");
-    await user.type(screen.getByLabelText("Ship Type (Optional)"), "Drake");
     await user.click(screen.getByRole("button", { name: "Join Session" }));
 
     await waitFor(() => {
@@ -94,11 +92,7 @@ describe("JoinFleetSessionPage", () => {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            code: "FLEET-ABC123",
-            pilotName: "Pilot One",
-            shipType: "Drake",
-          }),
+          body: JSON.stringify({ code: "FLEET-ABC123" }),
         },
       );
     });
@@ -114,7 +108,6 @@ describe("JoinFleetSessionPage", () => {
     );
 
     await user.type(screen.getByLabelText("Fleet Session Code"), "INVALID");
-    await user.type(screen.getByLabelText("Pilot Name"), "Pilot One");
     await user.click(screen.getByRole("button", { name: "Join Session" }));
 
     expect(
@@ -143,7 +136,6 @@ describe("JoinFleetSessionPage", () => {
       screen.getByLabelText("Fleet Session Code"),
       "FLEET-ABC123",
     );
-    await user.type(screen.getByLabelText("Pilot Name"), "Pilot One");
     await user.click(screen.getByRole("button", { name: "Join Session" }));
 
     await waitFor(() => {
@@ -169,7 +161,6 @@ describe("JoinFleetSessionPage", () => {
       screen.getByLabelText("Fleet Session Code"),
       "FLEET-ABC123",
     );
-    await user.type(screen.getByLabelText("Pilot Name"), "Pilot One");
     await user.click(screen.getByRole("button", { name: "Join Session" }));
 
     await waitFor(() => {
@@ -192,7 +183,6 @@ describe("JoinFleetSessionPage", () => {
       screen.getByLabelText("Fleet Session Code"),
       "FLEET-ABC123",
     );
-    await user.type(screen.getByLabelText("Pilot Name"), "Pilot One");
     await user.click(screen.getByRole("button", { name: "Join Session" }));
 
     await waitFor(() => {

@@ -156,7 +156,6 @@ describe("FleetSessionDetailPage", () => {
 
     // A second upload form should now be visible
     expect(screen.getAllByText("Log File (.txt)").length).toBeGreaterThan(1);
-    expect(screen.getAllByText(/Pilot Name/).length).toBeGreaterThan(1);
     expect(screen.getAllByText("Ship Type (Optional)").length).toBeGreaterThan(
       1,
     );

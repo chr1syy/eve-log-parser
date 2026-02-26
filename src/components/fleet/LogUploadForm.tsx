@@ -13,13 +13,12 @@ export default function LogUploadForm({
   onSuccess,
 }: LogUploadFormProps) {
   const [file, setFile] = useState<File | null>(null);
-  const [pilotName, setPilotName] = useState("");
   const [shipType, setShipType] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
       if (!selectedFile.name.endsWith(".txt")) {
@@ -35,18 +34,6 @@ export default function LogUploadForm({
       }
       setFile(selectedFile);
       setError(null);
-
-      if (!pilotName.trim()) {
-        try {
-          const text = await selectedFile.text();
-          const listenerMatch = text.match(/^Listener:\s+(.+)$/m);
-          if (listenerMatch) {
-            setPilotName(listenerMatch[1].trim());
-          }
-        } catch {
-          // ignore read errors
-        }
-      }
     }
   };
 
@@ -63,9 +50,6 @@ export default function LogUploadForm({
     try {
       const formData = new FormData();
       formData.append("file", file);
-      if (pilotName.trim()) {
-        formData.append("pilotName", pilotName.trim());
-      }
       if (shipType.trim()) {
         formData.append("shipType", shipType.trim());
       }
@@ -83,7 +67,6 @@ export default function LogUploadForm({
 
       setSuccess(true);
       setFile(null);
-      setPilotName("");
       setShipType("");
       onSuccess();
     } catch (err) {
@@ -129,23 +112,6 @@ export default function LogUploadForm({
             {file ? file.name : "No file selected"}
           </span>
         </div>
-      </div>
-
-      <div>
-        <label
-          htmlFor="pilotName"
-          className="block text-base font-medium text-text-primary mb-2"
-        >
-          Pilot Name (auto-detect if blank)
-        </label>
-        <input
-          id="pilotName"
-          type="text"
-          value={pilotName}
-          onChange={(e) => setPilotName(e.target.value)}
-          className="w-full px-3 py-2 bg-bg-secondary border border-border rounded text-text-primary placeholder-text-muted"
-          placeholder="Leave blank to auto-detect"
-        />
       </div>
 
       <div>

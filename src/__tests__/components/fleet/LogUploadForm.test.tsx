@@ -22,11 +22,11 @@ describe("LogUploadForm", () => {
     mockOnSuccess.mockClear();
   });
 
-  it("renders form with file and pilot name inputs", () => {
+  it("renders form with file and ship type inputs only", () => {
     render(<LogUploadForm sessionId={sessionId} onSuccess={mockOnSuccess} />);
 
     expect(screen.getByLabelText("Log File (.txt)")).toBeInTheDocument();
-    expect(screen.getByLabelText(/Pilot Name/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Pilot Name/)).not.toBeInTheDocument();
     expect(screen.getByLabelText("Ship Type (Optional)")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Upload Log" }),
@@ -64,7 +64,7 @@ describe("LogUploadForm", () => {
     ).toBeInTheDocument();
   });
 
-  it("submits form and calls upload API", async () => {
+  it("submits form with file and optional ship type, no pilot name field", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve({ message: "Upload successful" }),
@@ -73,18 +73,12 @@ describe("LogUploadForm", () => {
     render(<LogUploadForm sessionId={sessionId} onSuccess={mockOnSuccess} />);
 
     const fileInput = screen.getByLabelText("Log File (.txt)");
-    const pilotInput = screen.getByLabelText(/Pilot Name/);
     const shipInput = screen.getByLabelText("Ship Type (Optional)");
     const submitButton = screen.getByRole("button", { name: "Upload Log" });
 
     const file = createMockFile("combat-log.txt");
     fireEvent.change(fileInput, { target: { files: [file] } });
-    fireEvent.change(pilotInput, { target: { value: "Test Pilot" } });
     fireEvent.change(shipInput, { target: { value: "Drake" } });
-
-    await waitFor(() => {
-      expect(pilotInput).toHaveValue("Test Pilot");
-    });
 
     const form = submitButton.closest("form");
     expect(form).not.toBeNull();
@@ -100,11 +94,11 @@ describe("LogUploadForm", () => {
       );
     });
 
-    // Check FormData contents
+    // Check FormData contents — no pilotName, only file and shipType
     const formData = mockFetch.mock.calls[0][1].body;
     expect(formData.get("file")).toEqual(file);
-    expect(formData.get("pilotName")).toBe("Test Pilot");
     expect(formData.get("shipType")).toBe("Drake");
+    expect(formData.get("pilotName")).toBeNull();
   });
 
   it("triggers success callback and clears form on successful upload", async () => {
@@ -116,16 +110,10 @@ describe("LogUploadForm", () => {
     render(<LogUploadForm sessionId={sessionId} onSuccess={mockOnSuccess} />);
 
     const fileInput = screen.getByLabelText("Log File (.txt)");
-    const pilotInput = screen.getByLabelText(/Pilot Name/);
     const submitButton = screen.getByRole("button", { name: "Upload Log" });
 
     const file = createMockFile("combat-log.txt");
     fireEvent.change(fileInput, { target: { files: [file] } });
-    fireEvent.change(pilotInput, { target: { value: "Test Pilot" } });
-
-    await waitFor(() => {
-      expect(pilotInput).toHaveValue("Test Pilot");
-    });
 
     const form = submitButton.closest("form");
     expect(form).not.toBeNull();
@@ -151,16 +139,10 @@ describe("LogUploadForm", () => {
     render(<LogUploadForm sessionId={sessionId} onSuccess={mockOnSuccess} />);
 
     const fileInput = screen.getByLabelText("Log File (.txt)");
-    const pilotInput = screen.getByLabelText(/Pilot Name/);
     const submitButton = screen.getByRole("button", { name: "Upload Log" });
 
     const file = createMockFile("combat-log.txt");
     fireEvent.change(fileInput, { target: { files: [file] } });
-    fireEvent.change(pilotInput, { target: { value: "Test Pilot" } });
-
-    await waitFor(() => {
-      expect(pilotInput).toHaveValue("Test Pilot");
-    });
 
     const form = submitButton.closest("form");
     expect(form).not.toBeNull();
@@ -179,16 +161,10 @@ describe("LogUploadForm", () => {
     render(<LogUploadForm sessionId={sessionId} onSuccess={mockOnSuccess} />);
 
     const fileInput = screen.getByLabelText("Log File (.txt)");
-    const pilotInput = screen.getByLabelText(/Pilot Name/);
     const submitButton = screen.getByRole("button", { name: "Upload Log" });
 
     const file = createMockFile("combat-log.txt");
     fireEvent.change(fileInput, { target: { files: [file] } });
-    fireEvent.change(pilotInput, { target: { value: "Test Pilot" } });
-
-    await waitFor(() => {
-      expect(pilotInput).toHaveValue("Test Pilot");
-    });
 
     const form = submitButton.closest("form");
     expect(form).not.toBeNull();
