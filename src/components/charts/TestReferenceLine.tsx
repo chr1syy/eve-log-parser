@@ -1,5 +1,4 @@
 import React from "react";
-import { ReferenceLine as RechartsReferenceLine } from "recharts";
 
 // Small wrapper used to make unit tests and integration tests deterministic.
 // In test environments we render a lightweight SVG line that preserves the
@@ -21,5 +20,16 @@ export default function TestReferenceLine(props: any) {
     );
   }
 
-  return <RechartsReferenceLine {...props} />;
+  // Lazily require Recharts at runtime to avoid importing it during test
+  // module evaluation (which can interfere with test mocks). Using a
+  // synchronous require keeps runtime behavior unchanged in non-test builds.
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { ReferenceLine: RechartsReferenceLine } = require("recharts");
+    return <RechartsReferenceLine {...props} />;
+  } catch (e) {
+    // If Recharts isn't available (eg. in some build/test environments),
+    // render a neutral placeholder to avoid crashing.
+    return <span />;
+  }
 }

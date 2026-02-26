@@ -524,10 +524,59 @@ export function generateDamageDealtTimeSeries(
           badHitPct: badPctLocal,
         });
       }
+      if (process.env.NODE_ENV === "test") {
+        try {
+          const dealtTs = resampled.map((p) => p.timestamp.getTime());
+          const takenTs = taken.dpsTimeSeries.map((p) => p.timestamp.getTime());
+          console.debug(
+            "[fb-debug] dealtPoints:",
+            dealtTs.length,
+            Math.min(...dealtTs),
+            Math.max(...dealtTs),
+          );
+          console.debug(
+            "[fb-debug] takenPoints:",
+            takenTs.length,
+            Math.min(...takenTs),
+            Math.max(...takenTs),
+          );
+          console.debug("[fb-debug] firstBoundary:", fightBoundaries[0]);
+        } catch (e) {
+          // ignore debug errors
+        }
+      }
       return { points: resampled, tackleWindows, fightBoundaries };
     }
   } catch (e) {
     // ignore and fall back to previously computed points
+  }
+
+  if (process.env.NODE_ENV === "test") {
+    try {
+      const dealtTs = points.map((p) => p.timestamp.getTime());
+      console.debug(
+        "[fb-debug] dealtPoints:",
+        dealtTs.length,
+        Math.min(...dealtTs),
+        Math.max(...dealtTs),
+      );
+      // attempt to show damage-taken timeline if available
+      try {
+        const taken = analyzeDamageTaken(entries);
+        const takenTs = taken.dpsTimeSeries.map((p) => p.timestamp.getTime());
+        console.debug(
+          "[fb-debug] takenPoints:",
+          takenTs.length,
+          Math.min(...takenTs),
+          Math.max(...takenTs),
+        );
+      } catch (e) {
+        // ignore
+      }
+      console.debug("[fb-debug] firstBoundary:", fightBoundaries[0]);
+    } catch (e) {
+      // ignore
+    }
   }
 
   return { points, tackleWindows, fightBoundaries };
