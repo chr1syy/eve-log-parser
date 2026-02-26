@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession, deleteSession } from "@/lib/fleet/sessionStore";
+import {
+  getSession,
+  deleteSession,
+  getDisplayNameForLog,
+} from "@/lib/fleet/sessionStore";
 import { mergeFleetLogs, matchLogsByTimestamp } from "@/lib/fleet/logMerging";
 import { calculateParticipantStats } from "@/lib/fleet/participantStats";
 import type { ParsedLog } from "@/lib/types";
@@ -72,10 +76,13 @@ export async function GET(
       participants: computedParticipants,
     };
 
-    // Ensure each returned log includes displayName (derived on server)
+    // Ensure each returned log includes displayName (derived on server).
+    // If a log has an explicit displayName stored, prefer it; otherwise
+    // derive one server-side using getDisplayNameForLog to keep client
+    // rendering consistent.
     const logsWithDisplay = session.logs.map((l) => ({
       ...l,
-      displayName: l.displayName ?? undefined,
+      displayName: l.displayName ?? getDisplayNameForLog(l),
     }));
 
     return NextResponse.json({
