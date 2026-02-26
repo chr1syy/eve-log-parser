@@ -165,3 +165,12 @@ export interface CommitEntry {
 export interface ChangelogResponse {
   commits: CommitEntry[];
 }
+
+// Time series for tracking quality (rolling window)
+export interface TrackingSeries {
+  timestamp: number; // window end timestamp (ms since epoch)
+  trackingQuality: number; // average damageMultiplier inside window
+  shotCount: number; // total shots (hits+misses) in window
+  hitCount: number; // number of hit events in window
+  missCount: number; // number of miss events in window
+}
