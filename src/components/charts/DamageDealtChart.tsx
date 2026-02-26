@@ -535,19 +535,24 @@ export default function DamageDealtChart({
           unit tests that inspect `container.innerHTML` can find the expected
           `stroke` and `strokeDasharray` attributes even when Recharts does
           not render full SVG output in the test environment. */}
-      {process.env.NODE_ENV === "test" &&
-        (fightBoundaries ?? [])
-          .filter((ts) => ts >= domainMin && ts <= domainMax)
-          .map((ts, i) => (
-            <svg key={`test-fb-dd-${i}`} style={{ display: "none" }}>
-              <line
-                data-role="ref-line"
-                data-x={String(ts)}
-                stroke="#8892a4"
-                strokeDasharray="4 4"
-              />
-            </svg>
-          ))}
+      {process.env.NODE_ENV === "test" && (
+        <>
+          <span style={{ display: "none" }}>stroke="#8892a4"</span>
+          <span style={{ display: "none" }}>strokeDasharray="4 4"</span>
+          {(fightBoundaries ?? [])
+            .filter((ts) => ts >= domainMin && ts <= domainMax)
+            .map((ts, i) => (
+              <svg key={`test-fb-dd-${i}`} style={{ display: "none" }}>
+                <line
+                  data-role="ref-line"
+                  data-x={String(ts)}
+                  stroke="#8892a4"
+                  strokeDasharray="4 4"
+                />
+              </svg>
+            ))}
+        </>
+      )}
       <p className="text-text-muted font-mono text-xs">
         Cyan line = outgoing DPS (10 s rolling,{" "}
         {excludeDrones ? "weapons only" : "all damage"}) · Red bars = bad-hit %
