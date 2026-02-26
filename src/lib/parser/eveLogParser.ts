@@ -282,6 +282,7 @@ export function parseCombatLine(
         }
 
         // NPC no weapon: amount from EntityName - hitQuality
+        // EntityName may itself be a drone (e.g. "Hobgoblin II")
         const npcNoWeapon = clean.match(/^(\d+)\s+from\s+(.+?)\s+-\s+(.+)$/);
         if (npcNoWeapon) {
           const [, amount, shipType, hitQualityRaw] = npcNoWeapon;
@@ -289,6 +290,7 @@ export function parseCombatLine(
           base.shipType = shipType.trim();
           base.hitQuality = normalizeHitQuality(hitQualityRaw);
           base.isNpc = true;
+          base.isDrone = isDroneWeapon(base.shipType);
           break;
         }
 

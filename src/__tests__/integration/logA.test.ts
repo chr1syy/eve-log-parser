@@ -8,19 +8,13 @@ import { analyzeReps } from "../../lib/analysis/repAnalysis";
 import { analyzeCapPressure } from "../../lib/analysis/capAnalysis";
 import type { ParsedLog } from "../../lib/types";
 
-// Helper: create a File from disk path
-function fileFromDisk(filePath: string): File {
-  const buffer = readFileSync(filePath);
-  const blob = new Blob([buffer], { type: "text/plain" });
-  return new File([blob], filePath.split("/").pop()!, { type: "text/plain" });
-}
-
 const LOG_A_PATH = resolve(__dirname, "../../20251023_013333_151402274.txt");
 
 let parsed: ParsedLog;
 
 beforeAll(async () => {
-  parsed = await parseLogFile(fileFromDisk(LOG_A_PATH));
+  const text = readFileSync(LOG_A_PATH, "utf8");
+  parsed = await parseLogFile(text);
 });
 
 describe("Log A — Parser header", () => {

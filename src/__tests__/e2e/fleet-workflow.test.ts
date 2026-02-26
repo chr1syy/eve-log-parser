@@ -79,12 +79,10 @@ describe("Fleet Workflow E2E Tests", () => {
       expect(joinRes.success).toBe(true);
 
       // Step 3: PilotA uploads their log
-      const formData = new FormData();
-      formData.append("file", new Blob([mockLogPilotA]), "logA.txt");
-      formData.append("pilotName", "PilotA");
-      formData.append("shipType", "Typhoon");
       const uploadReq = {
-        formData: vi.fn().mockResolvedValue(formData),
+        formData: vi.fn().mockResolvedValue({
+          get: (key: string) => ({ file: mockLogPilotA, pilotName: "PilotA", shipType: "Typhoon" }[key] ?? null),
+        }),
       } as any;
       const uploadRes = (await uploadLog(uploadReq, {
         params: { id: sessionId },
@@ -141,12 +139,10 @@ describe("Fleet Workflow E2E Tests", () => {
         ["PilotB", "Brutix", mockLogPilotB, "logB.txt"],
         ["PilotC", "Punisher", mockLogPilotC, "logC.txt"],
       ] as const) {
-        const formData = new FormData();
-        formData.append("file", new Blob([logContent]), fileName);
-        formData.append("pilotName", pilotName);
-        formData.append("shipType", shipType);
         const uploadReq = {
-          formData: vi.fn().mockResolvedValue(formData),
+          formData: vi.fn().mockResolvedValue({
+            get: (key: string) => ({ file: logContent, pilotName, shipType }[key] ?? null),
+          }),
         } as any;
         const uploadRes = (await uploadLog(uploadReq, {
           params: { id: sessionId },
@@ -193,25 +189,23 @@ describe("Fleet Workflow E2E Tests", () => {
       }
 
       // PilotA uploads a log from 02:08–02:09 on 2025.10.23
-      const formDataA = new FormData();
-      formDataA.append("file", new Blob([mockLogPilotA]), "logA.txt");
-      formDataA.append("pilotName", "PilotA");
       await uploadLog(
-        { formData: vi.fn().mockResolvedValue(formDataA) } as any,
         {
-          params: { id: sessionId },
+          formData: vi.fn().mockResolvedValue({
+            get: (key: string) => ({ file: mockLogPilotA, pilotName: "PilotA", shipType: "" }[key] ?? null),
+          }),
         } as any,
+        { params: { id: sessionId } } as any,
       );
 
       // PilotB uploads a log from 20:00 on the same day — ~11 hours later, no overlap
-      const formDataB = new FormData();
-      formDataB.append("file", new Blob([mockLogNonOverlapping]), "logB.txt");
-      formDataB.append("pilotName", "PilotB");
       await uploadLog(
-        { formData: vi.fn().mockResolvedValue(formDataB) } as any,
         {
-          params: { id: sessionId },
+          formData: vi.fn().mockResolvedValue({
+            get: (key: string) => ({ file: mockLogNonOverlapping, pilotName: "PilotB", shipType: "" }[key] ?? null),
+          }),
         } as any,
+        { params: { id: sessionId } } as any,
       );
 
       // GET session → logs don't overlap within ±5 min → analysisReady=false

@@ -149,6 +149,24 @@ describe("parseCombatLine — damage-received (NPC)", () => {
     expect(entry.hitQuality).toBe("Glances Off");
     expect(entry.weapon).toBeUndefined();
     expect(entry.isNpc).toBe(true);
+    expect(entry.isDrone).toBe(false);
+  });
+
+  it("flags Hobgoblin II as isDrone when it appears as the entity name (no weapon field)", () => {
+    const raw =
+      "<color=0xffcc0000><b>42</b> <color=0x77ffffff><font size=10>from</font> <b><color=0xffffffff>Hobgoblin II</b><font size=10><color=0x77ffffff> - Hits";
+    const entry = parseCombatLine(raw, ts, "test-drone-npc");
+    expect(entry.eventType).toBe("damage-received");
+    expect(entry.amount).toBe(42);
+    expect(entry.shipType).toBe("Hobgoblin II");
+    expect(entry.isDrone).toBe(true);
+  });
+
+  it("flags Hobgoblin I as isDrone", () => {
+    const raw =
+      "<color=0xffcc0000><b>20</b> <color=0x77ffffff><font size=10>from</font> <b><color=0xffffffff>Hobgoblin I</b><font size=10><color=0x77ffffff> - Hits";
+    const entry = parseCombatLine(raw, ts, "test-drone-npc-2");
+    expect(entry.isDrone).toBe(true);
   });
 });
 
