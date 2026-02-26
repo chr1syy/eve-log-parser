@@ -5,7 +5,14 @@ import React from "react";
 // `stroke` and `strokeDasharray` attributes so assertions that inspect the
 // component HTML can find the expected styling. In non-test environments we
 // delegate to Recharts' ReferenceLine.
-export default function TestReferenceLine(props: any) {
+interface TestReferenceLineProps {
+  x?: number | string;
+  stroke?: string;
+  strokeDasharray?: string;
+  [key: string]: unknown;
+}
+
+export default function TestReferenceLine(props: TestReferenceLineProps) {
   if (process.env.NODE_ENV === "test") {
     const { x, stroke, strokeDasharray } = props;
     return (
@@ -13,23 +20,27 @@ export default function TestReferenceLine(props: any) {
         <line
           data-role="ref-line"
           data-x={String(x)}
-          stroke={stroke}
-          strokeDasharray={strokeDasharray}
+          stroke={stroke as string}
+          strokeDasharray={strokeDasharray as string}
         />
       </svg>
     );
   }
 
   // Lazily require Recharts at runtime to avoid importing it during test
-  // module evaluation (which can interfere with test mocks). Using a
-  // synchronous require keeps runtime behavior unchanged in non-test builds.
+  // module evaluation (which can interfere with test mocks). We avoid
+  // constructing JSX inside the try/catch to satisfy the linter's rule.
+  let Comp: React.ComponentType<unknown> | null = null;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { ReferenceLine: RechartsReferenceLine } = require("recharts");
-    return <RechartsReferenceLine {...props} />;
-  } catch (e) {
-    // If Recharts isn't available (eg. in some build/test environments),
-    // render a neutral placeholder to avoid crashing.
-    return <span />;
+    // use require so Recharts isn't imported during test module evaluation
+    // (some test environments prefer to mock it).
+    // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
+    Comp = require("recharts")
+      .ReferenceLine as unknown as React.ComponentType<unknown>;
+  } catch {
+    Comp = null;
   }
+
+  if (Comp) return <Comp {...(props as unknown as Record<string, unknown>)} />;
+  return <span />;
 }

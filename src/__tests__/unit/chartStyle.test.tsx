@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect } from "vitest";
 import React from "react";
 import { render } from "@testing-library/react";
@@ -25,8 +26,13 @@ describe("chart style properties for fight boundaries", () => {
       },
     ];
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { container } = render(
-      <DpsTakenChart timeSeries={series as any} fights={fights as any} />,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      <DpsTakenChart
+        timeSeries={series as unknown as any}
+        fights={fights as unknown as any}
+      />,
     );
 
     const html = container.innerHTML;
@@ -45,10 +51,12 @@ describe("chart style properties for fight boundaries", () => {
       fightBoundaries: [base.getTime() + 10000],
     } as any;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { container } = render(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       <DamageDealtChart
-        series={series}
-        fightBoundaries={series.fightBoundaries}
+        series={series as unknown as any}
+        fightBoundaries={(series as any).fightBoundaries}
       />,
     );
 

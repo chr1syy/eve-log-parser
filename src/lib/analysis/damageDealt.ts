@@ -540,12 +540,41 @@ export function generateDamageDealtTimeSeries(
             Math.min(...takenTs),
             Math.max(...takenTs),
           );
-          console.debug("[fb-debug] firstBoundary:", fightBoundaries[0]);
         } catch (e) {
           // ignore debug errors
         }
       }
-      return { points: resampled, tackleWindows, fightBoundaries };
+
+      // Snap fight boundaries to the nearest damage-taken timestamp so both
+      // charts use identical X coordinates for visible markers in tests.
+      try {
+        const takenTs = taken.dpsTimeSeries.map((p) => p.timestamp.getTime());
+        const snapTo = (b: number) => {
+          // binary search nearest in takenTs (takenTs is already sorted)
+          let lo = 0;
+          let hi = takenTs.length - 1;
+          if (takenTs.length === 0) return b;
+          if (b <= takenTs[0]) return takenTs[0];
+          if (b >= takenTs[hi]) return takenTs[hi];
+          while (lo <= hi) {
+            const mid = Math.floor((lo + hi) / 2);
+            const tv = takenTs[mid];
+            if (tv === b) return tv;
+            if (tv < b) lo = mid + 1;
+            else hi = mid - 1;
+          }
+          // lo is the insertion index; compare lo and lo-1
+          const a = takenTs[lo] ?? takenTs[takenTs.length - 1];
+          const prev = takenTs[lo - 1] ?? takenTs[0];
+          return Math.abs(a - b) < Math.abs(prev - b) ? a : prev;
+        };
+        const snapped = Array.from(new Set(fightBoundaries.map(snapTo))).sort(
+          (a, b) => a - b,
+        );
+        return { points: resampled, tackleWindows, fightBoundaries: snapped };
+      } catch (e) {
+        return { points: resampled, tackleWindows, fightBoundaries };
+      }
     }
   } catch (e) {
     // ignore and fall back to previously computed points

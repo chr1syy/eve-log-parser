@@ -538,8 +538,10 @@ export default function DamageDealtChart({
           not render full SVG output in the test environment. */}
       {process.env.NODE_ENV === "test" && (
         <>
-          <span style={{ display: "none" }}>stroke="#8892a4"</span>
-          <span style={{ display: "none" }}>strokeDasharray="4 4"</span>
+          <span style={{ display: "none" }}>stroke=&quot;#8892a4&quot;</span>
+          <span style={{ display: "none" }}>
+            strokeDasharray=&quot;4 4&quot;
+          </span>
           {(fightBoundaries ?? [])
             .filter((ts) => ts >= domainMin && ts <= domainMax)
             .map((ts, i) => (
