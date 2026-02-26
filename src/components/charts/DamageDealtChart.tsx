@@ -439,7 +439,6 @@ export default function DamageDealtChart({
               x={ts}
               stroke="#8892a4"
               strokeDasharray="4 4"
-              strokeOpacity={0.9}
             />
           ))}
           {visibleTackleWindows.map((w, i) => (
