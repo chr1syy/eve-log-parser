@@ -153,13 +153,13 @@ function FleetPilotDamageTakenChart({ entries }: { entries: LogEntry[] }) {
             width={56}
           />
           <Tooltip
-            content={({ active, payload }: { active?: boolean; payload?: Array<{ payload: Record<string, number | Date | string> }> }) => {
+            content={({ active, payload }: { active?: boolean; payload?: ReadonlyArray<{ payload: Record<string, number | Date | string> }> }) => {
               if (!active || !payload?.length) return null;
               const point = payload[0]?.payload;
               return (
                 <div className="bg-overlay border border-[#00d4ff40] px-3 py-2 rounded-sm font-mono text-xs backdrop-blur">
                   <p className="text-text-secondary mb-1">
-                    {fmtTime(point.timestamp)}
+                    {fmtTime(point.timestamp as Date)}
                   </p>
                   {pilots.map((p, i) => (
                     <p key={p} className="text-text-primary">
@@ -168,7 +168,7 @@ function FleetPilotDamageTakenChart({ entries }: { entries: LogEntry[] }) {
                       >
                         {p}:
                       </span>{" "}
-                      {(point[p] ?? 0).toLocaleString(undefined, {
+                      {((point[p] as number) ?? 0).toLocaleString(undefined, {
                         maximumFractionDigits: 0,
                       })}
                     </p>
