@@ -25,6 +25,10 @@ export interface WeaponApplicationSummary {
   maxHit: number;
   avgHit: number;
   hitQualities: Partial<Record<HitQuality, number>>;
+  // Optional: whether this weapon group includes turret shots
+  isTurret?: boolean;
+  // Optional: average damage multiplier (used to approximate tracking quality)
+  avgDamageMultiplier?: number | null;
 }
 
 export interface DamageDealtAnalysis {
@@ -151,6 +155,20 @@ export function analyzeDamageDealt(entries: LogEntry[]): DamageDealtAnalysis {
       maxHit,
       avgHit,
       hitQualities,
+      // Determine whether this weapon group contains turret-classified shots
+      isTurret: group.some(
+        (e) => e.weaponSystemType === WeaponSystemType.TURRET,
+      ),
+      // Compute average damageMultiplier over turret shots only when present
+      avgDamageMultiplier: (() => {
+        const turretMs = group
+          .filter((e) => e.weaponSystemType === WeaponSystemType.TURRET)
+          .map((e) => e.damageMultiplier)
+          .filter((m) => m !== undefined) as number[];
+        if (turretMs.length === 0) return null;
+        const sum = turretMs.reduce((a, b) => a + (b ?? 1), 0);
+        return sum / turretMs.length;
+      })(),
     };
 
     if (isDrone) {
