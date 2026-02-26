@@ -72,10 +72,16 @@ export async function GET(
       participants: computedParticipants,
     };
 
+    // Ensure each returned log includes displayName (derived on server)
+    const logsWithDisplay = session.logs.map((l) => ({
+      ...l,
+      displayName: l.displayName ?? undefined,
+    }));
+
     return NextResponse.json({
       session: sessionWithParticipants,
       participants: computedParticipants,
-      logs: session.logs,
+      logs: logsWithDisplay,
       analysisReady,
       mergedEntries,
     });

@@ -44,7 +44,11 @@ export async function PATCH(
       );
     }
 
-    return NextResponse.json({ success: true, fleetLog: updated });
+    // Ensure returned log includes displayName
+    return NextResponse.json({
+      success: true,
+      fleetLog: { ...updated, displayName: updated.displayName ?? undefined },
+    });
   } catch (err) {
     console.error("Error updating log metadata:", err);
     return NextResponse.json(
