@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
   ReferenceArea,
   Brush,
+  ReferenceLine,
 } from "recharts";
 import { useEffect, useMemo, useRef, useState } from "react";
 // RangeSlider was experimental and removed — prefer Recharts Brush for selection
@@ -23,6 +24,7 @@ import type {
 
 interface DamageDealtChartProps {
   series: DamageDealtTimeSeries;
+  fightBoundaries?: number[];
   zoomedWindow?: { start: Date; end: Date };
   excludeDrones?: boolean;
   onRangeSelect?: (start: Date, end: Date) => void;
@@ -103,6 +105,7 @@ function CustomTooltip({ active, payload, tackleWindows }: any) {
 
 export default function DamageDealtChart({
   series,
+  fightBoundaries,
   zoomedWindow,
   excludeDrones,
   onRangeSelect,
@@ -429,6 +432,16 @@ export default function DamageDealtChart({
           <Tooltip content={<CustomTooltip tackleWindows={tackleWindows} />} />
 
           {/* Tackle windows as blue reference areas */}
+          {/* Fight boundary vertical markers (render behind data series) */}
+          {(fightBoundaries ?? []).map((ts, i) => (
+            <ReferenceLine
+              key={`fb-${i}`}
+              x={ts}
+              stroke="#8892a4"
+              strokeDasharray="4 4"
+              strokeOpacity={0.9}
+            />
+          ))}
           {visibleTackleWindows.map((w, i) => (
             <ReferenceArea
               key={i}
