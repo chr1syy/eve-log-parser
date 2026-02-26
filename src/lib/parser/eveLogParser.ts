@@ -137,6 +137,9 @@ export function classifyWeaponSystem(name: string): WeaponSystemType {
   return WeaponSystemType.UNKNOWN;
 }
 
+// Attach weapon system classification when a weapon string is present in parsed entries.
+// Note: exported above already via function declaration; classifyWeaponSystem is exported by module index.
+
 function normalizeHitQuality(raw: string): HitQuality {
   const normalized = raw.trim().toLowerCase();
   const mapping: Record<string, HitQuality> = {
@@ -149,6 +152,39 @@ function normalizeHitQuality(raw: string): HitQuality {
     misses: "misses",
   };
   return mapping[normalized] ?? "unknown";
+}
+
+/**
+ * Returns a numeric damage multiplier for a given hit quality/outcome.
+ * Unknown or unrecognized outcomes return 0.0.
+ */
+export function multiplierForOutcome(outcome: string): number {
+  if (!outcome) return 0.0;
+  const key = outcome.trim().toLowerCase();
+  switch (key) {
+    case "wreck":
+    case "wrecks":
+      return 3.0;
+    case "smash":
+    case "smashes":
+      return 1.37;
+    case "penetrate":
+    case "penetrates":
+      return 1.125;
+    case "hit":
+    case "hits":
+      return 0.875;
+    case "glances off":
+      return 0.625;
+    case "graze":
+    case "grazes":
+      return 0.5625;
+    case "miss":
+    case "misses":
+      return 0.0;
+    default:
+      return 0.0;
+  }
 }
 
 function parseRepLine(clean: string, raw: string): Partial<LogEntry> | null {
@@ -258,6 +294,7 @@ export function parseCombatLine(
           base.hitQuality = normalizeHitQuality(hitQualityRaw);
           base.isNpc = false;
           base.isDrone = isDroneWeapon(base.weapon);
+          base.damageMultiplier = multiplierForOutcome(base.hitQuality ?? "");
           break;
         }
 
@@ -273,6 +310,7 @@ export function parseCombatLine(
           base.hitQuality = normalizeHitQuality(hitQualityRaw);
           base.isNpc = true;
           base.isDrone = isDroneWeapon(base.weapon);
+          base.damageMultiplier = multiplierForOutcome(base.hitQuality ?? "");
           break;
         }
 
@@ -288,6 +326,7 @@ export function parseCombatLine(
           base.hitQuality = normalizeHitQuality(hitQualityRaw);
           base.isNpc = false;
           base.isDrone = isDroneWeapon(base.weapon);
+          base.damageMultiplier = multiplierForOutcome(base.hitQuality ?? "");
         }
         break;
       }
@@ -318,6 +357,7 @@ export function parseCombatLine(
           base.hitQuality = normalizeHitQuality(hitQualityRaw);
           base.isNpc = false;
           base.isDrone = isDroneWeapon(base.weapon);
+          base.damageMultiplier = multiplierForOutcome(base.hitQuality ?? "");
           break;
         }
 
@@ -333,6 +373,7 @@ export function parseCombatLine(
           base.hitQuality = normalizeHitQuality(hitQualityRaw);
           base.isNpc = true;
           base.isDrone = isDroneWeapon(base.weapon);
+          base.damageMultiplier = multiplierForOutcome(base.hitQuality ?? "");
           break;
         }
 
@@ -346,6 +387,7 @@ export function parseCombatLine(
           base.hitQuality = normalizeHitQuality(hitQualityRaw);
           base.isNpc = true;
           base.isDrone = isDroneWeapon(base.shipType);
+          base.damageMultiplier = multiplierForOutcome(base.hitQuality ?? "");
           break;
         }
 
