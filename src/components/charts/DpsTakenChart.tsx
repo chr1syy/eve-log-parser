@@ -478,6 +478,7 @@ export default function DpsTakenChart({
             />
           )}
           {fightBoundaries
+            .slice(1)
             .filter((b) => b.timestamp >= domainMin && b.timestamp <= domainMax)
             .map((boundary, idx) => (
               <TestReferenceLine

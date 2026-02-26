@@ -438,6 +438,7 @@ export default function DamageDealtChart({
           {/* Tackle windows as blue reference areas */}
           {/* Fight boundary vertical markers (render behind data series) */}
           {(fightBoundaries ?? [])
+            .slice(1)
             .filter((ts) => ts >= domainMin && ts <= domainMax)
             .map((ts, i) => (
               <TestReferenceLine
