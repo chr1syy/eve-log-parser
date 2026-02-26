@@ -1,4 +1,5 @@
 import { render } from "@testing-library/react";
+import { describe, it } from "vitest";
 import DamageDealtChart from "../../components/charts/DamageDealtChart";
 import type { DamageDealtTimeSeries } from "../../lib/analysis/damageDealt";
 

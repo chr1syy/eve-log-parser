@@ -15,8 +15,8 @@ import { render } from "@testing-library/react";
 vi.mock("recharts", async () => {
   const React = await import("react");
 
-  const Passthrough = ({ children }: { children?: React.ReactNode }) => {
-    return React.createElement("div", null, children);
+  const Passthrough = (props: { children?: React.ReactNode }) => {
+    return React.createElement("div", null, props.children);
   };
 
   // ReferenceLine renders an svg line with a data-x attr set to the x prop.
