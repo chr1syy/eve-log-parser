@@ -275,6 +275,23 @@ Test logs are included in `data/`:
 - **Drone Filter Toggle** — Exclude drones to analyze weapon accuracy independently
 - **Hit Quality Breakdown** — Visual distribution of hit outcomes
 
+### Charts
+
+The `DamageDealtChart` component now accepts an optional `fightBoundaries` prop: an array of timestamps (ms since epoch) marking the start of distinct fights. When provided, the chart renders dotted vertical separators at each boundary to help visually separate engagements.
+
+Example (TypeScript):
+
+```ts
+import { detectFightBoundaries } from "@/lib/analysis/fightBoundaries";
+
+// entries: LogEntry[] (parsed combat log entries)
+const boundaries = detectFightBoundaries(entries);
+
+// Pass `fightBoundaries` (timestamps in ms) to the chart
+```
+
+This makes it easy to programmatically detect fight start times from parsed log entries and surface them on the DPS timeline as dotted separators.
+
 ### Damage Mitigation Tab
 
 - **Incoming Weapons Table** — Attackers, their ships, and weapon used
