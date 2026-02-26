@@ -20,12 +20,14 @@ import type {
   DamageDealtPoint,
   TackleWindow,
 } from "@/lib/analysis/damageDealt";
+import type { TrackingSeries } from "@/lib/types";
 
 interface DamageDealtChartProps {
   series: DamageDealtTimeSeries;
   zoomedWindow?: { start: Date; end: Date };
   excludeDrones?: boolean;
   onRangeSelect?: (start: Date, end: Date) => void;
+  trackingSeries?: TrackingSeries[];
   // Optional key that, when changed, forces the Brush sliders to remount and
   // snap to the full domain. Page-level RESET should increment this key.
   resetKey?: number;
@@ -127,6 +129,41 @@ export default function DamageDealtChart({
     [fullPoints],
   );
 
+  // Merge tracking series into chart data when provided. We attach three
+  // derived keys so the Line components can draw colored segments per range.
+  const enrichedData = useMemo(() => {
+    if (
+      !Array.isArray(arguments[0] as any /* placeholder */) &&
+      !Array.isArray([])
+    ) {
+      // noop to keep lint happy — replaced below
+    }
+    if (
+      !data ||
+      data.length === 0 ||
+      !trackingSeries ||
+      trackingSeries.length === 0
+    ) {
+      return data;
+    }
+    const map = new Map<number, number>();
+    for (const t of trackingSeries) map.set(t.timestamp, t.trackingQuality);
+
+    return data.map((pt) => {
+      const tq = map.get(pt.timestampMs) ?? null;
+      const trackingHigh = tq !== null && tq >= 1.0 ? tq : null;
+      const trackingMid = tq !== null && tq >= 0.7 && tq < 1.0 ? tq : null;
+      const trackingLow = tq !== null && tq < 0.7 ? tq : null;
+      return {
+        ...pt,
+        trackingQuality: tq,
+        trackingHigh,
+        trackingMid,
+        trackingLow,
+      };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, trackingSeries]);
 
   // Expand window slightly so chart doesn't look empty if only 1 point is visible
   // (kept for parity with previous behaviour; not strictly used here).
@@ -236,7 +273,7 @@ export default function DamageDealtChart({
     // remains visible after we clear the controlled props.
     const id = window.setTimeout(() => setSyncIndices(undefined), 600);
     return () => window.clearTimeout(id);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [brushIndexRange?.startIndex, brushIndexRange?.endIndex]);
 
   // Recharts may render inline or with other stylesheet rules that win over
@@ -349,7 +386,7 @@ export default function DamageDealtChart({
     <div className="space-y-3">
       <ResponsiveContainer width="100%" height={300}>
         <ComposedChart
-          data={data}
+          data={enrichedData}
           margin={{ top: 4, right: 48, left: 0, bottom: 0 }}
         >
           <CartesianGrid
@@ -415,6 +452,29 @@ export default function DamageDealtChart({
               fontFamily: "JetBrains Mono, monospace",
             }}
           />
+          {/* Rightmost Y-axis: tracking quality (0 - 1.5) */}
+          <YAxis
+            yAxisId="tracking"
+            orientation="right"
+            domain={[0, 1.5]}
+            tick={{
+              fill: "#22c55e",
+              fontSize: 10,
+              fontFamily: "JetBrains Mono, monospace",
+            }}
+            axisLine={false}
+            tickLine={false}
+            width={48}
+            label={{
+              value: "TRACK",
+              angle: 90,
+              position: "insideRight",
+              offset: 36,
+              fill: "#22c55e",
+              fontSize: 9,
+              fontFamily: "JetBrains Mono, monospace",
+            }}
+          />
           <Tooltip content={<CustomTooltip tackleWindows={tackleWindows} />} />
 
           {/* Tackle windows as blue reference areas */}
@@ -452,6 +512,43 @@ export default function DamageDealtChart({
             activeDot={{ r: 3, fill: "#00d4ff" }}
             name="DPS"
             isAnimationActive={false}
+          />
+
+          {/* Tracking quality: draw three separate lines (high/mid/low) so
+              we can color segments according to thresholds. Each line uses the
+              tracking y-axis with domain 0..1.5. */}
+          <Line
+            yAxisId="tracking"
+            type="monotone"
+            dataKey="trackingHigh"
+            stroke="#16a34a"
+            strokeWidth={2}
+            dot={false}
+            isAnimationActive={false}
+            connectNulls={false}
+            name="Tracking (>=1.0)"
+          />
+          <Line
+            yAxisId="tracking"
+            type="monotone"
+            dataKey="trackingMid"
+            stroke="#eab308"
+            strokeWidth={2}
+            dot={false}
+            isAnimationActive={false}
+            connectNulls={false}
+            name="Tracking (0.7-0.999)"
+          />
+          <Line
+            yAxisId="tracking"
+            type="monotone"
+            dataKey="trackingLow"
+            stroke="#dc2626"
+            strokeWidth={2}
+            dot={false}
+            isAnimationActive={false}
+            connectNulls={false}
+            name="Tracking (<0.7)"
           />
           {onRangeSelect && (
             <>
