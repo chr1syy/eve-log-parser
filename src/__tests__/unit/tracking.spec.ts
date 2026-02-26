@@ -1,5 +1,6 @@
 import { computeRollingTracking } from "../../lib/analysis/tracking";
 import { WeaponSystemType } from "../../lib/types";
+import type { LogEntry } from "../../lib/types";
 
 describe("computeRollingTracking", () => {
   test("single turret shots compute averages and counts", () => {
@@ -31,7 +32,7 @@ describe("computeRollingTracking", () => {
       },
     ];
 
-    const series = computeRollingTracking(entries as any, 10_000);
+    const series = computeRollingTracking(entries as LogEntry[], 10_000);
     // Expect three sample points (for each unique timestamp)
     expect(series.length).toBeGreaterThanOrEqual(1);
     const last = series[series.length - 1];
@@ -52,7 +53,7 @@ describe("computeRollingTracking", () => {
         damageMultiplier: 0.5,
       },
     ];
-    const series = computeRollingTracking(entries as any, 1000);
+    const series = computeRollingTracking(entries as LogEntry[], 1000);
     expect(series.length).toBe(0);
   });
 });

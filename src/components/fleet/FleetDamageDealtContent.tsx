@@ -379,7 +379,9 @@ function WeaponTable({
     render: (v: unknown, row: Record<string, unknown>) => {
       const s = row as WeaponApplicationSummary & Record<string, unknown>;
       // Prefer the precomputed avgDamageMultiplier; fall back to a dash
-      const val = (s as any).avgDamageMultiplier ?? null;
+      const val =
+        (s as unknown as { avgDamageMultiplier?: number | null })
+          .avgDamageMultiplier ?? null;
       if (val === null || val === undefined) {
         return <span className="text-text-muted font-mono text-xs">—</span>;
       }

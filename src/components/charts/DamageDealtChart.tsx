@@ -74,8 +74,13 @@ export function resolveBrushRange(
   return { start, end };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function CustomTooltip({ active, payload, tackleWindows }: any) {
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{ payload?: DamageDealtPoint & { timestampMs: number } }>;
+  tackleWindows?: TackleWindow[];
+}
+
+function CustomTooltip({ active, payload, tackleWindows }: CustomTooltipProps) {
   if (!active || !payload?.length) return null;
   const point = payload[0]?.payload as DamageDealtPoint & {
     timestampMs: number;
@@ -132,12 +137,7 @@ export default function DamageDealtChart({
   // Merge tracking series into chart data when provided. We attach three
   // derived keys so the Line components can draw colored segments per range.
   const enrichedData = useMemo(() => {
-    if (
-      !Array.isArray(arguments[0] as any /* placeholder */) &&
-      !Array.isArray([])
-    ) {
-      // noop to keep lint happy — replaced below
-    }
+    // `arguments` usage removed; keep code explicit and typed above
     if (
       !data ||
       data.length === 0 ||
