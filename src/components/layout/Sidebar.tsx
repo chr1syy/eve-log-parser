@@ -14,9 +14,9 @@ import {
 } from "lucide-react";
 
 const navItems = [
-  { label: "Dashboard", href: "/", icon: LayoutDashboard },
+  { label: "Logs", href: "/upload", icon: Upload },
   { label: "Fleet", href: "/fleet", icon: Users, badge: "beta" },
-  { label: "Upload", href: "/upload", icon: Upload },
+  { label: "Overview", href: "/", icon: LayoutDashboard },
   { label: "Raw Data", href: "/kills", icon: Database },
   { label: "Damage Out", href: "/damage-dealt", icon: Sword },
   { label: "Damage In", href: "/damage-taken", icon: ShieldAlert },

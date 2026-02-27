@@ -1,16 +1,14 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import {
   Upload,
   Share2,
   ChevronDown,
   FileText,
-  X,
   Copy,
   Check,
 } from "lucide-react";
-import LogRenameInline from "@/components/logs/LogRenameInline";
 import { useRouter } from "next/navigation";
 import { useParsedLogs } from "@/hooks/useParsedLogs";
 import { useShareLog } from "@/hooks/useShareLog";
@@ -19,25 +17,11 @@ interface TopbarProps {
   title: string;
 }
 
-function truncate(name: string, max = 24): string {
-  return name.length > max ? name.slice(0, max - 1) + "…" : name;
-}
-
 export default function Topbar({ title }: TopbarProps) {
   const router = useRouter();
-  const {
-    logs,
-    activeLog,
-    setActiveLog,
-    removeLog,
-    userId,
-    needsRecovery,
-    restoreFromUserId,
-    updateLogMetadata,
-  } = useParsedLogs();
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const { logs, activeLog, userId, needsRecovery, restoreFromUserId } =
+    useParsedLogs();
   const { shareState, handleShare } = useShareLog();
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Recovery banner state
   const [restoreInput, setRestoreInput] = useState("");
@@ -49,22 +33,7 @@ export default function Topbar({ title }: TopbarProps) {
   // User ID copy state
   const [copied, setCopied] = useState(false);
 
-  // Close dropdown on outside click
-  useEffect(() => {
-    if (!dropdownOpen) return;
-
-    function handleMouseDown(e: MouseEvent) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(e.target as Node)
-      ) {
-        setDropdownOpen(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handleMouseDown);
-    return () => document.removeEventListener("mousedown", handleMouseDown);
-  }, [dropdownOpen]);
+  // No dropdown interaction in Topbar — log management moved to Upload page
 
   const shareLabel =
     shareState === "copied"
@@ -145,93 +114,16 @@ export default function Topbar({ title }: TopbarProps) {
 
           {/* Log selector */}
           {logs.length > 0 && activeLog && (
-            <div className="relative" ref={dropdownRef}>
+            <div>
               <button
                 type="button"
-                onClick={() => logs.length > 1 && setDropdownOpen((o) => !o)}
                 className="flex items-center gap-1.5 px-3 py-1.5 border border-border text-text-secondary font-mono text-xs rounded-sm hover:border-cyan-dim transition-colors"
               >
                 <FileText className="w-3 h-3 text-text-muted flex-shrink-0" />
-                <LogRenameInline
-                  value={activeLog.displayName ?? activeLog.fileName}
-                  placeholder={activeLog.fileName}
-                  onRename={async (newName: string) => {
-                    try {
-                      const uid = userId;
-                      if (uid) {
-                        const res = await fetch(
-                          `/api/user-logs/${activeLog.sessionId}?userId=${uid}`,
-                          {
-                            method: "PATCH",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ displayName: newName }),
-                          },
-                        );
-                        if (res.ok) {
-                          updateLogMetadata(activeLog.sessionId, {
-                            displayName: newName,
-                          });
-                          return true;
-                        }
-                      }
-
-                      const res2 = await fetch(
-                        `/api/logs/${activeLog.sessionId}`,
-                        {
-                          method: "PATCH",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ displayName: newName }),
-                        },
-                      );
-                      if (res2.ok) {
-                        updateLogMetadata(activeLog.sessionId, {
-                          displayName: newName,
-                        });
-                        return true;
-                      }
-                      return false;
-                    } catch (err) {
-                      return false;
-                    }
-                  }}
-                />
-                {logs.length > 1 && (
-                  <ChevronDown className="w-3 h-3 text-text-muted" />
-                )}
+                <span className="truncate">
+                  {activeLog.displayName ?? activeLog.fileName}
+                </span>
               </button>
-
-              {dropdownOpen && logs.length > 1 && (
-                <div className="absolute right-0 top-full mt-1 z-50 bg-panel border border-border rounded-sm shadow-lg min-w-[200px]">
-                  {logs.map((log) => (
-                    <div
-                      key={log.sessionId}
-                      className="flex items-center group"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveLog(log);
-                          setDropdownOpen(false);
-                        }}
-                        className="flex-1 text-left px-3 py-2 font-mono text-xs text-text-secondary hover:bg-elevated hover:text-text-primary transition-colors"
-                      >
-                        {log.fileName}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeLog(log.sessionId);
-                        }}
-                        className="px-2 py-2 text-text-muted hover:text-status-kill transition-colors opacity-0 group-hover:opacity-100"
-                        aria-label={`Remove ${log.fileName}`}
-                      >
-                        <X size={10} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           )}
 
