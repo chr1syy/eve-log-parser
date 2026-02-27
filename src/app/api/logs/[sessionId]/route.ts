@@ -2,9 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 
+const DATA_DIR = path.join(process.cwd(), "data", "shared-logs");
+
+function ensureDir() {
+  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const BASE_DIR = path.join(process.cwd(), "data", "user-logs");
 
 export async function GET(
   request: NextRequest,
@@ -12,39 +17,22 @@ export async function GET(
 ) {
   try {
     const { sessionId } = await params;
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId") ?? "";
-
-    if (!UUID_RE.test(userId)) {
-      return NextResponse.json({ error: "Invalid userId" }, { status: 400 });
-    }
-
-    if (!UUID_RE.test(sessionId)) {
+    if (!UUID_RE.test(sessionId))
       return NextResponse.json({ error: "Invalid sessionId" }, { status: 400 });
-    }
 
-    const userDir = path.join(BASE_DIR, userId);
-    // Prevent path traversal: userDir must be a direct child of BASE_DIR
-    if (!userDir.startsWith(BASE_DIR + path.sep)) {
-      return NextResponse.json({ error: "Invalid userId" }, { status: 400 });
-    }
+    ensureDir();
+    const filePath = path.join(DATA_DIR, `${sessionId}.json`);
+    if (!filePath.startsWith(DATA_DIR + path.sep))
+      return NextResponse.json({ error: "Invalid path" }, { status: 400 });
 
-    const filePath = path.join(userDir, `${sessionId}.json`);
-    // Prevent path traversal: filePath must be within userDir
-    if (!filePath.startsWith(userDir + path.sep)) {
-      return NextResponse.json({ error: "Invalid sessionId" }, { status: 400 });
-    }
-
-    if (!fs.existsSync(filePath)) {
+    if (!fs.existsSync(filePath))
       return NextResponse.json({ error: "Log not found" }, { status: 404 });
-    }
 
     const raw = fs.readFileSync(filePath, "utf-8");
     const log = JSON.parse(raw);
-
-    return NextResponse.json({ log });
+    return NextResponse.json(log);
   } catch {
-    return NextResponse.json({ error: "Failed to fetch log" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to read log" }, { status: 500 });
   }
 }
 
@@ -54,23 +42,13 @@ export async function PATCH(
 ) {
   try {
     const { sessionId } = await params;
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId") ?? "";
-
-    const userDir = path.join(BASE_DIR, userId);
-    // Basic validation
-    if (!UUID_RE.test(userId))
-      return NextResponse.json({ error: "Invalid userId" }, { status: 400 });
     if (!UUID_RE.test(sessionId))
       return NextResponse.json({ error: "Invalid sessionId" }, { status: 400 });
 
-    // Prevent path traversal
-    if (!userDir.startsWith(BASE_DIR + path.sep))
-      return NextResponse.json({ error: "Invalid userId" }, { status: 400 });
-
-    const filePath = path.join(userDir, `${sessionId}.json`);
-    if (!filePath.startsWith(userDir + path.sep))
-      return NextResponse.json({ error: "Invalid sessionId" }, { status: 400 });
+    ensureDir();
+    const filePath = path.join(DATA_DIR, `${sessionId}.json`);
+    if (!filePath.startsWith(DATA_DIR + path.sep))
+      return NextResponse.json({ error: "Invalid path" }, { status: 400 });
 
     if (!fs.existsSync(filePath))
       return NextResponse.json({ error: "Log not found" }, { status: 404 });
@@ -90,9 +68,8 @@ export async function PATCH(
     if (typeof shipType === "string") parsed.shipType = shipType;
 
     fs.writeFileSync(filePath, JSON.stringify(parsed), "utf-8");
-
     return NextResponse.json({ ok: true, log: parsed });
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to update log" },
       { status: 500 },
