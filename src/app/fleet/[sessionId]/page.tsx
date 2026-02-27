@@ -259,7 +259,7 @@ export default function FleetSessionDetailPage() {
       label: "Display",
       render: (_, row) => (
         <LogRenameInline
-          value={(row.displayName as string) ?? row.fileName}
+          value={(row.displayName as string) ?? (row as any).fileName}
           onRename={async (newName: string) => {
             try {
               const res = await fetch(
