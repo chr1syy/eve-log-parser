@@ -4,6 +4,7 @@ import {
   deleteSession,
   getDisplayNameForLog,
 } from "@/lib/fleet/sessionStore";
+import { z } from "zod";
 import { mergeFleetLogs, matchLogsByTimestamp } from "@/lib/fleet/logMerging";
 import { calculateParticipantStats } from "@/lib/fleet/participantStats";
 import type { ParsedLog } from "@/lib/types";

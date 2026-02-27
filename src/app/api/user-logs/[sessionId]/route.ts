@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import { z } from "zod";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -75,24 +76,39 @@ export async function PATCH(
     if (!fs.existsSync(filePath))
       return NextResponse.json({ error: "Log not found" }, { status: 404 });
 
-    const body = await request.json();
-    const { displayName, pilotName, shipType } = body as Partial<{
-      displayName?: string;
-      pilotName?: string;
-      shipType?: string;
-    }>;
+    // validate body using zod
+    const body = await request.json().catch(() => ({}));
+    const schema = z
+      .object({
+        displayName: z.string().min(1).max(200).optional(),
+        pilotName: z.string().min(1).max(100).optional(),
+        shipType: z.string().min(1).max(100).optional(),
+      })
+      .strict();
+
+    const parsedBody = schema.safeParse(body);
+    if (!parsedBody.success) {
+      return NextResponse.json(
+        { error: "Invalid request body", details: parsedBody.error.issues },
+        { status: 400 },
+      );
+    }
+
+    const { displayName, pilotName, shipType } = parsedBody.data;
 
     const raw = fs.readFileSync(filePath, "utf-8");
     const parsed = JSON.parse(raw) as Record<string, unknown>;
 
-    if (typeof displayName === "string") parsed.displayName = displayName;
-    if (typeof pilotName === "string") parsed.pilotName = pilotName;
-    if (typeof shipType === "string") parsed.shipType = shipType;
+    if (typeof displayName === "string")
+      parsed.displayName = displayName.trim();
+    if (typeof pilotName === "string") parsed.pilotName = pilotName.trim();
+    if (typeof shipType === "string") parsed.shipType = shipType.trim();
 
-    fs.writeFileSync(filePath, JSON.stringify(parsed), "utf-8");
+    fs.writeFileSync(filePath, JSON.stringify(parsed, null, 2), "utf-8");
 
     return NextResponse.json({ ok: true, log: parsed });
   } catch (err) {
+    console.error("Failed to PATCH user log:", err);
     return NextResponse.json(
       { error: "Failed to update log" },
       { status: 500 },

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateLogMetadata, getSession } from "@/lib/fleet/sessionStore";
 import type { FleetLog } from "@/types/fleet";
+import { z } from "zod";
 
 export async function PATCH(
   request: NextRequest,
@@ -9,11 +10,24 @@ export async function PATCH(
   try {
     const { id, logId } = await params;
     const body = await request.json();
-    const { displayName, pilotName, shipType } = body as {
-      displayName?: string;
-      pilotName?: string;
-      shipType?: string;
-    };
+    // validate/sanitize incoming payload
+    const schema = z
+      .object({
+        displayName: z.string().min(1).max(200).optional(),
+        pilotName: z.string().min(1).max(100).optional(),
+        shipType: z.string().min(1).max(100).optional(),
+      })
+      .strict();
+
+    const parsedBody = schema.safeParse(body);
+    if (!parsedBody.success) {
+      return NextResponse.json(
+        { error: "Invalid request body", details: parsedBody.error.issues },
+        { status: 400 },
+      );
+    }
+
+    const { displayName, pilotName, shipType } = parsedBody.data;
 
     const session = getSession(id);
     if (!session) {
@@ -37,6 +51,19 @@ export async function PATCH(
     const updated = updateLogMetadata(id, logId, updates);
     if (!updated) {
       return NextResponse.json({ error: "Log not found" }, { status: 404 });
+    }
+
+    // best-effort audit trail
+    try {
+      const { appendAuditEntry } = await import("@/lib/audit");
+      appendAuditEntry({
+        action: "updateLogMetadata",
+        sessionId: id,
+        logId,
+        updates,
+      });
+    } catch {
+      // ignore audit failures
     }
 
     return NextResponse.json({ success: true, log: updated });
