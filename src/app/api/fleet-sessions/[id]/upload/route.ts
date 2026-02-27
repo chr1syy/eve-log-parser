@@ -60,6 +60,30 @@ export async function POST(
 
         const finalPath = path.join(uploadsDir, outName);
         await writeFile(finalPath, buffer);
+        // Also persist a plain copy under `data/user-logs/<sessionId>/` so
+        // uploaded .txt logs are available for reuse in testing and local
+        // development. This write is best-effort and will not fail the
+        // request if it cannot be created.
+        try {
+          const userLogsDir = path.join(process.cwd(), "data", "user-logs", id);
+          await mkdir(userLogsDir, { recursive: true });
+
+          let userOutName = outName;
+          const userOutPath = path.join(userLogsDir, userOutName);
+          try {
+            await access(userOutPath);
+            userOutName = `${Date.now()}-${userOutName}`;
+          } catch {
+            // file doesn't exist, keep userOutName
+          }
+
+          const userFinalPath = path.join(userLogsDir, userOutName);
+          await writeFile(userFinalPath, buffer);
+        } catch (e) {
+          // non-fatal: we don't want inability to save a copy for testing to
+          // block the upload flow.
+          console.warn("Failed to save user-log copy:", e);
+        }
       }
     } catch (err) {
       console.error("Failed to save uploaded file:", err);
