@@ -160,11 +160,7 @@ export default function UploadPage() {
                           <p className="text-text-primary font-ui font-semibold text-base truncate mb-1">
                             {l.displayName ?? l.fileName}
                           </p>
-                          {l.characterName && (
-                            <p className="text-text-muted font-mono text-xs mt-1">
-                              {l.characterName}
-                            </p>
-                          )}
+                          {/* removed duplicate small pilot name to avoid repeated display */}
                           <div className="flex items-center gap-2">
                             <LogRenameInline
                               value={l.displayName ?? l.fileName}
