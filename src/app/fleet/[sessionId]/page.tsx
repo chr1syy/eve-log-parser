@@ -7,6 +7,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import Button from "@/components/ui/Button";
 import DataTable, { Column } from "@/components/ui/DataTable";
 import LogUploadForm from "@/components/fleet/LogUploadForm";
+import LogRenameInline from "@/components/logs/LogRenameInline";
 import FleetAnalysisTabs from "@/components/fleet/FleetAnalysisTabs";
 import type { FleetSession, FleetParticipant, FleetLog } from "@/types/fleet";
 import type { LogEntry } from "@/lib/types";
@@ -105,9 +106,7 @@ export default function FleetSessionDetailPage() {
       const payload = JSON.parse(event.data as string) as { type: string };
       if (payload.type === "log-uploaded") {
         setRefreshing(true);
-        void fetchSession(sessionId, true).finally(() =>
-          setRefreshing(false),
-        );
+        void fetchSession(sessionId, true).finally(() => setRefreshing(false));
       }
     };
 
@@ -254,6 +253,33 @@ export default function FleetSessionDetailPage() {
       key: "pilotName",
       label: "Pilot",
       render: (value) => <span>{value as string}</span>,
+    },
+    {
+      key: "displayName",
+      label: "Display",
+      render: (_, row) => (
+        <LogRenameInline
+          value={(row.displayName as string) ?? (row.pilotName as string)}
+          onRename={async (newName: string) => {
+            try {
+              const res = await fetch(
+                `/api/fleet-sessions/${session.id}/logs/${row.id}`,
+                {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ displayName: newName }),
+                },
+              );
+              if (!res.ok) return false;
+              // Refresh session data so UI reflects update
+              await fetchSession(session.id, true);
+              return true;
+            } catch {
+              return false;
+            }
+          }}
+        />
+      ),
     },
     {
       key: "uploadedAt",

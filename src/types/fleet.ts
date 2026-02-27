@@ -102,6 +102,8 @@ export interface FleetLog {
   id: string;
   sessionId: string;
   pilotName: string;
+  /** Optional human-friendly name for display, editable by users */
+  displayName?: string;
   shipType: string;
   logData: string;
   uploadedAt: Date;

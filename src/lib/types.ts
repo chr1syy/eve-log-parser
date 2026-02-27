@@ -74,6 +74,8 @@ export interface LogEntry {
 export interface ParsedLog {
   sessionId: string;
   fileName: string;
+  /** Optional user-supplied display name for this parsed log */
+  displayName?: string;
   parsedAt: Date;
   characterName?: string;
   sessionStart?: Date;
