@@ -4,7 +4,7 @@ import LogRenameInline from "@/components/logs/LogRenameInline";
 
 describe("LogRenameInline", () => {
   it("renders value and allows editing and saving", async () => {
-    const onRename = jest.fn().mockResolvedValue(true);
+    const onRename = vi.fn().mockResolvedValue(true);
     render(<LogRenameInline value="Original" onRename={onRename} />);
 
     // show pencil
