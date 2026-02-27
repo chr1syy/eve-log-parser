@@ -1,14 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Upload,
-  Share2,
-  ChevronDown,
-  FileText,
-  Copy,
-  Check,
-} from "lucide-react";
+import { Upload, Share2, FileText, Copy, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useParsedLogs } from "@/hooks/useParsedLogs";
 import { useShareLog } from "@/hooks/useShareLog";

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { join } from "path";
-import { writeFileSync, rmSync, existsSync } from "fs";
+import { rmSync, existsSync } from "fs";
 import {
   createSession,
   updateSession,
@@ -30,7 +30,7 @@ describe("updateLogMetadata", () => {
     const session = createSession("test-fight");
 
     const originalUploaded = new Date();
-    const log: Partial<Record<string, unknown>> = {
+    const log = {
       id: "log-123",
       sessionId: session.id,
       pilotName: "Orig Pilot",
@@ -38,6 +38,14 @@ describe("updateLogMetadata", () => {
       logData: "",
       uploadedAt: originalUploaded,
       pilotId: "pilot-1",
+    } as unknown as {
+      id: string;
+      sessionId: string;
+      pilotName: string;
+      shipType: string;
+      logData: string;
+      uploadedAt: Date;
+      pilotId: string;
     };
 
     // Attach the log to the session

@@ -81,7 +81,10 @@ describe("Fleet Workflow E2E Tests", () => {
       // Step 3: PilotA uploads their log
       const uploadReq = {
         formData: vi.fn().mockResolvedValue({
-          get: (key: string) => ({ file: mockLogPilotA, pilotName: "PilotA", shipType: "Typhoon" }[key] ?? null),
+          get: (key: string) =>
+            ({ file: mockLogPilotA, pilotName: "PilotA", shipType: "Typhoon" })[
+              key
+            ] ?? null,
         }),
       } as any;
       const uploadRes = (await uploadLog(uploadReq, {
@@ -141,7 +144,8 @@ describe("Fleet Workflow E2E Tests", () => {
       ] as const) {
         const uploadReq = {
           formData: vi.fn().mockResolvedValue({
-            get: (key: string) => ({ file: logContent, pilotName, shipType }[key] ?? null),
+            get: (key: string) =>
+              ({ file: logContent, pilotName, shipType })[key] ?? null,
           }),
         } as any;
         const uploadRes = (await uploadLog(uploadReq, {
@@ -192,7 +196,10 @@ describe("Fleet Workflow E2E Tests", () => {
       await uploadLog(
         {
           formData: vi.fn().mockResolvedValue({
-            get: (key: string) => ({ file: mockLogPilotA, pilotName: "PilotA", shipType: "" }[key] ?? null),
+            get: (key: string) =>
+              ({ file: mockLogPilotA, pilotName: "PilotA", shipType: "" })[
+                key
+              ] ?? null,
           }),
         } as any,
         { params: { id: sessionId } } as any,
@@ -202,7 +209,12 @@ describe("Fleet Workflow E2E Tests", () => {
       await uploadLog(
         {
           formData: vi.fn().mockResolvedValue({
-            get: (key: string) => ({ file: mockLogNonOverlapping, pilotName: "PilotB", shipType: "" }[key] ?? null),
+            get: (key: string) =>
+              ({
+                file: mockLogNonOverlapping,
+                pilotName: "PilotB",
+                shipType: "",
+              })[key] ?? null,
           }),
         } as any,
         { params: { id: sessionId } } as any,

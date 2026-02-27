@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+// zod is used by other user-logs handlers; keep import for parity
 import { z } from "zod";
 
 const UUID_RE =
