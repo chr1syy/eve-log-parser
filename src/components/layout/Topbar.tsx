@@ -1,7 +1,16 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Upload, Share2, ChevronDown, FileText, X, Copy, Check } from "lucide-react";
+import {
+  Upload,
+  Share2,
+  ChevronDown,
+  FileText,
+  X,
+  Copy,
+  Check,
+} from "lucide-react";
+import LogRenameInline from "@/components/logs/LogRenameInline";
 import { useRouter } from "next/navigation";
 import { useParsedLogs } from "@/hooks/useParsedLogs";
 import { useShareLog } from "@/hooks/useShareLog";
@@ -16,14 +25,24 @@ function truncate(name: string, max = 24): string {
 
 export default function Topbar({ title }: TopbarProps) {
   const router = useRouter();
-  const { logs, activeLog, setActiveLog, removeLog, userId, needsRecovery, restoreFromUserId } = useParsedLogs();
+  const {
+    logs,
+    activeLog,
+    setActiveLog,
+    removeLog,
+    userId,
+    needsRecovery,
+    restoreFromUserId,
+  } = useParsedLogs();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const { shareState, handleShare } = useShareLog();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Recovery banner state
   const [restoreInput, setRestoreInput] = useState("");
-  const [restoreStatus, setRestoreStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [restoreStatus, setRestoreStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
   const [restoredCount, setRestoredCount] = useState(0);
 
   // User ID copy state
@@ -53,7 +72,8 @@ export default function Topbar({ title }: TopbarProps) {
         ? "FAILED"
         : "SHARE";
 
-  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const UUID_RE =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
   async function handleRestore() {
     const uuid = restoreInput.trim();
@@ -77,10 +97,13 @@ export default function Topbar({ title }: TopbarProps) {
 
   function handleCopyUserId() {
     if (!userId) return;
-    navigator.clipboard.writeText(userId).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }).catch(() => {});
+    navigator.clipboard
+      .writeText(userId)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(() => {});
   }
 
   return (
@@ -102,10 +125,11 @@ export default function Topbar({ title }: TopbarProps) {
               className="flex items-center gap-1.5 text-text-muted hover:text-text-secondary transition-colors"
               aria-label="Copy User ID"
             >
-              {copied
-                ? <Check className="w-3 h-3 text-status-safe flex-shrink-0" />
-                : <Copy className="w-3 h-3 flex-shrink-0" />
-              }
+              {copied ? (
+                <Check className="w-3 h-3 text-status-safe flex-shrink-0" />
+              ) : (
+                <Copy className="w-3 h-3 flex-shrink-0" />
+              )}
               <span className="font-mono text-xs">{userId.slice(0, 8)}…</span>
             </button>
           )}
@@ -127,7 +151,40 @@ export default function Topbar({ title }: TopbarProps) {
                 className="flex items-center gap-1.5 px-3 py-1.5 border border-border text-text-secondary font-mono text-xs rounded-sm hover:border-cyan-dim transition-colors"
               >
                 <FileText className="w-3 h-3 text-text-muted flex-shrink-0" />
-                <span>{truncate(activeLog.fileName)}</span>
+                <LogRenameInline
+                  value={activeLog.displayName ?? activeLog.fileName}
+                  placeholder={activeLog.fileName}
+                  onRename={async (newName: string) => {
+                    // Try updating per-user log first, then shared log as fallback.
+                    try {
+                      const uid = userId;
+                      if (uid) {
+                        const res = await fetch(
+                          `/api/user-logs/${activeLog.sessionId}?userId=${uid}`,
+                          {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ displayName: newName }),
+                          },
+                        );
+                        if (res.ok) return true;
+                        // If 404 or not ok, fall through to shared logs
+                      }
+
+                      const res2 = await fetch(
+                        `/api/logs/${activeLog.sessionId}`,
+                        {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ displayName: newName }),
+                        },
+                      );
+                      return res2.ok;
+                    } catch (err) {
+                      return false;
+                    }
+                  }}
+                />
                 {logs.length > 1 && (
                   <ChevronDown className="w-3 h-3 text-text-muted" />
                 )}
@@ -198,7 +255,8 @@ export default function Topbar({ title }: TopbarProps) {
         <div className="flex-shrink-0 px-6 py-3 bg-amber-950/40 border-b border-amber-500/30">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2">
             <p className="text-amber-400 font-mono text-xs uppercase tracking-wider flex-shrink-0">
-              SESSION DATA LOST OR NEW USER — Enter a previous User ID to restore logs
+              SESSION DATA LOST OR NEW USER — Enter a previous User ID to
+              restore logs
             </p>
             <div className="flex items-center gap-2 sm:ml-auto">
               <input
