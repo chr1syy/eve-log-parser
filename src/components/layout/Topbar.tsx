@@ -33,6 +33,7 @@ export default function Topbar({ title }: TopbarProps) {
     userId,
     needsRecovery,
     restoreFromUserId,
+    updateLogMetadata,
   } = useParsedLogs();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const { shareState, handleShare } = useShareLog();
@@ -155,7 +156,6 @@ export default function Topbar({ title }: TopbarProps) {
                   value={activeLog.displayName ?? activeLog.fileName}
                   placeholder={activeLog.fileName}
                   onRename={async (newName: string) => {
-                    // Try updating per-user log first, then shared log as fallback.
                     try {
                       const uid = userId;
                       if (uid) {
@@ -167,8 +167,12 @@ export default function Topbar({ title }: TopbarProps) {
                             body: JSON.stringify({ displayName: newName }),
                           },
                         );
-                        if (res.ok) return true;
-                        // If 404 or not ok, fall through to shared logs
+                        if (res.ok) {
+                          updateLogMetadata(activeLog.sessionId, {
+                            displayName: newName,
+                          });
+                          return true;
+                        }
                       }
 
                       const res2 = await fetch(
@@ -179,7 +183,13 @@ export default function Topbar({ title }: TopbarProps) {
                           body: JSON.stringify({ displayName: newName }),
                         },
                       );
-                      return res2.ok;
+                      if (res2.ok) {
+                        updateLogMetadata(activeLog.sessionId, {
+                          displayName: newName,
+                        });
+                        return true;
+                      }
+                      return false;
                     } catch (err) {
                       return false;
                     }

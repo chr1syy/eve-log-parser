@@ -37,6 +37,12 @@ export interface LogsContextValue {
   removeLog: (sessionId: string) => void;
   clearLogs: () => void;
   restoreFromUserId: (uuid: string) => Promise<number>;
+  updateLogMetadata: (
+    sessionId: string,
+    updates: Partial<
+      Pick<ParsedLog, "displayName" | "characterName" | "fileName">
+    >,
+  ) => void;
 }
 
 interface LogsState {
@@ -46,6 +52,10 @@ interface LogsState {
 
 type LogsAction =
   | { type: "SET_ACTIVE_LOG"; payload: ParsedLog }
+  | {
+      type: "UPDATE_LOG_META";
+      payload: { sessionId: string; updates: Partial<ParsedLog> };
+    }
   | {
       type: "HYDRATE_FROM_STORAGE";
       payload: { logs: ParsedLog[]; activeSessionId: string | null };
@@ -79,6 +89,23 @@ function logsReducer(state: LogsState, action: LogsAction): LogsState {
         logs: updatedLogs,
         activeSessionId: log.sessionId,
       };
+    }
+
+    case "UPDATE_LOG_META": {
+      const { sessionId, updates } = action.payload;
+      const updatedLogs = state.logs.map((l) =>
+        l.sessionId === sessionId ? ({ ...l, ...updates } as ParsedLog) : l,
+      );
+
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedLogs));
+        } catch (err) {
+          // ignore
+        }
+      }
+
+      return { ...state, logs: updatedLogs };
     }
 
     case "HYDRATE_FROM_STORAGE": {
@@ -253,7 +280,7 @@ export function LogsProvider({ children }: { children: ReactNode }) {
         }
       })();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Compute activeLog from state
@@ -286,6 +313,18 @@ export function LogsProvider({ children }: { children: ReactNode }) {
   const clearLogs = useCallback(() => {
     dispatch({ type: "CLEAR_LOGS" });
   }, []);
+
+  const updateLogMetadata = useCallback(
+    (
+      sessionId: string,
+      updates: Partial<
+        Pick<ParsedLog, "displayName" | "characterName" | "fileName">
+      >,
+    ) => {
+      dispatch({ type: "UPDATE_LOG_META", payload: { sessionId, updates } });
+    },
+    [],
+  );
 
   /**
    * Restore session from a user-supplied UUID (recovery banner flow).
@@ -336,6 +375,7 @@ export function LogsProvider({ children }: { children: ReactNode }) {
       removeLog,
       clearLogs,
       restoreFromUserId,
+      updateLogMetadata,
     }),
     [
       state.logs,
@@ -346,6 +386,7 @@ export function LogsProvider({ children }: { children: ReactNode }) {
       removeLog,
       clearLogs,
       restoreFromUserId,
+      updateLogMetadata,
     ],
   );
 
