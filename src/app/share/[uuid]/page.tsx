@@ -1,15 +1,15 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
-import Link from 'next/link'
-import { Download, ExternalLink } from 'lucide-react'
-import AppLayout from '@/components/layout/AppLayout'
-import Panel from '@/components/ui/Panel'
-import Button from '@/components/ui/Button'
-import type { ParsedLog } from '@/lib/types'
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import Link from "next/link";
+import { Download, ExternalLink } from "lucide-react";
+import AppLayout from "@/components/layout/AppLayout";
+import Panel from "@/components/ui/Panel";
+import Button from "@/components/ui/Button";
+import type { ParsedLog } from "@/lib/types";
 
-const STORAGE_KEY = 'eve-parsed-logs'
+const STORAGE_KEY = "eve-parsed-logs";
 
 /** Re-hydrate ISO date strings back to Date objects after JSON.parse */
 function rehydrate(log: ParsedLog): ParsedLog {
@@ -26,64 +26,76 @@ function rehydrate(log: ParsedLog): ParsedLog {
       ...e,
       timestamp: new Date(e.timestamp as unknown as string),
     })),
-  }
+  };
 }
 
 function fmt(n: number) {
-  return n.toLocaleString()
+  return n.toLocaleString();
+}
+
+function formatMinutes(minutes: number): string {
+  const mins = Math.round(minutes);
+  if (mins < 60) return `${mins}m`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
 export default function SharePage() {
-  const { uuid } = useParams<{ uuid: string }>()
-  const [log, setLog] = useState<ParsedLog | null>(null)
-  const [status, setStatus] = useState<'loading' | 'notfound' | 'error' | 'ready'>('loading')
-  const [imported, setImported] = useState(false)
+  const { uuid } = useParams<{ uuid: string }>();
+  const [log, setLog] = useState<ParsedLog | null>(null);
+  const [status, setStatus] = useState<
+    "loading" | "notfound" | "error" | "ready"
+  >("loading");
+  const [imported, setImported] = useState(false);
 
   useEffect(() => {
-    if (!uuid) return
+    if (!uuid) return;
     fetch(`/api/logs/${uuid}`)
       .then((r) => {
         if (r.status === 404) {
-          setStatus('notfound')
-          return null
+          setStatus("notfound");
+          return null;
         }
-        if (!r.ok) throw new Error()
-        return r.json()
+        if (!r.ok) throw new Error();
+        return r.json();
       })
       .then((data) => {
-        if (!data) return
-        setLog(rehydrate(data as ParsedLog))
-        setStatus('ready')
+        if (!data) return;
+        setLog(rehydrate(data as ParsedLog));
+        setStatus("ready");
       })
-      .catch(() => setStatus('error'))
-  }, [uuid])
+      .catch(() => setStatus("error"));
+  }, [uuid]);
 
   const handleImport = () => {
-    if (!log) return
-    let existing: ParsedLog[] = []
+    if (!log) return;
+    let existing: ParsedLog[] = [];
     try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      if (raw) existing = JSON.parse(raw) as ParsedLog[]
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) existing = JSON.parse(raw) as ParsedLog[];
     } catch {
       // ignore
     }
-    const merged = existing.filter((l) => l.sessionId !== log.sessionId)
-    merged.push(log)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(merged))
-    setImported(true)
-  }
+    const merged = existing.filter((l) => l.sessionId !== log.sessionId);
+    merged.push(log);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+    setImported(true);
+  };
 
-  if (status === 'loading') {
+  if (status === "loading") {
     return (
       <AppLayout title="SHARED LOG">
         <div className="flex items-center justify-center min-h-[60vh]">
-          <p className="text-text-muted font-mono text-sm animate-pulse">LOADING...</p>
+          <p className="text-text-muted font-mono text-sm animate-pulse">
+            LOADING...
+          </p>
         </div>
       </AppLayout>
-    )
+    );
   }
 
-  if (status === 'notfound') {
+  if (status === "notfound") {
     return (
       <AppLayout title="SHARED LOG">
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -99,10 +111,10 @@ export default function SharePage() {
           </Panel>
         </div>
       </AppLayout>
-    )
+    );
   }
 
-  if (status === 'error') {
+  if (status === "error") {
     return (
       <AppLayout title="SHARED LOG">
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -111,17 +123,19 @@ export default function SharePage() {
               <h2 className="text-status-kill font-ui font-bold uppercase tracking-widest text-lg mb-2">
                 ERROR
               </h2>
-              <p className="text-text-muted font-mono text-sm">Failed to load shared log.</p>
+              <p className="text-text-muted font-mono text-sm">
+                Failed to load shared log.
+              </p>
             </div>
           </Panel>
         </div>
       </AppLayout>
-    )
+    );
   }
 
-  if (!log) return null
+  if (!log) return null;
 
-  const { stats } = log
+  const { stats } = log;
 
   return (
     <AppLayout title="SHARED LOG">
@@ -133,7 +147,7 @@ export default function SharePage() {
                 Character
               </p>
               <p className="text-text-primary font-mono text-base">
-                {log.characterName ?? '—'}
+                {log.characterName ?? "—"}
               </p>
             </div>
             {log.sessionStart && (
@@ -151,10 +165,26 @@ export default function SharePage() {
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { label: 'Total Events', value: fmt(stats.totalEvents), color: 'text-text-primary' },
-            { label: 'Damage Dealt', value: fmt(stats.damageDealt), color: 'text-gold-bright' },
-            { label: 'Damage Received', value: fmt(stats.damageReceived), color: 'text-status-kill' },
-            { label: 'Active Time', value: `${stats.activeTimeMinutes}m`, color: 'text-cyan-glow' },
+            {
+              label: "Total Events",
+              value: fmt(stats.totalEvents),
+              color: "text-text-primary",
+            },
+            {
+              label: "Damage Dealt",
+              value: fmt(stats.damageDealt),
+              color: "text-gold-bright",
+            },
+            {
+              label: "Damage Received",
+              value: fmt(stats.damageReceived),
+              color: "text-status-kill",
+            },
+            {
+              label: "Active Time",
+              value: formatMinutes(stats.activeTimeMinutes),
+              color: "text-cyan-glow",
+            },
           ].map(({ label, value, color }) => (
             <Panel key={label}>
               <p className="text-text-muted text-xs font-ui uppercase tracking-widest mb-1">
@@ -169,7 +199,10 @@ export default function SharePage() {
           <Panel title="TOP WEAPONS">
             <div className="space-y-1">
               {stats.topWeapons.slice(0, 5).map((w) => (
-                <div key={w.name} className="flex justify-between font-mono text-xs">
+                <div
+                  key={w.name}
+                  className="flex justify-between font-mono text-xs"
+                >
                   <span className="text-text-secondary truncate">{w.name}</span>
                   <span className="text-gold-bright ml-4 flex-shrink-0">
                     {fmt(w.totalDamage)} dmg
@@ -183,7 +216,11 @@ export default function SharePage() {
         <div className="flex gap-3">
           {imported ? (
             <Link href="/">
-              <Button variant="primary" size="md" icon={<ExternalLink size={14} />}>
+              <Button
+                variant="primary"
+                size="md"
+                icon={<ExternalLink size={14} />}
+              >
                 GO TO DASHBOARD
               </Button>
             </Link>
@@ -200,5 +237,5 @@ export default function SharePage() {
         </div>
       </div>
     </AppLayout>
-  )
+  );
 }
