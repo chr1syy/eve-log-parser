@@ -111,7 +111,7 @@ function segmentFights(entries: LogEntry[]): FightSegment[] {
   return segments;
 }
 
-function computeDpsTimeSeries(
+export function computeDpsTimeSeries(
   fights: FightSegment[],
   rollingWindowMs = 10_000,
 ): TimeSeriesDpsPoint[] {

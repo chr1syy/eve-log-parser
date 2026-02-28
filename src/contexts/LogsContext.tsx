@@ -80,8 +80,9 @@ function logsReducer(state: LogsState, action: LogsAction): LogsState {
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedLogs));
           localStorage.setItem(ACTIVE_SESSION_KEY, log.sessionId);
-        } catch (err) {
-          console.error(`[LogsContext] localStorage error:`, err);
+        } catch {
+          // Log storage failures
+          console.error(`[LogsContext] localStorage error:`);
         }
       }
 
@@ -100,7 +101,7 @@ function logsReducer(state: LogsState, action: LogsAction): LogsState {
       if (typeof window !== "undefined") {
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedLogs));
-        } catch (err) {
+        } catch {
           // ignore
         }
       }
