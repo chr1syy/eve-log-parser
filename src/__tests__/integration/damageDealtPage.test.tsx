@@ -125,6 +125,7 @@ describe("DamageDealtPage integration", () => {
       removeLog: vi.fn(),
       clearLogs: vi.fn(),
       restoreFromUserId: vi.fn(),
+      updateLogMetadata: vi.fn(),
     });
 
     const analysis: DamageDealtAnalysis = {

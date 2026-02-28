@@ -1,3 +1,4 @@
+import React from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
 import DamageDealtChart, {
@@ -20,8 +21,10 @@ vi.mock("recharts", async () => {
       width?: number | string;
       height?: number | string;
     }) => {
-      const React = require("react") as typeof import("react");
-      return React.cloneElement(children, { width: 800, height: 300 });
+      return React.cloneElement(
+        children as React.ReactElement<Record<string, unknown>>,
+        { width: 800, height: 300 },
+      );
     },
   };
 });

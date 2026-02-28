@@ -1,5 +1,6 @@
 import { writeFileSync, mkdirSync, rmSync } from "fs";
 import { join } from "path";
+import type { FleetLog } from "@/types/fleet";
 import { getDisplayNameForLog } from "@/lib/fleet/sessionStore";
 
 describe("getDisplayNameForLog", () => {
@@ -17,14 +18,14 @@ describe("getDisplayNameForLog", () => {
   });
 
   it("prefers explicit displayName", () => {
-    const log: Partial<Record<string, unknown>> = {
+    const log = {
       id: "abc",
       sessionId: "s1",
       displayName: "My Fancy Log",
       pilotName: "Pilot One",
       shipType: "Megathron",
       logData: JSON.stringify({ characterName: "Char One" }),
-    };
+    } as unknown as FleetLog;
     expect(getDisplayNameForLog(log)).toBe("My Fancy Log");
   });
 
@@ -33,38 +34,38 @@ describe("getDisplayNameForLog", () => {
     const uploadsDir = join(process.cwd(), "data", "uploads", sessionId);
     mkdirSync(uploadsDir, { recursive: true });
 
-    const logNoDisplay: Partial<Record<string, unknown>> = {
+    const logNoDisplay = {
       id: "def12345",
       sessionId,
       pilotName: "Pilot Two",
       shipType: "Raven",
       logData: JSON.stringify({ characterName: "Char Two" }),
-    };
+    } as unknown as FleetLog;
     expect(getDisplayNameForLog(logNoDisplay)).toBe("Pilot Two");
 
-    const logNoPilot: Partial<Record<string, unknown>> = {
+    const logNoPilot = {
       id: "def12346",
       sessionId,
       shipType: "Raven",
       logData: JSON.stringify({ characterName: "Char Two" }),
-    };
+    } as unknown as FleetLog;
     expect(getDisplayNameForLog(logNoPilot)).toBe("Char Two");
 
-    const logNoChar: Partial<Record<string, unknown>> = {
+    const logNoChar = {
       id: "def12347",
       sessionId,
       shipType: "Raven",
       logData: "not-json",
-    };
+    } as unknown as FleetLog;
     expect(getDisplayNameForLog(logNoChar)).toBe("Raven");
 
     // create an uploaded file to test filename pick
     writeFileSync(join(uploadsDir, "original.log"), "contents");
-    const logWithFile: Partial<Record<string, unknown>> = {
+    const logWithFile = {
       id: "def12348",
       sessionId,
       logData: "",
-    };
+    } as unknown as FleetLog;
     expect(getDisplayNameForLog(logWithFile)).toBe("original.log");
 
     // cleanup handled in afterAll
