@@ -11,6 +11,7 @@ import {
   ShieldAlert,
   Zap,
   Users,
+  BarChart3,
 } from "lucide-react";
 
 const navItems = [
@@ -18,9 +19,7 @@ const navItems = [
   { label: "Fleet", href: "/fleet", icon: Users, badge: "beta" },
   { label: "Overview", href: "/", icon: LayoutDashboard },
   { label: "Raw Data", href: "/kills", icon: Database },
-  { label: "Damage Out", href: "/damage-dealt", icon: Sword },
-  { label: "Damage In", href: "/damage-taken", icon: ShieldAlert },
-  { label: "Cap Pressure", href: "/cap-pressure", icon: Zap },
+  { label: "Charts", href: "/charts", icon: BarChart3 },
 ];
 
 export default function Sidebar() {
