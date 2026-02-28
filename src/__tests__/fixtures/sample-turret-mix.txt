@@ -3,6 +3,6 @@ Session Started: 2026.02.26 12:00:00
 
 [ 2026.02.26 12:00:05 ] (combat) <color=0xff00ffff><b>120</b> <color=0x77ffffff><font size=10>to</font> <b><color=0xffffffff>TargetOne[ABC](Frigate)</b><font size=10><color=0x77ffffff> - 200mm AutoCannon II - Hits
 [ 2026.02.26 12:00:07 ] (combat) <color=0xff00ffff><b>80</b> <color=0x77ffffff><font size=10>to</font> <b><color=0xffffffff>TargetTwo[XYZ](Frigate)</b><font size=10><color=0x77ffffff> - Heavy Pulse Laser - Glances Off
-[ 2026.02.26 12:00:10 ] (combat) <color=0xff00ffff>Your Wasp II misses TargetThree completely - Wasp II
+[ 2026.02.26 12:00:10 ] (combat) Your Wasp II misses TargetThree completely - Wasp II
 [ 2026.02.26 12:00:12 ] (combat) <color=0xffcc0000><b>18</b> <color=0x77ffffff><font size=10>from</font> <b><color=0xffffffff>Arch Gistii Thug</b><font size=10><color=0x77ffffff> - Nova Rocket - Hits
 [ 2026.02.26 12:00:15 ] (combat) <color=0xffccff66><b>256</b><color=0x77ffffff><font size=10> remote armor repaired by </font><b><color=0xffffffff><fontsize=12><color=0xFFFFFF00><b> <u>Vedmak</u></b></color></fontsize></b></fontsize></b><color=0x77ffffff><font size=10> - Medium Remote Armor Repairer II
