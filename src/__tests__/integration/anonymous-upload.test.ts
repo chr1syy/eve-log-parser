@@ -2,6 +2,7 @@
  * Integration Tests: Anonymous Upload Flow
  * Tests that anonymous users can upload logs and new uploads replace the previous one
  */
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import * as dbLogs from "@/lib/db/logs";

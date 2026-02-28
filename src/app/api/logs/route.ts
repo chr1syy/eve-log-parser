@@ -7,6 +7,7 @@ import {
   updateAnonymousLog,
   getAnonymousLog,
 } from "@/lib/db/logs";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { Log } from "@/lib/db/models";
 
 /**

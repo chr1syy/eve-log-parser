@@ -377,6 +377,7 @@ describe("Authenticated Multi-Log Flow Integration", () => {
 
     it("prevents user from accessing another user's log", async () => {
       const myUserId = "user-1";
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const theirUserId = "user-2";
       const logId = "log-owned-by-user-2";
 
@@ -389,6 +390,7 @@ describe("Authenticated Multi-Log Flow Integration", () => {
 
     it("returns 403 (null) when attempting to delete another user's log", async () => {
       const myUserId = "user-1";
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const theirUserId = "user-2";
       const logId = "log-owned-by-user-2";
 

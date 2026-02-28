@@ -23,12 +23,14 @@ export async function getCurrentUser() {
     return null;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const user = session.user as any;
   return {
-    id: session.user.id,
-    characterId: session.user.character_id,
-    characterName: session.user.character_name,
-    corporationId: session.user.corporation_id,
-    email: session.user.email,
+    id: user.id,
+    characterId: user.character_id,
+    characterName: user.character_name,
+    corporationId: user.corporation_id,
+    email: user.email,
   };
 }
 
@@ -36,6 +38,7 @@ export async function getCurrentUser() {
  * Extract character information from OAuth profile
  * Used to normalize character data from EVE SSO profile
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function extractCharacterInfo(profile: any) {
   return {
     characterId: profile.character_id,

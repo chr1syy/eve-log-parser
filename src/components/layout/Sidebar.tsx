@@ -29,6 +29,7 @@ const authenticatedNavItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { isAuthenticated, isLoading } = useAuth();
 
   // Combine nav items based on authentication state

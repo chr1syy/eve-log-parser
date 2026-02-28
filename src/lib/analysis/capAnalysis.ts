@@ -47,13 +47,13 @@ function buildModuleSummaries(
 
   for (const entry of entries) {
     if (entry.capEventType !== eventTypeFilter) continue;
-    const module = entry.capModule ?? "Unknown";
-    if (!map.has(module)) map.set(module, []);
-    map.get(module)!.push(entry);
+    const moduleName = entry.capModule ?? "Unknown";
+    if (!map.has(moduleName)) map.set(moduleName, []);
+    map.get(moduleName)!.push(entry);
   }
 
   const summaries: CapModuleSummary[] = [];
-  for (const [module, group] of map) {
+  for (const [moduleName, group] of map) {
     const amounts = group.map((e) => e.capAmount ?? 0);
     const totalGj = amounts.reduce((a, b) => a + b, 0);
     const hitCount = group.length;
@@ -63,7 +63,7 @@ function buildModuleSummaries(
     const zeroHits = amounts.filter((a) => a === 0).length;
 
     summaries.push({
-      module,
+      module: moduleName,
       eventType: eventTypeFilter,
       hitCount,
       totalGj,
@@ -98,13 +98,13 @@ function buildIncomingByShipType(entries: LogEntry[]): CapShipTypeSummary[] {
     // Build module breakdown for this ship type
     const moduleMap = new Map<string, LogEntry[]>();
     for (const entry of group) {
-      const module = entry.capModule ?? "Unknown";
-      if (!moduleMap.has(module)) moduleMap.set(module, []);
-      moduleMap.get(module)!.push(entry);
+      const moduleName = entry.capModule ?? "Unknown";
+      if (!moduleMap.has(moduleName)) moduleMap.set(moduleName, []);
+      moduleMap.get(moduleName)!.push(entry);
     }
 
     const moduleBreakdown: CapModuleSummary[] = [];
-    for (const [module, modGroup] of moduleMap) {
+    for (const [moduleName, modGroup] of moduleMap) {
       const modAmounts = modGroup.map((e) => e.capAmount ?? 0);
       const modTotal = modAmounts.reduce((a, b) => a + b, 0);
       const modHitCount = modGroup.length;
@@ -114,7 +114,7 @@ function buildIncomingByShipType(entries: LogEntry[]): CapShipTypeSummary[] {
       const modZeroHits = modAmounts.filter((a) => a === 0).length;
 
       moduleBreakdown.push({
-        module,
+        module: moduleName,
         eventType: "neut-received",
         hitCount: modHitCount,
         totalGj: modTotal,

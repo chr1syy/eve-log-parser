@@ -6,6 +6,12 @@
 import type { DefaultSession } from "next-auth";
 
 declare module "next-auth" {
+  interface User {
+    character_id?: string;
+    character_name?: string;
+    corporation_id?: string;
+  }
+
   interface Session {
     user?: {
       id?: string;

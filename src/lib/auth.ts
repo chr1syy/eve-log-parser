@@ -5,7 +5,9 @@
  */
 
 import NextAuth, { type NextAuthConfig } from "next-auth";
-import { PostgresAdapter } from "@auth/pg-adapter";
+import type { Session } from "next-auth";
+import type { JWT } from "next-auth/jwt";
+import PostgresAdapter from "@auth/pg-adapter";
 import { Pool } from "pg";
 
 /**
@@ -94,11 +96,14 @@ export const authConfig: NextAuthConfig = {
      * Invoked whenever session is checked
      * Used to add custom claims to session
      */
-    async session({ session, token }) {
+    async session({ session, token }: { session: Session; token: JWT }) {
       if (session.user) {
-        session.user.character_id = token.character_id;
-        session.user.character_name = token.character_name;
-        session.user.corporation_id = token.corporation_id;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (session.user as any).character_id = token.character_id;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (session.user as any).character_name = token.character_name;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (session.user as any).corporation_id = token.corporation_id;
       }
       return session;
     },

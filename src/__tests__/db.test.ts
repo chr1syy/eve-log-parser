@@ -369,7 +369,10 @@ describe("Database Logs Functions", () => {
   // ────────────────────────────────────────────────────────────
   describe("updateAnonymousLog", () => {
     it("creates a new anonymous log if none exists", async () => {
-      const mockLog = createMockLog();
+      const mockLog = createMockLog({
+        user_id: "session-123",
+        filename: "test.txt",
+      });
       const queryOneSpy = vi.spyOn(dbClient, "queryOne");
 
       // First call: check if log exists (returns null)
@@ -393,7 +396,10 @@ describe("Database Logs Functions", () => {
     });
 
     it("updates existing anonymous log with new data", async () => {
-      const mockLog = createMockLog();
+      const mockLog = createMockLog({
+        user_id: "session-123",
+        filename: "updated.txt",
+      });
       const existingLog = { id: "log-id-123" };
       const queryOneSpy = vi.spyOn(dbClient, "queryOne");
 
@@ -473,7 +479,7 @@ describe("Database Logs Functions", () => {
   // ────────────────────────────────────────────────────────────
   describe("getAnonymousLog", () => {
     it("retrieves the most recent anonymous log for a session", async () => {
-      const mockLog = createMockLog();
+      const mockLog = createMockLog({ user_id: "session-123" });
       vi.spyOn(dbClient, "queryOne").mockResolvedValueOnce({
         ...mockLog,
         log_data: JSON.stringify(mockLog.log_data),

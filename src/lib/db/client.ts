@@ -3,7 +3,14 @@
  * Handles connection initialization, query execution, and cleanup
  */
 
-import { Pool, type PoolClient, type QueryResult } from "pg";
+import {
+  Pool,
+  type PoolClient,
+  type QueryResult,
+  type QueryResultRow,
+} from "pg";
+import path from "path";
+import fs from "fs";
 
 let pool: Pool | null = null;
 
@@ -40,17 +47,15 @@ function getPool(): Pool {
 /**
  * Execute a query and return results
  */
-export async function query<T = unknown>(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function query<T extends QueryResultRow = any>(
   text: string,
   values?: unknown[],
 ): Promise<QueryResult<T>> {
   const p = getPool();
   try {
     const result = await p.query<T>(text, values);
-    return {
-      rows: result.rows,
-      rowCount: result.rowCount ?? 0,
-    };
+    return result;
   } catch (err) {
     console.error("[DB Query] Error executing query:", {
       text,
@@ -63,7 +68,8 @@ export async function query<T = unknown>(
 /**
  * Execute a query and return a single row or null
  */
-export async function queryOne<T = unknown>(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function queryOne<T extends QueryResultRow = any>(
   text: string,
   values?: unknown[],
 ): Promise<T | null> {
@@ -74,7 +80,8 @@ export async function queryOne<T = unknown>(
 /**
  * Execute a query and return all rows
  */
-export async function queryAll<T = unknown>(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function queryAll<T extends QueryResultRow = any>(
   text: string,
   values?: unknown[],
 ): Promise<T[]> {
@@ -139,13 +146,9 @@ export async function shutdown(): Promise<void> {
  * In production, migrations should be run via proper migration tools
  */
 export async function initializeSchema(): Promise<void> {
-  const schemaPath = require("path").join(
-    __dirname,
-    "migrations/001_initial_schema.sql",
-  );
+  const schemaPath = path.join(__dirname, "migrations/001_initial_schema.sql");
 
   try {
-    const fs = require("fs");
     const schemaSql = fs.readFileSync(schemaPath, "utf-8");
     await query(schemaSql);
     console.log("[DB] Schema initialized successfully");

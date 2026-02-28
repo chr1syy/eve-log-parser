@@ -48,10 +48,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const character: Character | null = useMemo(() => {
     if (!session?.user) return null;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const user = session.user as any;
     return {
-      id: session.user.character_id ?? "",
-      name: session.user.character_name ?? "",
-      corporationId: session.user.corporation_id,
+      id: user.character_id ?? "",
+      name: user.character_name ?? "",
+      corporationId: user.corporation_id,
     };
   }, [session?.user]);
 

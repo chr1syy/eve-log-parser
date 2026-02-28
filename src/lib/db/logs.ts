@@ -135,7 +135,7 @@ export async function deleteLog(
     [logId, userId],
   );
 
-  return result.rowCount;
+  return result.rowCount ?? 0;
 }
 
 /**

@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
  * POST /api/auth/logout
  * Signs out the user and clears their session
  */
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     // Use next-auth's signOut function
     // This will clear the session cookie and database session entry
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    await signOut({ redirect: true, redirectUrl: "/" });
+    await signOut({ redirect: true, redirectTo: "/" });
   } catch (error) {
     console.error("[Auth] Logout error:", error);
     return NextResponse.redirect(new URL("/", request.url));

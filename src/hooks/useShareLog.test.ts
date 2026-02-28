@@ -22,6 +22,7 @@ describe("useShareLog hook", () => {
 
   it("has correct hook signature", () => {
     // Verifies hook contract
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     interface UseShareLogSignature {
       (): {
         shareState: "idle" | "loading" | "copied" | "error";

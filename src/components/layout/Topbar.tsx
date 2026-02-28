@@ -115,7 +115,7 @@ export default function Topbar({ title }: TopbarProps) {
   }
 
   async function handleLogout() {
-    await signOut({ redirect: true, redirectUrl: "/" });
+    await signOut({ redirect: true, redirectTo: "/" });
   }
 
   function handleLogin() {

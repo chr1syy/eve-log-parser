@@ -2,6 +2,7 @@
  * Unit Tests for Authentication Utilities
  * Tests JWT token generation, character info extraction, and session management
  */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
@@ -126,9 +127,9 @@ describe("Authentication Utilities", () => {
       const mockSession = createMockSession({
         user: {
           id: "custom-id",
-          characterId: 99999,
-          characterName: "Custom Character",
-          corporationId: 88888,
+          character_id: 99999,
+          character_name: "Custom Character",
+          corporation_id: 88888,
           email: "custom@eveonline.com",
         },
       });
@@ -324,7 +325,7 @@ describe("Authentication Utilities", () => {
   describe("Session management integration", () => {
     it("maintains character info across multiple calls", async () => {
       const mockSession = createMockSession();
-      vi.spyOn(authModule, "auth").mockResolvedValueOnce(mockSession);
+      vi.spyOn(authModule, "auth").mockResolvedValue(mockSession);
 
       const user = await getCurrentUser();
       const charId = await getCurrentCharacterId();
@@ -358,7 +359,7 @@ describe("Authentication Utilities", () => {
         },
         expires: new Date().toISOString(),
       };
-      vi.spyOn(authModule, "auth").mockResolvedValueOnce(mockSession);
+      vi.spyOn(authModule, "auth").mockResolvedValue(mockSession);
 
       const user = await getCurrentUser();
       const isAuth = await isUserAuthenticated();

@@ -15,14 +15,8 @@ import { useParsedLogs } from "@/hooks/useParsedLogs";
 import { analyzeDamageTaken } from "@/lib/analysis/damageTaken";
 import { analyzeReps } from "@/lib/analysis/repAnalysis";
 import { filterOutHostileNpcs } from "@/lib/npcFilter";
-import type {
-  IncomingWeaponSummary,
-  TimeSeriesDpsPoint,
-} from "@/lib/analysis/damageTaken";
-import type {
-  RepSourceSummary,
-  RepAnalysisResult,
-} from "@/lib/analysis/repAnalysis";
+import type { IncomingWeaponSummary } from "@/lib/analysis/damageTaken";
+import type { RepSourceSummary } from "@/lib/analysis/repAnalysis";
 import type { HitQuality } from "@/lib/types";
 import { cn } from "@/lib/utils";
 

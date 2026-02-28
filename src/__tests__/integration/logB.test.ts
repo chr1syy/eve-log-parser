@@ -2,6 +2,7 @@ import { readFileSync } from "fs";
 import { resolve } from "path";
 import { describe, it, expect, beforeAll } from "vitest";
 import { parseLogFile } from "../../lib/parser";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { analyzeDamageDealt } from "../../lib/analysis/damageDealt";
 import { analyzeDamageTaken } from "../../lib/analysis/damageTaken";
 import { analyzeReps } from "../../lib/analysis/repAnalysis";

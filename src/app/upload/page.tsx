@@ -20,6 +20,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { signIn } from "next-auth/react";
 import type { ParsedLog } from "@/lib/types";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const STORAGE_KEY = "eve-parsed-logs";
 
 function formatNumber(n: number): string {

@@ -33,12 +33,14 @@ function formatTime(date: Date): string {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function CustomTooltip({ active, payload, label }: any) {
+function CustomTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
 
   // Find the DPS point (from the first line)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const dpsPoint = payload.find((p: any) => p.dataKey === "dps")
     ?.payload as TimeSeriesDpsPoint;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const repPoint = payload.find((p: any) => p.dataKey === "repsPerSecond")
     ?.payload as RepTimeSeriesPoint;
 
