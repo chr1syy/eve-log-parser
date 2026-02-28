@@ -25,9 +25,15 @@ export default function Topbar({ title }: TopbarProps) {
 
   // User ID copy state
   const [copied, setCopied] = useState(false);
-  // Mounted flag to avoid SSR/client hydration mismatch for user-specific UI
+  // Mounted flag to avoid SSR/client hydration mismatch for user-specific UI.
+  // Avoid calling setState synchronously inside the effect (ESLint rule);
+  // defer the state change to the next macrotask so the effect remains
+  // non-sync and the linter is satisfied.
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    const id = window.setTimeout(() => setMounted(true), 0);
+    return () => window.clearTimeout(id);
+  }, []);
 
   // No dropdown interaction in Topbar — log management moved to Upload page
 

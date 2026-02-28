@@ -113,6 +113,114 @@ function CustomTooltip({ active, payload, tackleWindows }: CustomTooltipProps) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Tracking enrichment — exported for unit testing
+// ---------------------------------------------------------------------------
+
+type DataPoint = DamageDealtPoint & { timestampMs: number };
+
+/**
+ * Merge a tracking series into DPS chart data points. For each data point the
+ * interpolated tracking quality is computed from the nearest tracking samples,
+ * then split into three tier keys (trackingHigh / trackingMid / trackingLow)
+ * used by the three colored Line components.
+ *
+ * "Bridge on arrival": whenever the tier at point N differs from the tier at
+ * point N-1, point N's value is also written into the previous tier. This
+ * extends the old tier's line to the transition point so no visual gap appears
+ * at tier crossings. Without bridging, `connectNulls=false` + `dot=false`
+ * leaves an invisible gap whenever adjacent points are in different tiers.
+ */
+export function buildEnrichedTrackingData(
+  data: DataPoint[],
+  trackingSeries: TrackingSeries[],
+): DataPoint[] {
+  if (data.length === 0 || trackingSeries.length === 0) return data;
+
+  const ts = trackingSeries.slice().sort((a, b) => a.timestamp - b.timestamp);
+  const MAX_NEAREST_FILL_MS = 60_000; // 1 min — avoid filling across long combat gaps
+  const MAX_INTERP_GAP_MS = 60_000; // 1 min — avoid interpolating across long gaps
+
+  const getTier = (tq: number): "high" | "mid" | "low" =>
+    tq >= 1.0 ? "high" : tq >= 0.7 ? "mid" : "low";
+
+  // Pass 1: interpolate tracking quality at each data point timestamp.
+  let i = 0;
+  const tqs: (number | null)[] = data.map((pt) => {
+    const tms = pt.timestampMs;
+    while (i < ts.length && ts[i].timestamp <= tms) i++;
+    const prev = i > 0 ? ts[i - 1] : null;
+    const next = i < ts.length ? ts[i] : null;
+
+    let tq: number | null = null;
+    if (prev && next) {
+      const gap = next.timestamp - prev.timestamp;
+      if (gap <= MAX_INTERP_GAP_MS) {
+        const frac = (tms - prev.timestamp) / (next.timestamp - prev.timestamp);
+        tq =
+          prev.trackingQuality +
+          frac * (next.trackingQuality - prev.trackingQuality);
+      } else if (Math.abs(tms - prev.timestamp) <= MAX_NEAREST_FILL_MS) {
+        tq = prev.trackingQuality;
+      } else if (Math.abs(next.timestamp - tms) <= MAX_NEAREST_FILL_MS) {
+        tq = next.trackingQuality;
+      }
+    } else if (prev) {
+      if (Math.abs(tms - prev.timestamp) <= MAX_NEAREST_FILL_MS)
+        tq = prev.trackingQuality;
+    } else if (next) {
+      if (Math.abs(next.timestamp - tms) <= MAX_NEAREST_FILL_MS)
+        tq = next.trackingQuality;
+    }
+    return tq;
+  });
+
+  // Pass 2: forward sweep to record the nearest non-null tier to the left of
+  // every point. Used for "bridge on arrival" below.
+  const prevTiers: ("high" | "mid" | "low" | null)[] = new Array(
+    tqs.length,
+  ).fill(null);
+  let lastTier: "high" | "mid" | "low" | null = null;
+  for (let j = 0; j < tqs.length; j++) {
+    prevTiers[j] = lastTier;
+    if (tqs[j] !== null) lastTier = getTier(tqs[j]!);
+  }
+
+  // Pass 3: assign tier values with "bridge on arrival". When a point's tier
+  // differs from the previous non-null tier, also write this point's value
+  // into the previous tier so the old tier's line extends to the transition
+  // point — eliminating visual gaps at all tier crossings.
+  return data.map((pt, j) => {
+    const tq = tqs[j];
+    if (tq === null) {
+      return {
+        ...pt,
+        trackingQuality: null,
+        trackingHigh: null,
+        trackingMid: null,
+        trackingLow: null,
+      };
+    }
+
+    const currTier = getTier(tq);
+    let trackingHigh: number | null = currTier === "high" ? tq : null;
+    let trackingMid: number | null = currTier === "mid" ? tq : null;
+    let trackingLow: number | null = currTier === "low" ? tq : null;
+
+    // Bridge on arrival: extend the previous tier's line to this point.
+    const prevT = prevTiers[j];
+    if (prevT !== null && prevT !== currTier) {
+      if (prevT === "high") trackingHigh = tq;
+      else if (prevT === "mid") trackingMid = tq;
+      else trackingLow = tq;
+    }
+
+    return { ...pt, trackingQuality: tq, trackingHigh, trackingMid, trackingLow };
+  });
+}
+
+// ---------------------------------------------------------------------------
+
 export default function DamageDealtChart({
   series,
   zoomedWindow,
@@ -143,7 +251,6 @@ export default function DamageDealtChart({
   // Merge tracking series into chart data when provided. We attach three
   // derived keys so the Line components can draw colored segments per range.
   const enrichedData = useMemo(() => {
-    // `arguments` usage removed; keep code explicit and typed above
     if (
       !data ||
       data.length === 0 ||
@@ -152,72 +259,7 @@ export default function DamageDealtChart({
     ) {
       return data;
     }
-
-    // Linear interpolation between nearest trackingSeries samples. If the
-    // gap between the surrounding samples is too large, we avoid interpolating
-    // to prevent misleading values. Use a MAX_INTERP_GAP_MS heuristic.
-    const ts = trackingSeries.slice().sort((a, b) => a.timestamp - b.timestamp);
-
-    // Interpolation heuristics — tuned to produce a clearer, more continuous
-    // tracking line while still avoiding wild extrapolation across very long
-    // gaps. These values are intentionally more permissive than before so
-    // the chart fills short-to-medium gaps and produces a visually clear
-    // line for sparse tracking samples.
-    const MAX_NEAREST_FILL_MS = 3 * 60_000; // 3 minutes — use nearest neighbor
-    const MAX_INTERP_GAP_MS = 10 * 60_000; // 10 minutes — allow linear interpolation up to this gap
-
-    // Helper: find rightmost index i such that ts[i].timestamp <= tms
-    let i = 0;
-    return data.map((pt) => {
-      const tms = pt.timestampMs as number;
-
-      // Ensure `i` points to the first sample with timestamp > tms (or end)
-      while (i < ts.length && ts[i].timestamp <= tms) i++;
-
-      const prev = i > 0 ? ts[i - 1] : null;
-      const next = i < ts.length ? ts[i] : null;
-
-      let tq: number | null = null;
-      if (prev && next) {
-        // If we have both surrounding samples, allow linear interpolation
-        // across moderate gaps up to MAX_INTERP_GAP_MS. This fills holes
-        // between sparse samples so the line remains continuous.
-        const gap = next.timestamp - prev.timestamp;
-        if (gap <= MAX_INTERP_GAP_MS) {
-          const frac =
-            (tms - prev.timestamp) / (next.timestamp - prev.timestamp);
-          tq =
-            prev.trackingQuality +
-            frac * (next.trackingQuality - prev.trackingQuality);
-        } else if (Math.abs(tms - prev.timestamp) <= MAX_NEAREST_FILL_MS) {
-          // gap too large for interpolation, but this point is close to prev — use it
-          tq = prev.trackingQuality;
-        } else if (Math.abs(next.timestamp - tms) <= MAX_NEAREST_FILL_MS) {
-          // or close to next — use it
-          tq = next.trackingQuality;
-        }
-      } else if (prev) {
-        // Only previous exists — forward-fill if the sample is recent enough
-        if (Math.abs(tms - prev.timestamp) <= MAX_NEAREST_FILL_MS)
-          tq = prev.trackingQuality;
-      } else if (next) {
-        // Only next exists — back-fill if close enough
-        if (Math.abs(next.timestamp - tms) <= MAX_NEAREST_FILL_MS)
-          tq = next.trackingQuality;
-      }
-
-      const trackingHigh = tq !== null && tq >= 1.0 ? tq : null;
-      const trackingMid = tq !== null && tq >= 0.7 && tq < 1.0 ? tq : null;
-      const trackingLow = tq !== null && tq < 0.7 ? tq : null;
-      return {
-        ...pt,
-        trackingQuality: tq,
-        trackingHigh,
-        trackingMid,
-        trackingLow,
-      };
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return buildEnrichedTrackingData(data, trackingSeries);
   }, [data, trackingSeries]);
 
   // Expand window slightly so chart doesn't look empty if only 1 point is visible
