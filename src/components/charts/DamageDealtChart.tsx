@@ -20,12 +20,14 @@ import type {
   DamageDealtPoint,
   TackleWindow,
 } from "@/lib/analysis/damageDealt";
+import type { TrackingSeries } from "@/lib/types";
 
 interface DamageDealtChartProps {
   series: DamageDealtTimeSeries;
   zoomedWindow?: { start: Date; end: Date };
   excludeDrones?: boolean;
   onRangeSelect?: (start: Date, end: Date) => void;
+  trackingSeries?: TrackingSeries[];
   // Optional key that, when changed, forces the Brush sliders to remount and
   // snap to the full domain. Page-level RESET should increment this key.
   resetKey?: number;
@@ -72,8 +74,13 @@ export function resolveBrushRange(
   return { start, end };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function CustomTooltip({ active, payload, tackleWindows }: any) {
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{ payload?: DamageDealtPoint & { timestampMs: number } }>;
+  tackleWindows?: TackleWindow[];
+}
+
+function CustomTooltip({ active, payload, tackleWindows }: CustomTooltipProps) {
   if (!active || !payload?.length) return null;
   const point = payload[0]?.payload as DamageDealtPoint & {
     timestampMs: number;
@@ -87,6 +94,11 @@ function CustomTooltip({ active, payload, tackleWindows }: any) {
         DPS: {point.dps.toLocaleString(undefined, { maximumFractionDigits: 1 })}
       </p>
       <p className="text-[#cc0000]">Bad Hit: {point.badHitPct.toFixed(1)}%</p>
+      {typeof point.trackingQuality === "number" && (
+        <p className="text-[#22c55e]">
+          Tracking: {point.trackingQuality.toFixed(2)}
+        </p>
+      )}
       {tackleWindow && (
         <>
           <p className="text-[#4488ff] font-bold">TACKLED</p>
@@ -101,11 +113,120 @@ function CustomTooltip({ active, payload, tackleWindows }: any) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Tracking enrichment — exported for unit testing
+// ---------------------------------------------------------------------------
+
+type DataPoint = DamageDealtPoint & { timestampMs: number };
+
+/**
+ * Merge a tracking series into DPS chart data points. For each data point the
+ * interpolated tracking quality is computed from the nearest tracking samples,
+ * then split into three tier keys (trackingHigh / trackingMid / trackingLow)
+ * used by the three colored Line components.
+ *
+ * "Bridge on arrival": whenever the tier at point N differs from the tier at
+ * point N-1, point N's value is also written into the previous tier. This
+ * extends the old tier's line to the transition point so no visual gap appears
+ * at tier crossings. Without bridging, `connectNulls=false` + `dot=false`
+ * leaves an invisible gap whenever adjacent points are in different tiers.
+ */
+export function buildEnrichedTrackingData(
+  data: DataPoint[],
+  trackingSeries: TrackingSeries[],
+): DataPoint[] {
+  if (data.length === 0 || trackingSeries.length === 0) return data;
+
+  const ts = trackingSeries.slice().sort((a, b) => a.timestamp - b.timestamp);
+  const MAX_NEAREST_FILL_MS = 60_000; // 1 min — avoid filling across long combat gaps
+  const MAX_INTERP_GAP_MS = 60_000; // 1 min — avoid interpolating across long gaps
+
+  const getTier = (tq: number): "high" | "mid" | "low" =>
+    tq >= 1.0 ? "high" : tq >= 0.7 ? "mid" : "low";
+
+  // Pass 1: interpolate tracking quality at each data point timestamp.
+  let i = 0;
+  const tqs: (number | null)[] = data.map((pt) => {
+    const tms = pt.timestampMs;
+    while (i < ts.length && ts[i].timestamp <= tms) i++;
+    const prev = i > 0 ? ts[i - 1] : null;
+    const next = i < ts.length ? ts[i] : null;
+
+    let tq: number | null = null;
+    if (prev && next) {
+      const gap = next.timestamp - prev.timestamp;
+      if (gap <= MAX_INTERP_GAP_MS) {
+        const frac = (tms - prev.timestamp) / (next.timestamp - prev.timestamp);
+        tq =
+          prev.trackingQuality +
+          frac * (next.trackingQuality - prev.trackingQuality);
+      } else if (Math.abs(tms - prev.timestamp) <= MAX_NEAREST_FILL_MS) {
+        tq = prev.trackingQuality;
+      } else if (Math.abs(next.timestamp - tms) <= MAX_NEAREST_FILL_MS) {
+        tq = next.trackingQuality;
+      }
+    } else if (prev) {
+      if (Math.abs(tms - prev.timestamp) <= MAX_NEAREST_FILL_MS)
+        tq = prev.trackingQuality;
+    } else if (next) {
+      if (Math.abs(next.timestamp - tms) <= MAX_NEAREST_FILL_MS)
+        tq = next.trackingQuality;
+    }
+    return tq;
+  });
+
+  // Pass 2: forward sweep to record the nearest non-null tier to the left of
+  // every point. Used for "bridge on arrival" below.
+  const prevTiers: ("high" | "mid" | "low" | null)[] = new Array(
+    tqs.length,
+  ).fill(null);
+  let lastTier: "high" | "mid" | "low" | null = null;
+  for (let j = 0; j < tqs.length; j++) {
+    prevTiers[j] = lastTier;
+    if (tqs[j] !== null) lastTier = getTier(tqs[j]!);
+  }
+
+  // Pass 3: assign tier values with "bridge on arrival". When a point's tier
+  // differs from the previous non-null tier, also write this point's value
+  // into the previous tier so the old tier's line extends to the transition
+  // point — eliminating visual gaps at all tier crossings.
+  return data.map((pt, j) => {
+    const tq = tqs[j];
+    if (tq === null) {
+      return {
+        ...pt,
+        trackingQuality: null,
+        trackingHigh: null,
+        trackingMid: null,
+        trackingLow: null,
+      };
+    }
+
+    const currTier = getTier(tq);
+    let trackingHigh: number | null = currTier === "high" ? tq : null;
+    let trackingMid: number | null = currTier === "mid" ? tq : null;
+    let trackingLow: number | null = currTier === "low" ? tq : null;
+
+    // Bridge on arrival: extend the previous tier's line to this point.
+    const prevT = prevTiers[j];
+    if (prevT !== null && prevT !== currTier) {
+      if (prevT === "high") trackingHigh = tq;
+      else if (prevT === "mid") trackingMid = tq;
+      else trackingLow = tq;
+    }
+
+    return { ...pt, trackingQuality: tq, trackingHigh, trackingMid, trackingLow };
+  });
+}
+
+// ---------------------------------------------------------------------------
+
 export default function DamageDealtChart({
   series,
   zoomedWindow,
   excludeDrones,
   onRangeSelect,
+  trackingSeries,
   resetKey,
 }: DamageDealtChartProps) {
   const { points, tackleWindows } = series;
@@ -127,6 +248,19 @@ export default function DamageDealtChart({
     [fullPoints],
   );
 
+  // Merge tracking series into chart data when provided. We attach three
+  // derived keys so the Line components can draw colored segments per range.
+  const enrichedData = useMemo(() => {
+    if (
+      !data ||
+      data.length === 0 ||
+      !trackingSeries ||
+      trackingSeries.length === 0
+    ) {
+      return data;
+    }
+    return buildEnrichedTrackingData(data, trackingSeries);
+  }, [data, trackingSeries]);
 
   // Expand window slightly so chart doesn't look empty if only 1 point is visible
   // (kept for parity with previous behaviour; not strictly used here).
@@ -236,7 +370,7 @@ export default function DamageDealtChart({
     // remains visible after we clear the controlled props.
     const id = window.setTimeout(() => setSyncIndices(undefined), 600);
     return () => window.clearTimeout(id);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [brushIndexRange?.startIndex, brushIndexRange?.endIndex]);
 
   // Recharts may render inline or with other stylesheet rules that win over
@@ -349,7 +483,7 @@ export default function DamageDealtChart({
     <div className="space-y-3">
       <ResponsiveContainer width="100%" height={300}>
         <ComposedChart
-          data={data}
+          data={enrichedData}
           margin={{ top: 4, right: 48, left: 0, bottom: 0 }}
         >
           <CartesianGrid
@@ -415,6 +549,29 @@ export default function DamageDealtChart({
               fontFamily: "JetBrains Mono, monospace",
             }}
           />
+          {/* Rightmost Y-axis: tracking quality (0 - 1.5) */}
+          <YAxis
+            yAxisId="tracking"
+            orientation="right"
+            domain={[0, 1.5]}
+            tick={{
+              fill: "#22c55e",
+              fontSize: 10,
+              fontFamily: "JetBrains Mono, monospace",
+            }}
+            axisLine={false}
+            tickLine={false}
+            width={48}
+            label={{
+              value: "TRACK",
+              angle: 90,
+              position: "insideRight",
+              offset: 36,
+              fill: "#22c55e",
+              fontSize: 9,
+              fontFamily: "JetBrains Mono, monospace",
+            }}
+          />
           <Tooltip content={<CustomTooltip tackleWindows={tackleWindows} />} />
 
           {/* Tackle windows as blue reference areas */}
@@ -452,6 +609,43 @@ export default function DamageDealtChart({
             activeDot={{ r: 3, fill: "#00d4ff" }}
             name="DPS"
             isAnimationActive={false}
+          />
+
+          {/* Tracking quality: draw three separate lines (high/mid/low) so
+              we can color segments according to thresholds. Each line uses the
+              tracking y-axis with domain 0..1.5. */}
+          <Line
+            yAxisId="tracking"
+            type="monotone"
+            dataKey="trackingHigh"
+            stroke="#16a34a"
+            strokeWidth={2}
+            dot={false}
+            isAnimationActive={false}
+            connectNulls={false}
+            name="Tracking (>=1.0)"
+          />
+          <Line
+            yAxisId="tracking"
+            type="monotone"
+            dataKey="trackingMid"
+            stroke="#eab308"
+            strokeWidth={2}
+            dot={false}
+            isAnimationActive={false}
+            connectNulls={false}
+            name="Tracking (0.7-0.999)"
+          />
+          <Line
+            yAxisId="tracking"
+            type="monotone"
+            dataKey="trackingLow"
+            stroke="#dc2626"
+            strokeWidth={2}
+            dot={false}
+            isAnimationActive={false}
+            connectNulls={false}
+            name="Tracking (<0.7)"
           />
           {onRangeSelect && (
             <>

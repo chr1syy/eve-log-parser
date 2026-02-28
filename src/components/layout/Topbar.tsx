@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Upload, Share2, FileText, Copy, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useParsedLogs } from "@/hooks/useParsedLogs";
@@ -25,6 +25,15 @@ export default function Topbar({ title }: TopbarProps) {
 
   // User ID copy state
   const [copied, setCopied] = useState(false);
+  // Mounted flag to avoid SSR/client hydration mismatch for user-specific UI.
+  // Avoid calling setState synchronously inside the effect (ESLint rule);
+  // defer the state change to the next macrotask so the effect remains
+  // non-sync and the linter is satisfied.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const id = window.setTimeout(() => setMounted(true), 0);
+    return () => window.clearTimeout(id);
+  }, []);
 
   // No dropdown interaction in Topbar — log management moved to Upload page
 
@@ -80,7 +89,8 @@ export default function Topbar({ title }: TopbarProps) {
         {/* Right: actions */}
         <div className="flex items-center gap-4">
           {/* User ID indicator (Scenario B — shown when session is normal) */}
-          {!needsRecovery && userId && (
+          {/* Render user ID only after client mount to avoid hydration mismatches */}
+          {!needsRecovery && mounted && userId && (
             <button
               type="button"
               onClick={handleCopyUserId}

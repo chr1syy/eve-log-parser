@@ -21,6 +21,14 @@ export type HitQuality =
   | "misses"
   | "unknown";
 
+// Weapon system classification used by parsers/analysis
+export enum WeaponSystemType {
+  TURRET = "TURRET",
+  MISSILE = "MISSILE",
+  DRONE = "DRONE",
+  UNKNOWN = "UNKNOWN",
+}
+
 export type CapEventType = "neut-received" | "neut-dealt" | "nos-dealt";
 
 export type SecurityClass =
@@ -41,6 +49,9 @@ export interface LogEntry {
   hitQuality?: HitQuality;
   weapon?: string;
   isDrone?: boolean; // true if weapon is a drone type
+  // Classified weapon system and optional multiplier (for normalized damage)
+  weaponSystemType?: WeaponSystemType;
+  damageMultiplier?: number;
 
   // Entity fields (pilot/NPC who dealt or received the damage/rep/neut)
   pilotName?: string; // player pilot name (null for NPCs)
@@ -155,4 +166,13 @@ export interface CommitEntry {
 
 export interface ChangelogResponse {
   commits: CommitEntry[];
+}
+
+// Time series for tracking quality (rolling window)
+export interface TrackingSeries {
+  timestamp: number; // window end timestamp (ms since epoch)
+  trackingQuality: number; // average damageMultiplier inside window
+  shotCount: number; // total shots (hits+misses) in window
+  hitCount: number; // number of hit events in window
+  missCount: number; // number of miss events in window
 }

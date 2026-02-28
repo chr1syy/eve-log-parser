@@ -159,8 +159,6 @@ function fmt(n: number): string {
   return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
 }
 
-
-
 // Cross-matrix helpers for drill-down view
 type CrossEntry = {
   byPilot: Record<string, Record<string, number>>;
@@ -372,6 +370,29 @@ function WeaponTable({
     // Hit quality columns intentionally omitted for fleet view
   ];
 
+  // Inject Avg Turret Tracking column at the end of the table for turret weapons
+  columns.push({
+    key: "avgTurretTracking",
+    label: "Avg Turret Tracking",
+    sortable: true,
+    numeric: true,
+    render: (v: unknown, row: Record<string, unknown>) => {
+      const s = row as WeaponApplicationSummary & Record<string, unknown>;
+      // Prefer the precomputed avgDamageMultiplier; fall back to a dash
+      const val =
+        (s as unknown as { avgDamageMultiplier?: number | null })
+          .avgDamageMultiplier ?? null;
+      if (val === null || val === undefined) {
+        return <span className="text-text-muted font-mono text-xs">—</span>;
+      }
+      return (
+        <span className="font-mono text-xs" title={`${val.toFixed(2)}`}>
+          {val.toFixed(2)}
+        </span>
+      );
+    },
+  });
+
   return (
     <DataTable
       columns={columns}
@@ -391,7 +412,6 @@ export default function FleetDamageDealtContent({
   entries,
 }: FleetDamageDealtContentProps) {
   const analysis = useMemo(() => analyzeDamageDealt(entries), [entries]);
-
 
   // NOTE: engagement table / zoom state removed for Phase 05 matrix drill-down.
 

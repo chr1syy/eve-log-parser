@@ -1,4 +1,5 @@
 import type { LogEntry, HitQuality } from "../types";
+import { WeaponSystemType } from "../types";
 
 export interface TargetEngagement {
   target: string; // pilotName or NPC name
@@ -25,6 +26,10 @@ export interface WeaponApplicationSummary {
   maxHit: number;
   avgHit: number;
   hitQualities: Partial<Record<HitQuality, number>>;
+  // Optional: whether this weapon group includes turret shots
+  isTurret?: boolean;
+  // Optional: average damage multiplier (used to approximate tracking quality)
+  avgDamageMultiplier?: number | null;
 }
 
 export interface DamageDealtAnalysis {
@@ -151,6 +156,20 @@ export function analyzeDamageDealt(entries: LogEntry[]): DamageDealtAnalysis {
       maxHit,
       avgHit,
       hitQualities,
+      // Determine whether this weapon group contains turret-classified shots
+      isTurret: group.some(
+        (e) => e.weaponSystemType === WeaponSystemType.TURRET,
+      ),
+      // Compute average damageMultiplier over turret shots only when present
+      avgDamageMultiplier: (() => {
+        const turretMs = group
+          .filter((e) => e.weaponSystemType === WeaponSystemType.TURRET)
+          .map((e) => e.damageMultiplier)
+          .filter((m) => m !== undefined) as number[];
+        if (turretMs.length === 0) return null;
+        const sum = turretMs.reduce((a, b) => a + (b ?? 1), 0);
+        return sum / turretMs.length;
+      })(),
     };
 
     if (isDrone) {
@@ -200,6 +219,14 @@ export interface DamageDealtPoint {
   timestamp: Date;
   dps: number; // rolling 10s total outgoing DPS
   badHitPct: number; // % of hits in this window that are Glances Off or Grazes
+  // Optional tracking fields added so chart enrichment that attaches
+  // trackingQuality / segmented tracking values matches the type used
+  // by the tooltip and chart. These are optional because not all time
+  // series will have tracking samples.
+  trackingQuality?: number | null;
+  trackingHigh?: number | null;
+  trackingMid?: number | null;
+  trackingLow?: number | null;
 }
 
 export interface TackleWindow {
