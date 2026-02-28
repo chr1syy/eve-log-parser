@@ -137,10 +137,10 @@ describe("Fleet Workflow E2E Tests", () => {
       }
 
       // Upload overlapping logs — all sessions within 02:08:50–02:09:03 window
-      for (const [pilotName, shipType, logContent, fileName] of [
-        ["PilotA", "Typhoon", mockLogPilotA, "logA.txt"],
-        ["PilotB", "Brutix", mockLogPilotB, "logB.txt"],
-        ["PilotC", "Punisher", mockLogPilotC, "logC.txt"],
+      for (const [pilotName, shipType, logContent] of [
+        ["PilotA", "Typhoon", mockLogPilotA],
+        ["PilotB", "Brutix", mockLogPilotB],
+        ["PilotC", "Punisher", mockLogPilotC],
       ] as const) {
         const uploadReq = {
           formData: vi.fn().mockResolvedValue({

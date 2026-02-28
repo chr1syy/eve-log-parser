@@ -61,7 +61,12 @@ export interface DamageTakenAnalysis {
 const FIGHT_GAP_MS = 60_000; // 60 seconds
 // If two events are separated by more than this threshold we insert zero
 // points in the time series to avoid visually interpolating a slow decline.
-const GAP_INSERT_THRESHOLD_MS = 90_000; // 1.5 minutes
+// (defined for parity with damageDealt but unused here)
+// Gap insert threshold kept for documentation parity with damageDealt
+// (unused but intentionally present for future behavior alignment).
+/* eslint-disable @typescript-eslint/no-unused-vars */
+const _GAP_INSERT_THRESHOLD_MS = 90_000; // 1.5 minutes
+/* eslint-enable @typescript-eslint/no-unused-vars */
 
 function segmentFights(entries: LogEntry[]): FightSegment[] {
   const sorted = [...entries].sort(
@@ -112,57 +117,68 @@ function computeDpsTimeSeries(
 ): TimeSeriesDpsPoint[] {
   const points: TimeSeriesDpsPoint[] = [];
 
-  for (let fi = 0; fi < fights.length; fi++) {
-    const fight = fights[fi];
-    const sorted = [...fight.entries].sort(
-      (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
-    );
-    if (sorted.length === 0) continue;
+  if (fights.length === 0) return points;
 
-    // Collect unique timestamps from fight entries (step through each event timestamp)
-    const timestamps = sorted.map((e) => e.timestamp.getTime());
-    const uniqueTs = Array.from(new Set(timestamps)).sort((a, b) => a - b);
+  // Build a global uniform sampling grid across all fights so there is a
+  // point every `rollingWindowMs` (typically 10s). This fills gaps between
+  // fights with zero-valued points and produces a smooth time series.
+  // Additionally insert zero points between fights if the gap is large to
+  // ensure the chart visually drops to zero instead of interpolating.
+  const firstStart = fights[0].start.getTime();
+  const lastEnd = fights[fights.length - 1].end.getTime();
+  const alignedStart =
+    Math.floor(firstStart / rollingWindowMs) * rollingWindowMs;
+  const timestampsToUse: number[] = [];
+  for (let t = alignedStart; t <= lastEnd; t += rollingWindowMs) {
+    timestampsToUse.push(t);
+  }
 
-    for (let i = 0; i < uniqueTs.length; i++) {
-      const ts = uniqueTs[i];
-      const windowStart = ts - rollingWindowMs;
-      const windowDamage = sorted
-        .filter((e) => {
-          const t = e.timestamp.getTime();
-          return t > windowStart && t <= ts;
-        })
-        .reduce((sum, e) => sum + (e.amount ?? 0), 0);
-      const dps = windowDamage / (rollingWindowMs / 1000);
-      points.push({ timestamp: new Date(ts), dps, fightIndex: fi });
+  // Prepare a single sorted list of all entries across fights (for sliding window)
+  const allEntries = fights
+    .flatMap((f) => f.entries)
+    .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
-      // If gap to next unique timestamp is large, insert zero points so the
-      // chart drops to 0 instead of visually interpolating a slow decline.
-      const nextTs = uniqueTs[i + 1];
-      if (nextTs !== undefined && nextTs - ts > GAP_INSERT_THRESHOLD_MS) {
-        // Insert a near-immediate zero after current timestamp and a zero
-        // just before the next timestamp so the line is flat at 0 between
-        // them.
-        const after = ts + 1; // 1 ms after current
-        const before = nextTs - 1; // 1 ms before next
-        points.push({ timestamp: new Date(after), dps: 0, fightIndex: fi });
-        points.push({ timestamp: new Date(before), dps: 0, fightIndex: fi });
-      }
+  let damageStart = 0;
+  let damageEnd = 0;
+  let damageSum = 0;
+
+  // Maintain a pointer to current fight for assigning fightIndex to timestamps
+  let fi = 0;
+  for (const ts of timestampsToUse) {
+    const windowStart = ts - rollingWindowMs;
+
+    while (
+      damageStart < allEntries.length &&
+      allEntries[damageStart].timestamp.getTime() < windowStart
+    ) {
+      damageSum -= allEntries[damageStart].amount ?? 0;
+      damageStart++;
     }
 
-    // Also consider the gap to the next fight segment. If the next fight
-    // starts far enough in the future insert zero points between the last
-    // timestamp of this fight and the first timestamp of the next fight so
-    // the global timeline visibly drops to zero between fights.
-    if (fi < fights.length - 1) {
-      const lastTs = uniqueTs[uniqueTs.length - 1];
-      const nextStart = fights[fi + 1].start.getTime();
-      if (nextStart - lastTs > GAP_INSERT_THRESHOLD_MS) {
-        const after = lastTs + 1;
-        const before = nextStart - 1;
-        points.push({ timestamp: new Date(after), dps: 0, fightIndex: fi });
-        points.push({ timestamp: new Date(before), dps: 0, fightIndex: fi });
-      }
+    while (
+      damageEnd < allEntries.length &&
+      allEntries[damageEnd].timestamp.getTime() <= ts
+    ) {
+      damageSum += allEntries[damageEnd].amount ?? 0;
+      damageEnd++;
     }
+
+    // Advance fight pointer so fi points at the first fight with end >= ts,
+    // or fights.length if past the last fight.
+    while (fi < fights.length && ts > fights[fi].end.getTime()) fi++;
+
+    // Determine fightIndex: prefer fight containing ts, otherwise use previous fight
+    let fightIndex = 0;
+    if (fi === fights.length) {
+      fightIndex = fights.length - 1;
+    } else if (ts < fights[fi].start.getTime()) {
+      fightIndex = Math.max(0, fi - 1);
+    } else {
+      fightIndex = fi;
+    }
+
+    const dps = damageSum / (rollingWindowMs / 1000);
+    points.push({ timestamp: new Date(ts), dps, fightIndex });
   }
 
   return points;
