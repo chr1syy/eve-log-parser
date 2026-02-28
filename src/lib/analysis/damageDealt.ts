@@ -1,4 +1,5 @@
 import type { LogEntry, HitQuality } from "../types";
+import { WeaponSystemType } from "../types";
 
 export interface TargetEngagement {
   target: string; // pilotName or NPC name
