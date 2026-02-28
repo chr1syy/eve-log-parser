@@ -113,6 +113,7 @@ export default function DamageDealtChart({
   zoomedWindow,
   excludeDrones,
   onRangeSelect,
+  trackingSeries,
   resetKey,
 }: DamageDealtChartProps) {
   const { points, tackleWindows } = series;
