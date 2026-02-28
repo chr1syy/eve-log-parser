@@ -1,12 +1,15 @@
-'use client';
+"use client";
 
-import { useCallback, useState } from 'react';
-import { useDropzone } from 'react-dropzone';
-import { Upload, X, FileText } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useCallback, useState } from "react";
+import { useDropzone } from "react-dropzone";
+import { Upload, X, FileText } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface DropZoneProps {
   onFilesAccepted: (files: File[]) => void;
+  /** Optional controlled files list from parent. If provided DropZone will
+   * sync its internal list to this value (useful to clear after parsing). */
+  files?: File[];
 }
 
 function formatBytes(bytes: number): string {
@@ -15,14 +18,23 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export default function DropZone({ onFilesAccepted }: DropZoneProps) {
-  const [files, setFiles] = useState<File[]>([]);
+export default function DropZone({
+  onFilesAccepted,
+  files: externalFiles,
+}: DropZoneProps) {
+  const controlled = externalFiles !== undefined;
+  const [internalFiles, setInternalFiles] = useState<File[]>(
+    externalFiles ?? [],
+  );
+  const files = controlled ? externalFiles! : internalFiles;
   const [error, setError] = useState<string | null>(null);
 
   const onDrop = useCallback(
     (acceptedFiles: File[], rejectedFiles: { file: File }[]) => {
       if (rejectedFiles.length > 0) {
-        setError('Only .txt and .log files are supported. Please check your file types.');
+        setError(
+          "Only .txt and .log files are supported. Please check your file types.",
+        );
       } else {
         setError(null);
       }
@@ -34,24 +46,34 @@ export default function DropZone({ onFilesAccepted }: DropZoneProps) {
             merged.push(f);
           }
         }
-        setFiles(merged);
-        onFilesAccepted(merged);
+        if (controlled) {
+          // parent owns state; notify via callback
+          onFilesAccepted(merged);
+        } else {
+          setInternalFiles(merged);
+          onFilesAccepted(merged);
+        }
       }
     },
-    [files, onFilesAccepted],
+    // include 'controlled' to preserve memoization correctness
+    [files, onFilesAccepted, controlled],
   );
 
   const removeFile = (name: string) => {
     const updated = files.filter((f) => f.name !== name);
-    setFiles(updated);
-    onFilesAccepted(updated);
+    if (controlled) {
+      onFilesAccepted(updated);
+    } else {
+      setInternalFiles(updated);
+      onFilesAccepted(updated);
+    }
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'text/plain': ['.txt', '.log'],
-      'application/octet-stream': ['.log'],
+      "text/plain": [".txt", ".log"],
+      "application/octet-stream": [".log"],
     },
     multiple: true,
   });
@@ -62,13 +84,13 @@ export default function DropZone({ onFilesAccepted }: DropZoneProps) {
       <div
         {...getRootProps()}
         className={cn(
-          'relative border-2 border-dashed rounded-sm cursor-pointer transition-all duration-200',
-          'flex flex-col items-center justify-center py-12 px-6',
+          "relative border-2 border-dashed rounded-sm cursor-pointer transition-all duration-200",
+          "flex flex-col items-center justify-center py-12 px-6",
           isDragActive
-            ? 'border-cyan-glow bg-[#00d4ff15]'
+            ? "border-cyan-glow bg-[#00d4ff15]"
             : error
-              ? 'border-status-kill bg-[#e53e3e08]'
-              : 'border-cyan-dim bg-[#00d4ff08] hover:border-cyan-glow hover:bg-[#00d4ff15]',
+              ? "border-status-kill bg-[#e53e3e08]"
+              : "border-cyan-dim bg-[#00d4ff08] hover:border-cyan-glow hover:bg-[#00d4ff15]",
         )}
       >
         <input {...getInputProps()} />
@@ -80,13 +102,13 @@ export default function DropZone({ onFilesAccepted }: DropZoneProps) {
         <Upload
           size={48}
           className={cn(
-            'mb-4 transition-colors duration-200',
-            isDragActive ? 'text-cyan-glow' : 'text-cyan-dim',
+            "mb-4 transition-colors duration-200",
+            isDragActive ? "text-cyan-glow" : "text-cyan-dim",
           )}
         />
 
         <h3 className="text-text-primary text-lg font-ui font-bold uppercase tracking-widest mb-2">
-          {isDragActive ? 'RELEASE TO UPLOAD' : 'DROP LOG FILES HERE'}
+          {isDragActive ? "RELEASE TO UPLOAD" : "DROP LOG FILES HERE"}
         </h3>
 
         <p className="text-text-muted text-sm font-mono text-center">
@@ -114,8 +136,12 @@ export default function DropZone({ onFilesAccepted }: DropZoneProps) {
               className="flex items-center gap-3 px-3 py-2 bg-space border border-border rounded-sm hover:border-cyan-dim transition-colors duration-150"
             >
               <FileText size={14} className="text-cyan-dim flex-shrink-0" />
-              <span className="flex-1 text-text-primary text-sm font-mono truncate">{file.name}</span>
-              <span className="text-text-muted text-xs font-mono">{formatBytes(file.size)}</span>
+              <span className="flex-1 text-text-primary text-sm font-mono truncate">
+                {file.name}
+              </span>
+              <span className="text-text-muted text-xs font-mono">
+                {formatBytes(file.size)}
+              </span>
               <button
                 type="button"
                 onClick={(e) => {

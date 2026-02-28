@@ -90,9 +90,10 @@ function mergeEntries(logs: ParsedLog[]): LogEntry[] {
 }
 
 function formatMinutes(minutes: number): string {
-  if (minutes < 60) return `${minutes}m`;
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
+  const mins = Math.round(minutes);
+  if (mins < 60) return `${mins}m`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
@@ -104,7 +105,7 @@ export default function DashboardPage() {
   const allEntries = mergeEntries(activeLog ? [activeLog] : []);
 
   return (
-    <AppLayout title="DASHBOARD">
+    <AppLayout title="OVERVIEW">
       {!hasLogs ? (
         /* Empty state */
         <div className="flex items-center justify-center min-h-[60vh]">
