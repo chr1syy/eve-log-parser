@@ -147,11 +147,35 @@ export default function DamageDealtChart({
     ) {
       return data;
     }
-    const map = new Map<number, number>();
-    for (const t of trackingSeries) map.set(t.timestamp, t.trackingQuality);
+    // trackingSeries is sorted by timestamp (computeRollingTracking ensures this).
+    // We merge the two sorted arrays (data timestamps and tracking timestamps)
+    // using a single pass to carry-forward the last known trackingQuality.
+    const ts = trackingSeries.slice().sort((a, b) => a.timestamp - b.timestamp);
+    let ti = 0;
+    let lastTq: number | null = null;
 
     return data.map((pt) => {
-      const tq = map.get(pt.timestampMs) ?? null;
+      const tms = pt.timestampMs as number;
+      // advance tracking pointer to the last entry with timestamp <= tms
+      while (ti < ts.length && ts[ti].timestamp <= tms) {
+        lastTq = ts[ti].trackingQuality;
+        ti++;
+      }
+
+      // If we haven't seen any earlier entry, optionally look ahead to the next
+      // tracking sample so short leading gaps still get a value. Use the next
+      // sample only if lastTq is null and the next sample is within half a
+      // window (heuristic). This keeps the line continuous over small gaps.
+      if (lastTq === null && ti < ts.length) {
+        const next = ts[ti];
+        // allow small forward fill up to WINDOW_MS (10s) to avoid wild fills
+        const MAX_LOOKAHEAD_MS = WINDOW_MS;
+        if (Math.abs(next.timestamp - tms) <= MAX_LOOKAHEAD_MS) {
+          lastTq = next.trackingQuality;
+        }
+      }
+
+      const tq = lastTq;
       const trackingHigh = tq !== null && tq >= 1.0 ? tq : null;
       const trackingMid = tq !== null && tq >= 0.7 && tq < 1.0 ? tq : null;
       const trackingLow = tq !== null && tq < 0.7 ? tq : null;
