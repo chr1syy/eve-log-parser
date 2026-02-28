@@ -94,6 +94,11 @@ function CustomTooltip({ active, payload, tackleWindows }: CustomTooltipProps) {
         DPS: {point.dps.toLocaleString(undefined, { maximumFractionDigits: 1 })}
       </p>
       <p className="text-[#cc0000]">Bad Hit: {point.badHitPct.toFixed(1)}%</p>
+      {typeof point.trackingQuality === "number" && (
+        <p className="text-[#22c55e]">
+          Tracking: {point.trackingQuality.toFixed(2)}
+        </p>
+      )}
       {tackleWindow && (
         <>
           <p className="text-[#4488ff] font-bold">TACKLED</p>
@@ -147,35 +152,60 @@ export default function DamageDealtChart({
     ) {
       return data;
     }
-    // trackingSeries is sorted by timestamp (computeRollingTracking ensures this).
-    // We merge the two sorted arrays (data timestamps and tracking timestamps)
-    // using a single pass to carry-forward the last known trackingQuality.
-    const ts = trackingSeries.slice().sort((a, b) => a.timestamp - b.timestamp);
-    let ti = 0;
-    let lastTq: number | null = null;
 
+    // Linear interpolation between nearest trackingSeries samples. If the
+    // gap between the surrounding samples is too large, we avoid interpolating
+    // to prevent misleading values. Use a MAX_INTERP_GAP_MS heuristic.
+    const ts = trackingSeries.slice().sort((a, b) => a.timestamp - b.timestamp);
+
+    // Interpolation heuristics — tuned to produce a clearer, more continuous
+    // tracking line while still avoiding wild extrapolation across very long
+    // gaps. These values are intentionally more permissive than before so
+    // the chart fills short-to-medium gaps and produces a visually clear
+    // line for sparse tracking samples.
+    const MAX_NEAREST_FILL_MS = 3 * 60_000; // 3 minutes — use nearest neighbor
+    const MAX_INTERP_GAP_MS = 10 * 60_000; // 10 minutes — allow linear interpolation up to this gap
+
+    // Helper: find rightmost index i such that ts[i].timestamp <= tms
+    let i = 0;
     return data.map((pt) => {
       const tms = pt.timestampMs as number;
-      // advance tracking pointer to the last entry with timestamp <= tms
-      while (ti < ts.length && ts[ti].timestamp <= tms) {
-        lastTq = ts[ti].trackingQuality;
-        ti++;
-      }
 
-      // If we haven't seen any earlier entry, optionally look ahead to the next
-      // tracking sample so short leading gaps still get a value. Use the next
-      // sample only if lastTq is null and the next sample is within half a
-      // window (heuristic). This keeps the line continuous over small gaps.
-      if (lastTq === null && ti < ts.length) {
-        const next = ts[ti];
-        // allow small forward fill up to WINDOW_MS (10s) to avoid wild fills
-        const MAX_LOOKAHEAD_MS = WINDOW_MS;
-        if (Math.abs(next.timestamp - tms) <= MAX_LOOKAHEAD_MS) {
-          lastTq = next.trackingQuality;
+      // Ensure `i` points to the first sample with timestamp > tms (or end)
+      while (i < ts.length && ts[i].timestamp <= tms) i++;
+
+      const prev = i > 0 ? ts[i - 1] : null;
+      const next = i < ts.length ? ts[i] : null;
+
+      let tq: number | null = null;
+      if (prev && next) {
+        // If we have both surrounding samples, allow linear interpolation
+        // across moderate gaps up to MAX_INTERP_GAP_MS. This fills holes
+        // between sparse samples so the line remains continuous.
+        const gap = next.timestamp - prev.timestamp;
+        if (gap <= MAX_INTERP_GAP_MS) {
+          const frac =
+            (tms - prev.timestamp) / (next.timestamp - prev.timestamp);
+          tq =
+            prev.trackingQuality +
+            frac * (next.trackingQuality - prev.trackingQuality);
+        } else if (Math.abs(tms - prev.timestamp) <= MAX_NEAREST_FILL_MS) {
+          // gap too large for interpolation, but this point is close to prev — use it
+          tq = prev.trackingQuality;
+        } else if (Math.abs(next.timestamp - tms) <= MAX_NEAREST_FILL_MS) {
+          // or close to next — use it
+          tq = next.trackingQuality;
         }
+      } else if (prev) {
+        // Only previous exists — forward-fill if the sample is recent enough
+        if (Math.abs(tms - prev.timestamp) <= MAX_NEAREST_FILL_MS)
+          tq = prev.trackingQuality;
+      } else if (next) {
+        // Only next exists — back-fill if close enough
+        if (Math.abs(next.timestamp - tms) <= MAX_NEAREST_FILL_MS)
+          tq = next.trackingQuality;
       }
 
-      const tq = lastTq;
       const trackingHigh = tq !== null && tq >= 1.0 ? tq : null;
       const trackingMid = tq !== null && tq >= 0.7 && tq < 1.0 ? tq : null;
       const trackingLow = tq !== null && tq < 0.7 ? tq : null;

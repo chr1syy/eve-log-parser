@@ -219,6 +219,14 @@ export interface DamageDealtPoint {
   timestamp: Date;
   dps: number; // rolling 10s total outgoing DPS
   badHitPct: number; // % of hits in this window that are Glances Off or Grazes
+  // Optional tracking fields added so chart enrichment that attaches
+  // trackingQuality / segmented tracking values matches the type used
+  // by the tooltip and chart. These are optional because not all time
+  // series will have tracking samples.
+  trackingQuality?: number | null;
+  trackingHigh?: number | null;
+  trackingMid?: number | null;
+  trackingLow?: number | null;
 }
 
 export interface TackleWindow {

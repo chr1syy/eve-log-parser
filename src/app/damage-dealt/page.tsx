@@ -390,6 +390,13 @@ export default function DamageDealtPage() {
     if (!deferredActiveLog) return [];
     return computeRollingTracking(deferredActiveLog.entries);
   }, [deferredActiveLog]);
+  // Only show tracking when the analyzed weapons include turret-classified
+  // shots. This prevents drawing a tracking line for purely missile/drone
+  // logs where tracking is irrelevant and could confuse users.
+  const hasTurretWeapons = useMemo(() => {
+    if (!analysis) return false;
+    return analysis.weaponSummaries.some((w) => w.isTurret === true);
+  }, [analysis]);
 
   const effectiveZoomedWindow = resolveZoomedWindow(zoomedWindow, zoomedTarget);
 
@@ -568,7 +575,7 @@ export default function DamageDealtPage() {
               series={timeSeries}
               zoomedWindow={effectiveZoomedWindow}
               excludeDrones={excludeDrones}
-              trackingSeries={trackingSeries}
+              trackingSeries={hasTurretWeapons ? trackingSeries : undefined}
               onRangeSelect={handleRangeSelect}
               resetKey={resetBrushKey}
             />
