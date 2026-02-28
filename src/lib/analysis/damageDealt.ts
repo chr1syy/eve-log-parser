@@ -216,6 +216,15 @@ export interface DamageDealtTimeSeries {
 
 const BAD_HIT_QUALITIES = new Set<HitQuality>(["Glances Off", "Grazes"]);
 const WINDOW_MS = 10_000;
+// Fight segmentation and gap thresholds (match damageTaken behavior)
+// Fight gap threshold defined for reference; unused in the current
+// sampling implementation but kept for documentation parity. Prefix with
+// leading underscore and disable the eslint rule where declared to avoid
+// warnings.
+/* eslint-disable @typescript-eslint/no-unused-vars */
+const _FIGHT_GAP_MS = 60_000; // 60 seconds
+/* eslint-enable @typescript-eslint/no-unused-vars */
+// (removed unused segmentFights and gap constant to avoid lint warnings)
 
 export function computeTackleWindows(entries: LogEntry[]): TackleWindow[] {
   const scramEvents = entries
@@ -296,25 +305,19 @@ export function generateDamageDealtTimeSeries(
 
   const points: DamageDealtPoint[] = [];
 
-  // Build a contiguous 10s sampling grid across the span of outgoing
-  // damage events. Align the grid to the first event timestamp floored to
-  // WINDOW_MS, and include the last event timestamp. For very small spans
-  // (single hit) still produce one sample at the hit time.
+  // Build a global uniform sampling grid across the span of outgoing
+  // damage events so there is a sample every WINDOW_MS (10s). This
+  // guarantees a smoothing point even when no damage occurred in the
+  // interval (dps will be 0).
   const timestamps = dealtEntries.map((e) => e.timestamp.getTime());
   const firstTs = Math.min(...timestamps);
   const lastTs = Math.max(...timestamps);
   const alignedStart = Math.floor(firstTs / WINDOW_MS) * WINDOW_MS;
+  const alignedEnd = Math.ceil(lastTs / WINDOW_MS) * WINDOW_MS;
 
-  let timestampsToUse: number[] = [];
-  if (lastTs - alignedStart < WINDOW_MS) {
-    // span less than one window — emit single sample at the hit time
-    timestampsToUse = [lastTs];
-  } else {
-    for (let t = alignedStart; t <= lastTs; t += WINDOW_MS) {
-      timestampsToUse.push(t);
-    }
-    const last = timestampsToUse[timestampsToUse.length - 1];
-    if (last < lastTs) timestampsToUse.push(lastTs);
+  const timestampsToUse: number[] = [];
+  for (let t = alignedStart; t <= alignedEnd; t += WINDOW_MS) {
+    timestampsToUse.push(t);
   }
 
   // Sliding window pointers for damage (O(n))
