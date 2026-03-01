@@ -94,6 +94,8 @@ Appendix: quick file references
 - `src/lib/analysis/damageTaken.ts`
 - `src/lib/analysis/tracking.ts`
 - `src/components/fleet/`
+- `src/components/charts/CombinedChart.tsx` — multi-series chart with brush zoom
+- `src/components/charts/DamagePerTargetTable.tsx` — per-target damage breakdown table (brush-window-aware)
 - `src/components/ui/`
 - `src/hooks/useParsedLogs.ts`
 - `src/__tests__/`

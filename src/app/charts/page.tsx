@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import CombinedChart from "@/components/charts/CombinedChart";
 import type { ActiveToggles } from "@/components/charts/CombinedChart";
 import RawLogPanel from "@/components/charts/RawLogPanel";
+import DamagePerTargetTable from "@/components/charts/DamagePerTargetTable";
 import AppLayout from "@/components/layout/AppLayout";
 import Panel from "@/components/ui/Panel";
 import { useParsedLogs } from "@/hooks/useParsedLogs";
@@ -193,6 +194,11 @@ export default function ChartsPage() {
             />
           </div>
         </div>
+
+        {/* Damage per target table — only when Damage Out toggle is active */}
+        {activeToggles.damageOut && (
+          <DamagePerTargetTable entries={entries} brushWindow={brushWindow} />
+        )}
       </div>
     </AppLayout>
   );
