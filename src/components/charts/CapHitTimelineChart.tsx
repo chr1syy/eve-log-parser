@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useCallback } from "react";
 import {
   BarChart,
   Bar,
@@ -102,6 +102,44 @@ export default function CapHitTimelineChart({
     );
   }, [entries]);
 
+  // Container width tracked via ResponsiveContainer onResize — used for
+  // computing how many pixels correspond to 1 second at the current zoom.
+  const [containerWidth, setContainerWidth] = useState(800);
+  const handleResize = useCallback((width: number) => {
+    setContainerWidth(width);
+  }, []);
+
+  // Brush window (index-based). Default: first 60 bars.
+  const [brushStart, setBrushStart] = useState(0);
+  const [brushEnd, setBrushEnd] = useState(
+    Math.min(59, Math.max(0, data.length - 1)),
+  );
+
+  const handleBrushChange = useCallback(
+    ({ startIndex, endIndex }: { startIndex?: number; endIndex?: number }) => {
+      if (startIndex != null) setBrushStart(startIndex);
+      if (endIndex != null) setBrushEnd(endIndex);
+    },
+    [],
+  );
+
+  // Clamp brush bounds to current data length — guards against stale state
+  // after a new log is loaded without resetting brush manually.
+  const safeStart = Math.min(brushStart, Math.max(0, data.length - 1));
+  const safeEnd = Math.min(brushEnd, Math.max(0, data.length - 1));
+
+  // Bar width = 1 second expressed in pixels at the current zoom level.
+  // usableWidth ≈ container minus YAxis (56 px) and right margin (8 px).
+  const barSize = useMemo(() => {
+    const visible = data.slice(safeStart, safeEnd + 1);
+    if (visible.length < 2) return 20;
+    const spanMs =
+      visible[visible.length - 1].timestampMs - visible[0].timestampMs;
+    if (spanMs <= 0) return 20;
+    const usableWidth = Math.max(100, containerWidth - 64);
+    return Math.max(2, Math.round((usableWidth * 1000) / spanMs));
+  }, [data, safeStart, safeEnd, containerWidth]);
+
   if (data.length === 0) {
     return (
       <div className="flex items-center justify-center h-40 text-text-muted font-mono text-xs uppercase tracking-widest">
@@ -110,11 +148,8 @@ export default function CapHitTimelineChart({
     );
   }
 
-  // Default to a window of 60 bars so dense logs open readable.
-  const defaultEndIndex = Math.min(data.length - 1, 59);
-
   return (
-    <ResponsiveContainer width="100%" height={260}>
+    <ResponsiveContainer width="100%" height={260} onResize={handleResize}>
       <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
         <CartesianGrid
           strokeDasharray="3 3"
@@ -153,7 +188,10 @@ export default function CapHitTimelineChart({
         />
         <Tooltip content={<CustomTooltip />} />
         <Legend
-          wrapperStyle={{ fontSize: 10, fontFamily: "JetBrains Mono, monospace" }}
+          wrapperStyle={{
+            fontSize: 10,
+            fontFamily: "JetBrains Mono, monospace",
+          }}
           formatter={(value) =>
             value === "gjAmount"
               ? [
@@ -170,7 +208,7 @@ export default function CapHitTimelineChart({
         />
         <Bar
           dataKey="gjAmount"
-          maxBarSize={6}
+          barSize={barSize}
           minPointSize={2}
           radius={[2, 2, 0, 0]}
           isAnimationActive={false}
@@ -185,8 +223,9 @@ export default function CapHitTimelineChart({
           stroke="#e53e3e"
           fill="#0d0d0d"
           travellerWidth={8}
-          startIndex={0}
-          endIndex={defaultEndIndex}
+          startIndex={safeStart}
+          endIndex={safeEnd}
+          onChange={handleBrushChange}
           tickFormatter={(ts: number) => formatTime(ts)}
         />
       </BarChart>
