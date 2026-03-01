@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import {
   BarChart,
   Bar,
+  Brush,
   Cell,
   XAxis,
   YAxis,
@@ -109,8 +110,11 @@ export default function CapHitTimelineChart({
     );
   }
 
+  // Default to a window of 60 bars so dense logs open readable.
+  const defaultEndIndex = Math.min(data.length - 1, 59);
+
   return (
-    <ResponsiveContainer width="100%" height={220}>
+    <ResponsiveContainer width="100%" height={260}>
       <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
         <CartesianGrid
           strokeDasharray="3 3"
@@ -175,6 +179,16 @@ export default function CapHitTimelineChart({
             <Cell key={`cell-${idx}`} fill={barColor(pt)} />
           ))}
         </Bar>
+        <Brush
+          dataKey="timestampMs"
+          height={28}
+          stroke="#e53e3e"
+          fill="#0d0d0d"
+          travellerWidth={8}
+          startIndex={0}
+          endIndex={defaultEndIndex}
+          tickFormatter={(ts: number) => formatTime(ts)}
+        />
       </BarChart>
     </ResponsiveContainer>
   );
