@@ -6,6 +6,8 @@ import type { ActiveToggles } from "@/components/charts/CombinedChart";
 import RawLogPanel from "@/components/charts/RawLogPanel";
 import DamagePerTargetTable from "@/components/charts/DamagePerTargetTable";
 import DamageReceivedPerTargetTable from "@/components/charts/DamageReceivedPerTargetTable";
+import RepsPerSourceTable from "@/components/charts/RepsPerSourceTable";
+import CapPressurePerSourceTable from "@/components/charts/CapPressurePerSourceTable";
 import AppLayout from "@/components/layout/AppLayout";
 import Panel from "@/components/ui/Panel";
 import { useParsedLogs } from "@/hooks/useParsedLogs";
@@ -223,6 +225,24 @@ export default function ChartsPage() {
             entries={entries}
             brushWindow={brushWindow}
             onAttackerClick={handleTargetClick}
+          />
+        )}
+
+        {/* Reps by source table — only when Reps toggle is active */}
+        {activeToggles.reps && (
+          <RepsPerSourceTable
+            entries={entries}
+            brushWindow={brushWindow}
+            onSourceClick={handleTargetClick}
+          />
+        )}
+
+        {/* Cap pressure by source table — only when Cap Pressure toggle is active */}
+        {activeToggles.capPressure && (
+          <CapPressurePerSourceTable
+            entries={entries}
+            brushWindow={brushWindow}
+            onSourceClick={handleTargetClick}
           />
         )}
       </div>
