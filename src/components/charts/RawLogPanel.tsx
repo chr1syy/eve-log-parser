@@ -83,9 +83,15 @@ export default function RawLogPanel({
   }, [filteredEntries]);
 
   return (
-    <div className="flex flex-col h-full bg-[#0d0d0d] border border-[#1e1e1e] rounded-sm">
-      <div className="flex items-center justify-between px-3 py-2 border-b border-[#1e1e1e] shrink-0">
-        <span className="font-mono text-xs text-[#888] uppercase tracking-widest">
+    <div
+      className="flex flex-col h-full bg-space border border-border border-t-2 border-t-cyan-dim rounded-sm shadow-lg"
+      style={{
+        clipPath:
+          "polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%)",
+      }}
+    >
+      <div className="flex items-center justify-between px-4 py-2 border-b border-cyan-dim shrink-0">
+        <span className="text-text-secondary text-sm tracking-widest font-ui font-semibold uppercase">
           Combat Log
         </span>
         <span className="font-mono text-xs text-[#555]">

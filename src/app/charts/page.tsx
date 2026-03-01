@@ -5,6 +5,7 @@ import CombinedChart from "@/components/charts/CombinedChart";
 import type { ActiveToggles } from "@/components/charts/CombinedChart";
 import RawLogPanel from "@/components/charts/RawLogPanel";
 import AppLayout from "@/components/layout/AppLayout";
+import Panel from "@/components/ui/Panel";
 import { useParsedLogs } from "@/hooks/useParsedLogs";
 
 function ToggleButton({
@@ -175,16 +176,16 @@ export default function ChartsPage() {
         </div>
 
         {/* Chart + raw log panel side by side */}
-        <div className="flex gap-3 items-start">
-          <div className="flex-1 min-w-0">
+        <div className="flex gap-3 items-stretch h-[492px]">
+          <Panel title="CHART" className="flex-1 min-w-0">
             <CombinedChart
               entries={entries}
               activeToggles={activeToggles}
               onBrushChange={handleBrushChange}
               brushResetKey={brushResetKey}
             />
-          </div>
-          <div className="w-[460px] shrink-0 h-[420px] flex flex-col">
+          </Panel>
+          <div className="w-[560px] shrink-0 flex flex-col">
             <RawLogPanel
               entries={entries}
               brushWindow={brushWindow}
