@@ -27,7 +27,8 @@ describe("computeRollingTracking", () => {
         timestamp: new Date(t0 - 1000),
         rawLine: "",
         eventType: "miss-outgoing",
-        weaponSystemType: WeaponSystemType.TURRET,
+        weapon: "425mm AutoCannon II",
+        isDrone: false,
         damageMultiplier: undefined,
       },
     ];
@@ -36,9 +37,10 @@ describe("computeRollingTracking", () => {
     // Expect three sample points (for each unique timestamp)
     expect(series.length).toBeGreaterThanOrEqual(1);
     const last = series[series.length - 1];
-    // All three shots fall into final 10s window: avg multiplier = (0.8+1.2+1)/3 = 1.0
-    expect(Math.abs(last.trackingQuality - 1.0)).toBeLessThan(1e-6);
+    // All three shots fall into final 10s window: avg multiplier = (0.8+1.2+0)/3 = 0.666...
+    expect(Math.abs(last.trackingQuality - 2 / 3)).toBeLessThan(1e-6);
     expect(last.shotCount).toBeGreaterThanOrEqual(1);
+    expect(last.missCount).toBe(1);
   });
 
   test("ignores non-turret entries", () => {

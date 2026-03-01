@@ -25,6 +25,8 @@ function ToggleButton({
 }) {
   return (
     <button
+      type="button"
+      aria-pressed={active}
       onClick={onClick}
       className={`px-3 py-1 rounded-sm font-mono text-xs border transition-colors ${
         active
@@ -138,6 +140,7 @@ export default function ChartsPage() {
           />
           <div ref={trackingInfoRef} className="relative flex items-center">
             <button
+              type="button"
               onClick={() => setShowTrackingInfo((v) => !v)}
               className="w-4 h-4 rounded-full border border-[#444] text-[#555] hover:text-[#aaa] hover:border-[#666] font-mono text-[10px] flex items-center justify-center transition-colors leading-none"
               aria-label="Tracking quality info"
@@ -182,6 +185,7 @@ export default function ChartsPage() {
           </div>
           {brushWindow && (
             <button
+              type="button"
               onClick={handleResetBrush}
               className="ml-auto px-3 py-1 font-mono text-xs border border-[#e53e3e] text-[#e53e3e] bg-transparent hover:bg-[#e53e3e] hover:text-[#0d0d0d] rounded-sm transition-colors"
             >

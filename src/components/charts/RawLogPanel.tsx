@@ -11,7 +11,7 @@ export interface RawLogPanelProps {
 }
 
 const TOGGLE_EVENT_TYPES: Record<keyof ActiveToggles, EventType[]> = {
-  damageOut: ["damage-dealt"],
+  damageOut: ["damage-dealt", "miss-outgoing"],
   damageIn: ["damage-received", "miss-incoming"],
   capPressure: ["neut-received", "neut-dealt", "nos-dealt"],
   reps: ["rep-received", "rep-outgoing"],
@@ -20,6 +20,7 @@ const TOGGLE_EVENT_TYPES: Record<keyof ActiveToggles, EventType[]> = {
 
 const EVENT_TYPE_COLOR: Partial<Record<EventType, string>> = {
   "damage-dealt": "#00d4ff",
+  "miss-outgoing": "#00d4ff",
   "damage-received": "#e53e3e",
   "miss-incoming": "#e53e3e",
   "neut-received": "#e58c00",

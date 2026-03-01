@@ -137,9 +137,9 @@ export default function RepsPerSourceTable({
 
     for (const entry of repEntries) {
       const source = entry.repShipType ?? "Unknown";
-      const module = entry.repModule ?? "Unknown";
+      const moduleName = entry.repModule ?? "Unknown";
       const direction = entry.eventType === "rep-outgoing" ? "OUT" : "IN";
-      const key = `${source}||${module}||${direction}`;
+      const key = `${source}||${moduleName}||${direction}`;
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(entry);
     }

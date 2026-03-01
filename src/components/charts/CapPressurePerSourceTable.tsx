@@ -139,9 +139,9 @@ export default function CapPressurePerSourceTable({
 
     for (const entry of capEntries) {
       const source = entry.capShipType ?? "Unknown";
-      const module = entry.capModule ?? "Unknown";
+      const moduleName = entry.capModule ?? "Unknown";
       const direction = entry.direction === "outgoing" ? "OUT" : "IN";
-      const key = `${source}||${module}||${direction}`;
+      const key = `${source}||${moduleName}||${direction}`;
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(entry);
     }

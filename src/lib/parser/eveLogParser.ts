@@ -570,6 +570,8 @@ export function parseCombatLine(
           base.weapon = outgoingMiss[1].trim();
           base.shipType = outgoingMiss[2].trim(); // target name/ship
           base.isDrone = isDroneWeapon(base.weapon);
+          const ws = classifyWeaponSystem(base.weapon);
+          if (ws !== WeaponSystemType.UNKNOWN) base.weaponSystemType = ws;
           break;
         }
 
@@ -582,6 +584,8 @@ export function parseCombatLine(
           base.weapon = droneMiss[1].trim(); // drone type
           base.pilotName = droneMiss[2].trim(); // owner pilot
           base.isDrone = true;
+          const ws = classifyWeaponSystem(base.weapon);
+          if (ws !== WeaponSystemType.UNKNOWN) base.weaponSystemType = ws;
           break;
         }
 
@@ -594,6 +598,10 @@ export function parseCombatLine(
           base.pilotName = incomingMiss[1].trim();
           base.weapon = incomingMiss[2]?.trim();
           base.isDrone = base.weapon ? isDroneWeapon(base.weapon) : false;
+          if (base.weapon) {
+            const ws = classifyWeaponSystem(base.weapon);
+            if (ws !== WeaponSystemType.UNKNOWN) base.weaponSystemType = ws;
+          }
           break;
         }
 

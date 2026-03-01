@@ -9,10 +9,13 @@ function isDisintegratorWeapon(weapon?: string): boolean {
 }
 
 export function isTrackingEligibleTurretShot(entry: LogEntry): boolean {
-  if (entry.weaponSystemType !== WeaponSystemType.TURRET) return false;
   // Tracking overlay is for the pilot's own weapon application only.
   if (entry.eventType !== "damage-dealt" && entry.eventType !== "miss-outgoing")
     return false;
+  const isTurret =
+    entry.weaponSystemType === WeaponSystemType.TURRET ||
+    (entry.weaponSystemType == null && entry.eventType === "miss-outgoing" && !entry.isDrone);
+  if (!isTurret) return false;
   return !isDisintegratorWeapon(entry.weapon);
 }
 
@@ -71,8 +74,8 @@ export function computeRollingTracking(
         hitCount++;
       }
 
-      // damageMultiplier may be undefined — treat undefined as 1.0 (neutral)
-      const m = s.damageMultiplier ?? 1;
+      // Missing multipliers should degrade tracking quality (e.g. misses).
+      const m = s.damageMultiplier ?? 0;
       multiplierSum += m;
       end++;
     }
@@ -93,7 +96,7 @@ export function computeRollingTracking(
       } else {
         hitCount--;
       }
-      multiplierSum -= s.damageMultiplier ?? 1;
+      multiplierSum -= s.damageMultiplier ?? 0;
       start++;
     }
 

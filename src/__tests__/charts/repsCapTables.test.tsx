@@ -4,9 +4,12 @@ import RepsPerSourceTable from "@/components/charts/RepsPerSourceTable";
 import CapPressurePerSourceTable from "@/components/charts/CapPressurePerSourceTable";
 import type { LogEntry } from "@/lib/types";
 
+let idCounter = 0;
+
 function mkEntry(partial: Partial<LogEntry>): LogEntry {
+  idCounter += 1;
   return {
-    id: partial.id ?? crypto.randomUUID(),
+    id: partial.id ?? `entry-${idCounter}`,
     timestamp: partial.timestamp ?? new Date("2026-01-01T00:00:00Z"),
     rawLine: partial.rawLine ?? "",
     eventType: partial.eventType ?? "other",

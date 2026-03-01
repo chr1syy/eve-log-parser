@@ -367,6 +367,15 @@ export default function CombinedChart({
     [unifiedData, onBrushChange],
   );
 
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = null;
+      }
+    };
+  }, []);
+
   // MutationObserver: enforce EVE red fill on Recharts brush elements
   useEffect(() => {
     const container = containerRef.current;
