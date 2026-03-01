@@ -68,13 +68,14 @@ vi.mock("@/components/ui/Panel", () => ({
 }));
 
 vi.mock("@/components/ui/Button", () => ({
-  default: ({ children, onClick, disabled, icon, variant, size }: any) => (
+  default: ({ children, onClick, disabled, icon, variant, size, href }: any) => (
     <button
       onClick={onClick}
       disabled={disabled}
       data-variant={variant}
       data-size={size}
       data-testid={`button-${children?.toString().toLowerCase()}`}
+      href={href}
     >
       {icon}
       {children}
@@ -128,7 +129,7 @@ describe("Dashboard Page - Login Prompt", () => {
 
       const uploadButton = screen.getByTestId("button-upload logs");
       expect(uploadButton).toBeInTheDocument();
-      expect(uploadButton).toHaveAttribute("href", "/upload");
+      expect(uploadButton.closest("a")).toHaveAttribute("href", "/upload");
     });
 
     it("shows sign-in button in empty state", () => {

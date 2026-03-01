@@ -9,7 +9,8 @@ import * as dbLogs from "@/lib/db/logs";
 import * as authUtils from "@/lib/auth-utils";
 import type { ParsedLog } from "@/lib/types";
 
-// Mock database and auth modules
+// Mock database, auth modules, and auth config (prevents DATABASE_URL check at module init)
+vi.mock("@/lib/auth", () => ({ auth: vi.fn(), authConfig: {} }));
 vi.mock("@/lib/db/logs");
 vi.mock("@/lib/auth-utils");
 
