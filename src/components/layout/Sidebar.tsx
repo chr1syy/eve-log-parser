@@ -6,7 +6,6 @@ import {
   Crosshair,
   LayoutDashboard,
   Upload,
-  Database,
   Users,
   BarChart3,
 } from "lucide-react";
@@ -16,7 +15,6 @@ const navItems = [
   { label: "Fleet", href: "/fleet", icon: Users, badge: "beta" },
   { label: "Overview", href: "/", icon: LayoutDashboard },
   { label: "Charts", href: "/charts", icon: BarChart3 },
-  { label: "Raw Data", href: "/kills", icon: Database },
 ];
 
 export default function Sidebar() {

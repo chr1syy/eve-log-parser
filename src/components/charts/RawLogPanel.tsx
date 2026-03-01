@@ -28,6 +28,7 @@ const EVENT_TYPE_COLOR: Partial<Record<EventType, string>> = {
   "nos-dealt": "#e58c00",
   "rep-received": "#66cc66",
   "rep-outgoing": "#66cc66",
+  other: "#888",
 };
 
 function stripTags(raw: string): string {
@@ -64,14 +65,17 @@ export default function RawLogPanel({
     }
 
     const filtered = entries.filter((entry) => {
-      if (!allowedTypes.has(entry.eventType)) return false;
       if (brushWindow !== null) {
-        return (
-          entry.timestamp >= brushWindow.start &&
-          entry.timestamp <= brushWindow.end
-        );
+        if (
+          entry.timestamp < brushWindow.start ||
+          entry.timestamp > brushWindow.end
+        ) {
+          return false;
+        }
       }
-      return true;
+      // Context/system/notify lines should always be visible in the combat log.
+      if (entry.eventType === "other") return true;
+      return allowedTypes.has(entry.eventType);
     });
 
     filtered.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());

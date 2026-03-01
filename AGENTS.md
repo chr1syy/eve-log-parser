@@ -46,6 +46,7 @@ I write as an experienced capsuleer and as the resident code-first parser for th
 - Normalise input: strip HTML/color tags and decode HTML entities before applying regexes.
 - Two-pass approach: (1) tokenise/normalise lines, (2) apply specialised regexes for combat, e-war, repairs, and module activations.
 - Event shape: { timestamp, type, actor, actor_ship, target, target_ship, module, damage, damage_type, outcome, raw, uncertain? }.
+- Preserve timestamped non-combat context (`(notify)`, `(None)`) as `eventType: "other"` entries for Combat Log context; skip noisy prompt channels like `(hint)`/`(question)`.
 - Conservative defaults: if damage is not parseable, set `damage: null` and `uncertain: true`.
 - Tests: add unit tests for every new rule using fixtures under `src/__tests__/fixtures/`.
 
