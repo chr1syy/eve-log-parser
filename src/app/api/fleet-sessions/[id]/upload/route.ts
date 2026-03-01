@@ -43,6 +43,7 @@ export async function POST(
         const ab = await (file as File).arrayBuffer();
         const buffer = Buffer.from(ab);
 
+        // Keep existing write to data/uploads/<sessionId>/ for display-name fallback
         const uploadsDir = path.join(process.cwd(), "data", "uploads", id);
         await mkdir(uploadsDir, { recursive: true });
 
@@ -50,39 +51,35 @@ export async function POST(
         let outName = origName;
         const outPath = path.join(uploadsDir, outName);
 
-        // If a file with the same name already exists, prefix with timestamp
+        // If a file with the same name already exists, prefix with ISO timestamp
         try {
           await access(outPath);
-          outName = `${Date.now()}-${origName}`;
+          outName = `${new Date().toISOString().replace(/[:.]/g, "-")}-${origName}`;
         } catch {
           // access failed = file doesn't exist, keep origName
         }
 
         const finalPath = path.join(uploadsDir, outName);
         await writeFile(finalPath, buffer);
-        // Also persist a plain copy under `data/user-logs/<sessionId>/` so
-        // uploaded .txt logs are available for reuse in testing and local
-        // development. This write is best-effort and will not fail the
-        // request if it cannot be created.
-        try {
-          const userLogsDir = path.join(process.cwd(), "data", "user-logs", id);
-          await mkdir(userLogsDir, { recursive: true });
 
-          let userOutName = outName;
-          const userOutPath = path.join(userLogsDir, userOutName);
+        // Canonical developer/test copy under data/logs/<sessionId>/
+        try {
+          const logsDir = path.join(process.cwd(), "data", "logs", id);
+          await mkdir(logsDir, { recursive: true });
+
+          let logsOutName = origName;
+          const logsOutPath = path.join(logsDir, logsOutName);
           try {
-            await access(userOutPath);
-            userOutName = `${Date.now()}-${userOutName}`;
+            await access(logsOutPath);
+            logsOutName = `${new Date().toISOString().replace(/[:.]/g, "-")}-${origName}`;
           } catch {
-            // file doesn't exist, keep userOutName
+            // file doesn't exist, keep logsOutName
           }
 
-          const userFinalPath = path.join(userLogsDir, userOutName);
-          await writeFile(userFinalPath, buffer);
+          const logsFinalPath = path.join(logsDir, logsOutName);
+          await writeFile(logsFinalPath, buffer);
         } catch (e) {
-          // non-fatal: we don't want inability to save a copy for testing to
-          // block the upload flow.
-          console.warn("Failed to save user-log copy:", e);
+          console.warn("Failed to save canonical log copy:", e);
         }
       }
     } catch (err) {
