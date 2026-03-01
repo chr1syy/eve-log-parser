@@ -16,7 +16,6 @@ vi.mock("recharts", async () => {
     XAxis: () => null,
     YAxis: () => null,
     Tooltip: () => null,
-    Legend: () => null,
     ReferenceArea: () => null,
     Bar: Passthrough,
     Cell: () => null,
