@@ -4,6 +4,21 @@ import { WeaponSystemType } from "../types";
 
 import type { TrackingSeries } from "../types";
 
+function isDisintegratorWeapon(weapon?: string): boolean {
+  return weapon?.toLowerCase().includes("disintegrator") ?? false;
+}
+
+export function isTrackingEligibleTurretShot(entry: LogEntry): boolean {
+  // Tracking overlay is for the pilot's own weapon application only.
+  if (entry.eventType !== "damage-dealt" && entry.eventType !== "miss-outgoing")
+    return false;
+  const isTurret =
+    entry.weaponSystemType === WeaponSystemType.TURRET ||
+    (entry.weaponSystemType == null && entry.eventType === "miss-outgoing" && !entry.isDrone);
+  if (!isTurret) return false;
+  return !isDisintegratorWeapon(entry.weapon);
+}
+
 /**
  * Compute rolling tracking quality for turret weapon entries.
  * Uses an efficient two-pointer sliding window (windowMs) and
@@ -15,7 +30,7 @@ export function computeRollingTracking(
 ): TrackingSeries[] {
   // Filter turret shots (include misses and hits) and sort by timestamp
   const turretShots = entries
-    .filter((e) => e.weaponSystemType === WeaponSystemType.TURRET)
+    .filter(isTrackingEligibleTurretShot)
     .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
   if (turretShots.length === 0) return [];
@@ -59,8 +74,8 @@ export function computeRollingTracking(
         hitCount++;
       }
 
-      // damageMultiplier may be undefined — treat undefined as 1.0 (neutral)
-      const m = s.damageMultiplier ?? 1;
+      // Missing multipliers should degrade tracking quality (e.g. misses).
+      const m = s.damageMultiplier ?? 0;
       multiplierSum += m;
       end++;
     }
@@ -81,7 +96,7 @@ export function computeRollingTracking(
       } else {
         hitCount--;
       }
-      multiplierSum -= s.damageMultiplier ?? 1;
+      multiplierSum -= s.damageMultiplier ?? 0;
       start++;
     }
 

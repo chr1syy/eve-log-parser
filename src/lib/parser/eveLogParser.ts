@@ -570,6 +570,8 @@ export function parseCombatLine(
           base.weapon = outgoingMiss[1].trim();
           base.shipType = outgoingMiss[2].trim(); // target name/ship
           base.isDrone = isDroneWeapon(base.weapon);
+          const ws = classifyWeaponSystem(base.weapon);
+          if (ws !== WeaponSystemType.UNKNOWN) base.weaponSystemType = ws;
           break;
         }
 
@@ -582,6 +584,8 @@ export function parseCombatLine(
           base.weapon = droneMiss[1].trim(); // drone type
           base.pilotName = droneMiss[2].trim(); // owner pilot
           base.isDrone = true;
+          const ws = classifyWeaponSystem(base.weapon);
+          if (ws !== WeaponSystemType.UNKNOWN) base.weaponSystemType = ws;
           break;
         }
 
@@ -594,6 +598,10 @@ export function parseCombatLine(
           base.pilotName = incomingMiss[1].trim();
           base.weapon = incomingMiss[2]?.trim();
           base.isDrone = base.weapon ? isDroneWeapon(base.weapon) : false;
+          if (base.weapon) {
+            const ws = classifyWeaponSystem(base.weapon);
+            if (ws !== WeaponSystemType.UNKNOWN) base.weaponSystemType = ws;
+          }
           break;
         }
 
@@ -773,7 +781,8 @@ export async function parseLogFile(file: LogFileInput): Promise<ParsedLog> {
   let sessionStart: Date | undefined;
   const entries: LogEntry[] = [];
 
-  const TIMESTAMP_RE = /\[ (\d{4}\.\d{2}\.\d{2} \d{2}:\d{2}:\d{2}) \]/;
+  const TIMESTAMP_LINE_RE =
+    /^\[\s*(\d{4}\.\d{2}\.\d{2} \d{2}:\d{2}:\d{2})\s*\]\s+\(([^)]+)\)\s*(.*)$/;
 
   for (const line of lines) {
     const trimmed = line.trim();
@@ -799,44 +808,41 @@ export async function parseLogFile(file: LogFileInput): Promise<ParsedLog> {
       continue;
     }
 
-    // Skip non-combat lines
-    if (
-      trimmed.includes("(hint)") ||
-      trimmed.includes("(notify)") ||
-      trimmed.includes("(question)") ||
-      trimmed.includes("(None)")
-    ) {
-      continue;
-    }
+    const tsLineMatch = trimmed.match(TIMESTAMP_LINE_RE);
+    if (!tsLineMatch) continue;
 
-    // Only process combat lines
-    if (!trimmed.includes("(combat)")) continue;
-
-    const tsMatch = trimmed.match(TIMESTAMP_RE);
-    if (!tsMatch) continue;
-
-    const rawDateStr = tsMatch[1].replace(
+    const rawDateStr = tsLineMatch[1].replace(
       /^(\d{4})\.(\d{2})\.(\d{2})/,
       "$1-$2-$3",
     );
     const timestamp = new Date(rawDateStr);
-
-    // Extract the content after "(combat) "
-    const combatContentMatch = trimmed.match(/\(combat\)\s+(.+)$/);
-    if (!combatContentMatch) continue;
-
-    const combatContent = combatContentMatch[1];
+    const channelRaw = tsLineMatch[2]?.trim() ?? "";
+    const channel = channelRaw.toLowerCase();
+    const content = tsLineMatch[3] ?? "";
     const id = `${sessionId}-${entries.length}`;
 
+    // Keep noisy interaction prompts out of parsed timelines.
+    if (channel === "hint" || channel === "question") continue;
+
+    if (channel !== "combat") {
+      entries.push({
+        id,
+        timestamp,
+        rawLine: `(${channelRaw}) ${content}`.trim(),
+        eventType: "other",
+      });
+      continue;
+    }
+
     try {
-      const entry = parseCombatLine(combatContent, timestamp, id);
+      const entry = parseCombatLine(content, timestamp, id);
       entries.push(entry);
     } catch (err) {
       console.warn("[parseLogFile] Skipping malformed line:", trimmed, err);
       entries.push({
         id,
         timestamp,
-        rawLine: combatContent,
+        rawLine: content,
         eventType: "other",
       });
     }
