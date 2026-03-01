@@ -9,6 +9,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
   ResponsiveContainer,
 } from "recharts";
 import { analyzeCapPressure } from "@/lib/analysis/capAnalysis";
@@ -23,7 +24,14 @@ type HitPoint = {
   gjAmount: number;
   module: string;
   shipType: string;
+  direction: "in" | "out";
 };
+
+// Incoming: orange-red palette. Outgoing: green palette. Dry hit = darker shade.
+function barColor(pt: HitPoint): string {
+  if (pt.direction === "in") return pt.gjAmount === 0 ? "#7c2d12" : "#c2410c";
+  return pt.gjAmount === 0 ? "#14532d" : "#16a34a";
+}
 
 function formatTime(ts: number): string {
   return new Date(ts).toLocaleTimeString(undefined, {
@@ -39,14 +47,23 @@ function formatTime(ts: number): string {
 function CustomTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   const pt = payload[0].payload as HitPoint;
+  const isIn = pt.direction === "in";
   return (
     <div className="bg-overlay border border-[#00d4ff40] px-3 py-2 rounded-sm font-mono text-xs backdrop-blur">
       <p className="text-text-secondary mb-1">{formatTime(pt.timestampMs)}</p>
       {pt.gjAmount === 0 ? (
-        <p className="text-[#7c2d12] font-bold">DRY HIT — 0 GJ</p>
+        <p
+          className="font-bold"
+          style={{ color: isIn ? "#7c2d12" : "#14532d" }}
+        >
+          DRY HIT — 0 GJ
+        </p>
       ) : (
-        <p className="text-[#c2410c] font-bold">
-          {pt.gjAmount.toLocaleString()} GJ neutralized
+        <p
+          className="font-bold"
+          style={{ color: isIn ? "#c2410c" : "#16a34a" }}
+        >
+          {pt.gjAmount.toLocaleString()} GJ {isIn ? "neutralized" : "dealt"}
         </p>
       )}
       <p className="text-text-muted">
@@ -60,25 +77,40 @@ export default function CapHitTimelineChart({
   entries,
 }: CapHitTimelineChartProps) {
   const data = useMemo<HitPoint[]>(() => {
-    const { neutReceivedTimeline } = analyzeCapPressure(entries);
-    return neutReceivedTimeline.map((pt) => ({
+    const { neutReceivedTimeline, neutDealtTimeline } =
+      analyzeCapPressure(entries);
+
+    const incoming: HitPoint[] = neutReceivedTimeline.map((pt) => ({
       timestampMs: pt.timestamp.getTime(),
       gjAmount: pt.gjAmount,
       module: pt.module,
       shipType: pt.shipType,
+      direction: "in",
     }));
+
+    const outgoing: HitPoint[] = neutDealtTimeline.map((pt) => ({
+      timestampMs: pt.timestamp.getTime(),
+      gjAmount: pt.gjAmount,
+      module: pt.module,
+      shipType: pt.shipType,
+      direction: "out",
+    }));
+
+    return [...incoming, ...outgoing].sort(
+      (a, b) => a.timestampMs - b.timestampMs,
+    );
   }, [entries]);
 
   if (data.length === 0) {
     return (
       <div className="flex items-center justify-center h-40 text-text-muted font-mono text-xs uppercase tracking-widest">
-        NO INCOMING NEUT HITS RECORDED
+        NO NEUT HITS RECORDED
       </div>
     );
   }
 
   return (
-    <ResponsiveContainer width="100%" height={200}>
+    <ResponsiveContainer width="100%" height={220}>
       <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
         <CartesianGrid
           strokeDasharray="3 3"
@@ -116,6 +148,22 @@ export default function CapHitTimelineChart({
           }}
         />
         <Tooltip content={<CustomTooltip />} />
+        <Legend
+          wrapperStyle={{ fontSize: 10, fontFamily: "JetBrains Mono, monospace" }}
+          formatter={(value) =>
+            value === "gjAmount"
+              ? [
+                  <span key="in" style={{ color: "#c2410c" }}>
+                    incoming
+                  </span>,
+                  " / ",
+                  <span key="out" style={{ color: "#16a34a" }}>
+                    outgoing
+                  </span>,
+                ]
+              : value
+          }
+        />
         <Bar
           dataKey="gjAmount"
           maxBarSize={6}
@@ -124,10 +172,7 @@ export default function CapHitTimelineChart({
           isAnimationActive={false}
         >
           {data.map((pt, idx) => (
-            <Cell
-              key={`cell-${idx}`}
-              fill={pt.gjAmount === 0 ? "#7c2d12" : "#c2410c"}
-            />
+            <Cell key={`cell-${idx}`} fill={barColor(pt)} />
           ))}
         </Bar>
       </BarChart>

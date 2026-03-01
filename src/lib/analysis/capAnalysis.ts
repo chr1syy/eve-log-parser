@@ -37,6 +37,15 @@ export interface CapAnalysis {
     module: string;
     shipType: string;
   }[];
+
+  // Timeline for chart: GJ neut/nos dealt over time
+  neutDealtTimeline: {
+    timestamp: Date;
+    gjAmount: number;
+    module: string;
+    shipType: string;
+    eventType: "neut-dealt" | "nos-dealt";
+  }[];
 }
 
 function buildModuleSummaries(
@@ -191,6 +200,17 @@ export function analyzeCapPressure(entries: LogEntry[]): CapAnalysis {
     }))
     .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
+  // Timeline - all neut-dealt and nos-dealt events sorted by timestamp
+  const neutDealtTimeline = [...neutDealtEntries, ...nosDealtEntries]
+    .map((e) => ({
+      timestamp: e.timestamp,
+      gjAmount: e.capAmount ?? 0,
+      module: e.capModule ?? "Unknown",
+      shipType: e.capShipType ?? "Unknown",
+      eventType: e.capEventType as "neut-dealt" | "nos-dealt",
+    }))
+    .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+
   return {
     totalGjNeutDealt,
     totalGjNosDrained,
@@ -200,5 +220,6 @@ export function analyzeCapPressure(entries: LogEntry[]): CapAnalysis {
     incomingByShipType,
     incomingModuleSummaries,
     neutReceivedTimeline,
+    neutDealtTimeline,
   };
 }
