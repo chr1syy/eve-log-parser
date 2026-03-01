@@ -67,6 +67,10 @@ export default function ChartsPage() {
     end: Date;
   } | null>(null);
   const [brushResetKey, setBrushResetKey] = useState(0);
+  const [initialBrushWindow, setInitialBrushWindow] = useState<{
+    start: Date;
+    end: Date;
+  } | null>(null);
 
   const handleBrushChange = useCallback(
     (start: Date | null, end: Date | null) => {
@@ -77,6 +81,13 @@ export default function ChartsPage() {
 
   const handleResetBrush = useCallback(() => {
     setBrushWindow(null);
+    setInitialBrushWindow(null);
+    setBrushResetKey((k) => k + 1);
+  }, []);
+
+  const handleTargetClick = useCallback((start: Date, end: Date) => {
+    setBrushWindow({ start, end });
+    setInitialBrushWindow({ start, end });
     setBrushResetKey((k) => k + 1);
   }, []);
 
@@ -184,6 +195,7 @@ export default function ChartsPage() {
               activeToggles={activeToggles}
               onBrushChange={handleBrushChange}
               brushResetKey={brushResetKey}
+              initialBrushWindow={initialBrushWindow}
             />
           </Panel>
           <div className="w-[560px] shrink-0 flex flex-col">
@@ -197,7 +209,11 @@ export default function ChartsPage() {
 
         {/* Damage per target table — only when Damage Out toggle is active */}
         {activeToggles.damageOut && (
-          <DamagePerTargetTable entries={entries} brushWindow={brushWindow} />
+          <DamagePerTargetTable
+            entries={entries}
+            brushWindow={brushWindow}
+            onTargetClick={handleTargetClick}
+          />
         )}
       </div>
     </AppLayout>

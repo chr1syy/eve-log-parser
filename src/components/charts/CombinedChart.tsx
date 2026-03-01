@@ -37,6 +37,7 @@ export interface CombinedChartProps {
   activeToggles: ActiveToggles;
   onBrushChange?: (start: Date | null, end: Date | null) => void;
   brushResetKey?: number;
+  initialBrushWindow?: { start: Date; end: Date } | null;
 }
 
 // Internal — numeric timestamp so Recharts scale="time" works cleanly
@@ -286,11 +287,14 @@ function CombinedTooltip({
   );
 }
 
+const BRUSH_PAD_MS = 15_000; // 15 s padding around clicked target range
+
 export default function CombinedChart({
   entries,
   activeToggles,
   onBrushChange,
   brushResetKey,
+  initialBrushWindow,
 }: CombinedChartProps) {
   const {
     points: unifiedData,
@@ -300,6 +304,20 @@ export default function CombinedChart({
   } = useCombinedChartData(entries);
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Compute brush startIndex/endIndex when an initial window is provided
+  const brushIndices = useMemo(() => {
+    if (!initialBrushWindow || unifiedData.length === 0) return null;
+    const startTs = initialBrushWindow.start.getTime() - BRUSH_PAD_MS;
+    const endTs = initialBrushWindow.end.getTime() + BRUSH_PAD_MS;
+    let startIdx = 0;
+    let endIdx = unifiedData.length - 1;
+    for (let i = 0; i < unifiedData.length; i++) {
+      if (unifiedData[i].timestamp <= startTs) startIdx = i;
+      if (unifiedData[i].timestamp <= endTs) endIdx = i;
+    }
+    return { startIndex: startIdx, endIndex: endIdx };
+  }, [initialBrushWindow, unifiedData]);
 
   // Debounced brush change handler
   const handleBrushChange = useCallback(
@@ -559,6 +577,7 @@ export default function CombinedChart({
             travellerWidth={8}
             tickFormatter={(ts: number) => formatTime(new Date(ts))}
             onChange={handleBrushChange}
+            {...(brushIndices ?? {})}
           />
         </ComposedChart>
       </ResponsiveContainer>

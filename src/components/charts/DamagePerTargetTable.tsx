@@ -17,12 +17,15 @@ interface TargetRow {
   maxHit: number;
   avgHit: number;
   misses: number;
+  firstHit: Date;
+  lastHit: Date;
   [key: string]: unknown;
 }
 
 export interface DamagePerTargetTableProps {
   entries: LogEntry[];
   brushWindow: { start: Date; end: Date } | null;
+  onTargetClick?: (start: Date, end: Date) => void;
 }
 
 const COLUMNS: Column<TargetRow>[] = [
@@ -122,6 +125,7 @@ const COLUMNS: Column<TargetRow>[] = [
 export default function DamagePerTargetTable({
   entries,
   brushWindow,
+  onTargetClick,
 }: DamagePerTargetTableProps) {
   const rows = useMemo((): TargetRow[] => {
     const windowedEntries =
@@ -177,6 +181,8 @@ export default function DamagePerTargetTable({
         maxHit,
         avgHit,
         misses,
+        firstHit: new Date(firstMs),
+        lastHit: new Date(lastMs),
       });
     }
 
@@ -191,6 +197,13 @@ export default function DamagePerTargetTable({
   return (
     <Panel
       title={`DAMAGE PER TARGET — ${subtitle.toUpperCase()}`}
+      headerAction={
+        onTargetClick ? (
+          <span className="font-mono text-[10px] text-text-muted uppercase tracking-widest">
+            Click row to zoom chart
+          </span>
+        ) : undefined
+      }
       className="mt-0"
     >
       <DataTable<TargetRow>
@@ -204,6 +217,11 @@ export default function DamagePerTargetTable({
           <span className="text-text-muted font-mono text-xs uppercase tracking-widest">
             No damage dealt in selection
           </span>
+        }
+        onRowClick={
+          onTargetClick
+            ? (row) => onTargetClick(row.firstHit as Date, row.lastHit as Date)
+            : undefined
         }
       />
     </Panel>
