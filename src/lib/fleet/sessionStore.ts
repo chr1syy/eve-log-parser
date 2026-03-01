@@ -172,7 +172,8 @@ export { sessionStore };
 
 // Helper: derive a human-friendly display name for a FleetLog.
 // Order of preference: explicit displayName -> pilotName -> parsed log.characterName -> shipType
-// -> original uploaded filename in data/uploads/<sessionId> (most-recent) -> upload-<short-id>.log
+// -> original uploaded filename in data/logs/<sessionId> (most-recent) then data/uploads/<sessionId>
+// -> upload-<short-id>.log
 export function getDisplayNameForLog(log: FleetLog): string {
   if (!log)
     return `upload-${(Math.random() + 1).toString(36).substring(7)}.log`;

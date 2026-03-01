@@ -47,7 +47,12 @@ export async function POST(
         const uploadsDir = path.join(process.cwd(), "data", "uploads", id);
         await mkdir(uploadsDir, { recursive: true });
 
-        const origName = (file as File).name || `upload-${Date.now()}.log`;
+        const rawName = (file as File).name || `upload-${Date.now()}.log`;
+        // Prevent path traversal or funky separators in uploaded filenames.
+        const origName = path
+          .basename(rawName)
+          .replace(/[\\\/]/g, "-")
+          .replace(/[\u0000-\u001f\u007f]/g, "-");
         let outName = origName;
         const outPath = path.join(uploadsDir, outName);
 
@@ -67,11 +72,18 @@ export async function POST(
           const logsDir = path.join(process.cwd(), "data", "logs", id);
           await mkdir(logsDir, { recursive: true });
 
-          let logsOutName = origName;
+          const parsedName = path.parse(origName);
+          const logsBaseName =
+            parsedName.ext.toLowerCase() === ".txt"
+              ? origName
+              : `${parsedName.name}.txt`;
+          let logsOutName = logsBaseName;
           const logsOutPath = path.join(logsDir, logsOutName);
           try {
             await access(logsOutPath);
-            logsOutName = `${new Date().toISOString().replace(/[:.]/g, "-")}-${origName}`;
+            logsOutName = `${new Date()
+              .toISOString()
+              .replace(/[:.]/g, "-")}-${logsBaseName}`;
           } catch {
             // file doesn't exist, keep logsOutName
           }

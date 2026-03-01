@@ -137,6 +137,21 @@ describe("upload route — log persistence (fix #36)", () => {
     expect(files).toContain("mylog.txt");
   });
 
+  it("normalizes non-.txt uploads to .txt in data/logs/<sessionId>/", async () => {
+    const { POST: uploadLog } =
+      await import("@/app/api/fleet-sessions/[id]/upload/route");
+
+    const file = makeFile("combat.log", SAMPLE_LOG_CONTENT);
+    const req = makeUploadRequest(file, "TestPilot", "Rifter");
+    await uploadLog(req, {
+      params: Promise.resolve({ id: SESSION_ID }),
+    });
+
+    mkdirSync(DATA_LOGS_DIR, { recursive: true });
+    const files = readdirSync(DATA_LOGS_DIR);
+    expect(files).toContain("combat.txt");
+  });
+
   it("also writes to data/uploads/<sessionId>/ for display-name backward compat", async () => {
     const { POST: uploadLog } =
       await import("@/app/api/fleet-sessions/[id]/upload/route");
