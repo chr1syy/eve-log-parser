@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
-import type { LogEntry } from "@/lib/types";
+import { useEffect, useRef, useCallback, useMemo } from "react";
+import { WeaponSystemType } from "@/lib/types";
+import type { LogEntry, TrackingSeries } from "@/lib/types";
 import type { FightSegment } from "@/lib/analysis/damageTaken";
+import { computeRollingTracking } from "@/lib/analysis/tracking";
 import type { TackleWindow } from "@/lib/analysis/damageDealt";
 import { generateDamageDealtTimeSeries } from "@/lib/analysis/damageDealt";
 import { analyzeDamageTaken } from "@/lib/analysis/damageTaken";
@@ -27,12 +29,14 @@ export interface ActiveToggles {
   damageIn: boolean;
   capPressure: boolean;
   reps: boolean;
+  tracking: boolean;
 }
 
 export interface CombinedChartProps {
   entries: LogEntry[];
   activeToggles: ActiveToggles;
   onBrushChange?: (start: Date | null, end: Date | null) => void;
+  brushResetKey?: number;
 }
 
 // Internal — numeric timestamp so Recharts scale="time" works cleanly
@@ -42,13 +46,101 @@ export type UnifiedPoint = {
   dpsIn?: number;
   repsPerSec?: number;
   capGj?: number;
+  trackingQuality?: number | null;
+  trackingHigh?: number | null;
+  trackingMid?: number | null;
+  trackingLow?: number | null;
 };
 
 export type CombinedChartData = {
   points: UnifiedPoint[];
   fights: FightSegment[];
   tackleWindows: TackleWindow[];
+  hasTurretWeapons: boolean;
 };
+
+// Merge a TrackingSeries into UnifiedPoints using interpolation + tier-bridging.
+// Mirrors buildEnrichedTrackingData from DamageDealtChart, adapted for UnifiedPoint
+// (which uses .timestamp: number directly instead of .timestampMs).
+function applyTrackingTiers(
+  points: UnifiedPoint[],
+  trackingSeries: TrackingSeries[],
+): UnifiedPoint[] {
+  if (points.length === 0 || trackingSeries.length === 0) return points;
+
+  const ts = trackingSeries.slice().sort((a, b) => a.timestamp - b.timestamp);
+  const MAX_FILL_MS = 60_000;
+
+  const getTier = (tq: number): "high" | "mid" | "low" =>
+    tq >= 1.0 ? "high" : tq >= 0.7 ? "mid" : "low";
+
+  // Pass 1: interpolate tracking quality at each point's timestamp
+  let i = 0;
+  const tqs: (number | null)[] = points.map((pt) => {
+    const tms = pt.timestamp;
+    while (i < ts.length && ts[i].timestamp <= tms) i++;
+    const prev = i > 0 ? ts[i - 1] : null;
+    const next = i < ts.length ? ts[i] : null;
+
+    let tq: number | null = null;
+    if (prev && next) {
+      const gap = next.timestamp - prev.timestamp;
+      if (gap <= MAX_FILL_MS) {
+        const frac = (tms - prev.timestamp) / (next.timestamp - prev.timestamp);
+        tq =
+          prev.trackingQuality +
+          frac * (next.trackingQuality - prev.trackingQuality);
+      } else if (Math.abs(tms - prev.timestamp) <= MAX_FILL_MS) {
+        tq = prev.trackingQuality;
+      } else if (Math.abs(next.timestamp - tms) <= MAX_FILL_MS) {
+        tq = next.trackingQuality;
+      }
+    } else if (prev && Math.abs(tms - prev.timestamp) <= MAX_FILL_MS) {
+      tq = prev.trackingQuality;
+    } else if (next && Math.abs(next.timestamp - tms) <= MAX_FILL_MS) {
+      tq = next.trackingQuality;
+    }
+    return tq;
+  });
+
+  // Pass 2: forward sweep — record the previous non-null tier at each index
+  const prevTiers: ("high" | "mid" | "low" | null)[] = new Array(
+    tqs.length,
+  ).fill(null);
+  let lastTier: "high" | "mid" | "low" | null = null;
+  for (let j = 0; j < tqs.length; j++) {
+    prevTiers[j] = lastTier;
+    if (tqs[j] !== null) lastTier = getTier(tqs[j]!);
+  }
+
+  // Pass 3: assign tier keys with bridge-on-arrival to eliminate visual gaps
+  return points.map((pt, j) => {
+    const tq = tqs[j];
+    if (tq === null) {
+      return {
+        ...pt,
+        trackingQuality: null,
+        trackingHigh: null,
+        trackingMid: null,
+        trackingLow: null,
+      };
+    }
+
+    const currTier = getTier(tq);
+    let trackingHigh: number | null = currTier === "high" ? tq : null;
+    let trackingMid: number | null = currTier === "mid" ? tq : null;
+    let trackingLow: number | null = currTier === "low" ? tq : null;
+
+    const prevT = prevTiers[j];
+    if (prevT !== null && prevT !== currTier) {
+      if (prevT === "high") trackingHigh = tq;
+      else if (prevT === "mid") trackingMid = tq;
+      else trackingLow = tq;
+    }
+
+    return { ...pt, trackingQuality: tq, trackingHigh, trackingMid, trackingLow };
+  });
+}
 
 export function useCombinedChartData(entries: LogEntry[]): CombinedChartData {
   return useMemo(() => {
@@ -89,14 +181,23 @@ export function useCombinedChartData(entries: LogEntry[]): CombinedChartData {
       });
     }
 
-    const points = Array.from(map.values()).sort(
+    const sortedPoints = Array.from(map.values()).sort(
       (a, b) => a.timestamp - b.timestamp,
     );
+
+    // Turret tracking quality overlay
+    const hasTurretWeapons = entries.some(
+      (e) => e.weaponSystemType === WeaponSystemType.TURRET,
+    );
+    const points = hasTurretWeapons
+      ? applyTrackingTiers(sortedPoints, computeRollingTracking(entries))
+      : sortedPoints;
 
     return {
       points,
       fights: takenAnalysis.fights,
       tackleWindows: dealtSeries.tackleWindows,
+      hasTurretWeapons,
     };
   }, [entries]);
 }
@@ -108,6 +209,7 @@ export function formatTime(date: Date): string {
     minute: "2-digit",
     second: "2-digit",
     hour12: false,
+    timeZone: "UTC",
   });
 }
 
@@ -118,6 +220,12 @@ interface TooltipEntry {
   payload?: UnifiedPoint;
 }
 
+const TRACKING_TIER_KEYS = new Set(["trackingHigh", "trackingMid", "trackingLow"]);
+
+function trackingColor(tq: number): string {
+  return tq >= 1.0 ? "#16a34a" : tq >= 0.7 ? "#eab308" : "#dc2626";
+}
+
 function CombinedTooltip({
   active,
   payload,
@@ -126,7 +234,28 @@ function CombinedTooltip({
   payload?: TooltipEntry[];
 }) {
   if (!active || !payload?.length) return null;
-  const ts = payload[0]?.payload?.timestamp;
+  const pt = payload[0]?.payload;
+  const ts = pt?.timestamp;
+
+  const colorMap: Record<string, string> = {
+    dpsOut: "#00d4ff",
+    dpsIn: "#e53e3e",
+    repsPerSec: "#66cc66",
+    capGj: "#e58c00",
+  };
+  const labelMap: Record<string, string> = {
+    dpsOut: "Damage Out",
+    dpsIn: "Damage In",
+    repsPerSec: "Reps/s",
+    capGj: "Cap Drain",
+  };
+  const unitMap: Record<string, string> = {
+    dpsOut: " DPS",
+    dpsIn: " DPS",
+    repsPerSec: " /s",
+    capGj: " GJ",
+  };
+
   return (
     <div className="bg-[#1a1a1a] border border-[#444] px-3 py-2 rounded-sm font-mono text-xs">
       {ts != null && (
@@ -134,25 +263,9 @@ function CombinedTooltip({
       )}
       {payload.map((entry) => {
         if (entry.value == null) return null;
-        const colorMap: Record<string, string> = {
-          dpsOut: "#00d4ff",
-          dpsIn: "#e53e3e",
-          repsPerSec: "#66cc66",
-          capGj: "#e58c00",
-        };
-        const labelMap: Record<string, string> = {
-          dpsOut: "Damage Out",
-          dpsIn: "Damage In",
-          repsPerSec: "Reps/s",
-          capGj: "Cap Drain",
-        };
-        const unitMap: Record<string, string> = {
-          dpsOut: " DPS",
-          dpsIn: " DPS",
-          repsPerSec: " /s",
-          capGj: " GJ",
-        };
         const key = entry.dataKey ?? "";
+        // Tracking tiers are deduplicated below — skip them here
+        if (TRACKING_TIER_KEYS.has(key)) return null;
         const color = colorMap[key] ?? "#888";
         const label = labelMap[key] ?? key;
         const unit = unitMap[key] ?? "";
@@ -163,6 +276,12 @@ function CombinedTooltip({
           </p>
         );
       })}
+      {/* Show tracking quality once, derived from the point's computed value */}
+      {pt?.trackingQuality != null && (
+        <p style={{ color: trackingColor(pt.trackingQuality) }}>
+          Tracking: {pt.trackingQuality.toFixed(2)}
+        </p>
+      )}
     </div>
   );
 }
@@ -171,11 +290,13 @@ export default function CombinedChart({
   entries,
   activeToggles,
   onBrushChange,
+  brushResetKey,
 }: CombinedChartProps) {
   const {
     points: unifiedData,
     fights,
     tackleWindows,
+    hasTurretWeapons,
   } = useCombinedChartData(entries);
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -240,8 +361,9 @@ export default function CombinedChart({
     <div ref={containerRef} className="w-full">
       <ResponsiveContainer width="100%" height={420}>
         <ComposedChart
+          key={brushResetKey}
           data={unifiedData}
-          margin={{ top: 10, right: 60, left: 10, bottom: 40 }}
+          margin={{ top: 20, right: 80, left: 10, bottom: 40 }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" />
           <XAxis
@@ -264,8 +386,8 @@ export default function CombinedChart({
               value: "DPS / Rep/s",
               angle: -90,
               position: "insideLeft",
-              fill: "#555",
-              fontSize: 10,
+              fill: "#888",
+              fontSize: 11,
             }}
           />
           <YAxis
@@ -275,14 +397,35 @@ export default function CombinedChart({
             tick={{ fill: "#888", fontSize: 11 }}
             tickLine={false}
             axisLine={false}
+            width={36}
             label={{
               value: "GJ",
               angle: 90,
               position: "insideRight",
-              fill: "#555",
-              fontSize: 10,
+              fill: "#888",
+              fontSize: 11,
             }}
           />
+          {activeToggles.tracking && hasTurretWeapons && (
+            <YAxis
+              yAxisId="tracking"
+              orientation="right"
+              domain={[0, 1.5]}
+              tickFormatter={(v: number) => v.toFixed(1)}
+              tick={{ fill: "#16a34a", fontSize: 10 }}
+              tickLine={false}
+              axisLine={false}
+              width={36}
+              label={{
+                value: "TRACK",
+                angle: 90,
+                position: "insideRight",
+                offset: 28,
+                fill: "#16a34a",
+                fontSize: 9,
+              }}
+            />
+          )}
           <Tooltip content={<CombinedTooltip />} />
 
           {/* Fight boundary lines (skip first fight) */}
@@ -296,8 +439,8 @@ export default function CombinedChart({
               label={{
                 value: `Fight ${i + 2}`,
                 position: "top",
-                fill: "#555",
-                fontSize: 10,
+                fill: "#888",
+                fontSize: 11,
               }}
             />
           ))}
@@ -363,6 +506,47 @@ export default function CombinedChart({
               name="Cap Pressure (GJ)"
               opacity={0.75}
               maxBarSize={8}
+              isAnimationActive={false}
+            />
+          )}
+
+          {/* Turret tracking quality — three coloured tier lines */}
+          {activeToggles.tracking && hasTurretWeapons && (
+            <Line
+              yAxisId="tracking"
+              type="monotone"
+              dataKey="trackingHigh"
+              stroke="#16a34a"
+              name="Tracking (High)"
+              dot={false}
+              strokeWidth={2}
+              connectNulls={false}
+              isAnimationActive={false}
+            />
+          )}
+          {activeToggles.tracking && hasTurretWeapons && (
+            <Line
+              yAxisId="tracking"
+              type="monotone"
+              dataKey="trackingMid"
+              stroke="#eab308"
+              name="Tracking (Mid)"
+              dot={false}
+              strokeWidth={2}
+              connectNulls={false}
+              isAnimationActive={false}
+            />
+          )}
+          {activeToggles.tracking && hasTurretWeapons && (
+            <Line
+              yAxisId="tracking"
+              type="monotone"
+              dataKey="trackingLow"
+              stroke="#dc2626"
+              name="Tracking (Low)"
+              dot={false}
+              strokeWidth={2}
+              connectNulls={false}
               isAnimationActive={false}
             />
           )}

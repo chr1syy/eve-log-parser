@@ -7,9 +7,6 @@ import {
   LayoutDashboard,
   Upload,
   Database,
-  Sword,
-  ShieldAlert,
-  Zap,
   Users,
   BarChart3,
 } from "lucide-react";

@@ -18,7 +18,7 @@ I write as an experienced capsuleer and as the resident code-first parser for th
   - `src/lib/parser/eveLogParser.ts` — core line parsing and normalisation.
   - `src/lib/parser/computeStats.ts` — aggregation and stats.
   - `src/lib/parser/index.ts` and `src/lib/parser/sampleLog.ts` — entry points and fixtures.
-- Analysis: `src/lib/analysis` (`damageTaken.ts`, `damageDealt.ts`, `repAnalysis.ts`, `capAnalysis.ts`).
+- Analysis: `src/lib/analysis` (`damageTaken.ts`, `damageDealt.ts`, `repAnalysis.ts`, `capAnalysis.ts`, `tracking.ts`).
 - UI: `src/components` and `src/app` (fleet pages under `src/app/fleet`, charts under `src/components/charts`).
 - Shared UI primitives: `src/components/ui` (DataTable, Panel, Button, Badge, Tooltip).
 - Hooks & Context: `src/hooks` and `src/contexts` (`useParsedLogs`, `LogsContext`, `FleetContext`).
@@ -51,9 +51,10 @@ I write as an experienced capsuleer and as the resident code-first parser for th
 
 6. Metrics and analysis we care about
 
-- Per-weapon: count, total, mean/median, hit-quality distribution, DPS in windows.
+- Per-weapon: count, total, mean/median, hit-quality distribution, DPS in windows, turret tracking quality (rolling average `damageMultiplier` in 10-second windows via `computeRollingTracking`).
 - Per-actor: usage profile, e-war produced, rep throughput, module uptime.
 - Encounter timeline: annotate module activations, e-war windows, rep ticks, tackle events.
+- Turret tracking quality: `src/lib/analysis/tracking.ts` — `computeRollingTracking(entries, windowMs)` returns `TrackingSeries[]` (timestamp, trackingQuality, shotCount, hitCount, missCount). Only processes `WeaponSystemType.TURRET` entries; uses `damageMultiplier` as a proxy for tracking. Visualised in `DamageDealtChart` as three colour-coded lines (high ≥1.0 green, mid 0.7–1.0 yellow, low <0.7 red) with interpolation and tier-bridging. Guard: only shown when `hasTurretWeapons` is true so missile/drone logs are unaffected.
 
 7. Contributing and maintenance notes
 
@@ -91,6 +92,7 @@ Appendix: quick file references
 - `src/lib/parser/eveLogParser.ts`
 - `src/lib/parser/computeStats.ts`
 - `src/lib/analysis/damageTaken.ts`
+- `src/lib/analysis/tracking.ts`
 - `src/components/fleet/`
 - `src/components/ui/`
 - `src/hooks/useParsedLogs.ts`

@@ -15,6 +15,7 @@ const TOGGLE_EVENT_TYPES: Record<keyof ActiveToggles, EventType[]> = {
   damageIn: ["damage-received", "miss-incoming"],
   capPressure: ["neut-received", "neut-dealt", "nos-dealt"],
   reps: ["rep-received", "rep-outgoing"],
+  tracking: [], // chart-only overlay — no raw log entries to filter
 };
 
 const EVENT_TYPE_COLOR: Partial<Record<EventType, string>> = {
@@ -51,7 +52,7 @@ export default function RawLogPanel({
   brushWindow,
   activeToggles,
 }: RawLogPanelProps) {
-  const bottomRef = useRef<HTMLDivElement | null>(null);
+  const topRef = useRef<HTMLDivElement | null>(null);
 
   const filteredEntries = useMemo(() => {
     const allowedTypes = new Set<EventType>();
@@ -78,7 +79,7 @@ export default function RawLogPanel({
   }, [entries, brushWindow, activeToggles]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "auto" });
+    topRef.current?.scrollIntoView({ behavior: "auto" });
   }, [filteredEntries]);
 
   return (
@@ -93,6 +94,7 @@ export default function RawLogPanel({
       </div>
 
       <div className="flex-1 overflow-y-auto font-mono text-[11px] leading-relaxed">
+        <div ref={topRef} />
         {filteredEntries.length === 0 ? (
           <div className="flex items-center justify-center h-full text-[#555]">
             No entries in selection
@@ -114,10 +116,8 @@ export default function RawLogPanel({
             );
           })
         )}
-        <div ref={bottomRef} />
       </div>
     </div>
   );
 }
 
-export type { RawLogPanelProps };
