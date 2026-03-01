@@ -8,6 +8,7 @@ import DamagePerTargetTable from "@/components/charts/DamagePerTargetTable";
 import DamageReceivedPerTargetTable from "@/components/charts/DamageReceivedPerTargetTable";
 import RepsPerSourceTable from "@/components/charts/RepsPerSourceTable";
 import CapPressurePerSourceTable from "@/components/charts/CapPressurePerSourceTable";
+import CapHitTimelineChart from "@/components/charts/CapHitTimelineChart";
 import AppLayout from "@/components/layout/AppLayout";
 import Panel from "@/components/ui/Panel";
 import { useParsedLogs } from "@/hooks/useParsedLogs";
@@ -72,6 +73,7 @@ export default function ChartsPage() {
     end: Date;
   } | null>(null);
   const [brushResetKey, setBrushResetKey] = useState(0);
+  const [showCapHits, setShowCapHits] = useState(false);
   const [initialBrushWindow, setInitialBrushWindow] = useState<{
     start: Date;
     end: Date;
@@ -125,6 +127,12 @@ export default function ChartsPage() {
             active={activeToggles.capPressure}
             color="#e58c00"
             onClick={() => toggleKey("capPressure")}
+          />
+          <ToggleButton
+            label="Cap Hits"
+            active={showCapHits}
+            color="#c2410c"
+            onClick={() => setShowCapHits((v) => !v)}
           />
           <ToggleButton
             label="Reps"
@@ -213,6 +221,13 @@ export default function ChartsPage() {
             />
           </div>
         </div>
+
+        {/* Cap hit timeline — per-hit neut bars, off by default */}
+        {showCapHits && (
+          <Panel title="CAP HIT TIMELINE — PER HIT">
+            <CapHitTimelineChart entries={entries} />
+          </Panel>
+        )}
 
         {/* Damage per target table — only when Damage Out toggle is active */}
         {activeToggles.damageOut && (
