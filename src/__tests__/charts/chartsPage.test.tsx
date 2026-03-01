@@ -146,18 +146,18 @@ describe("ChartsPage", () => {
     );
   });
 
-  it("toggles CapHitTimelineChart visibility (off by default)", () => {
+  it("toggles CapHitTimelineChart visibility via Cap Pressure button (off by default)", () => {
     render(<ChartsPage />);
 
     // Chart is hidden by default
     expect(screen.queryByTestId("cap-hit-timeline")).not.toBeInTheDocument();
 
-    // Click the "Cap Hits" toggle to show it
-    fireEvent.click(screen.getByRole("button", { name: "Cap Hits" }));
+    // Click the "Cap Pressure" toggle to show it
+    fireEvent.click(screen.getByRole("button", { name: "Cap Pressure" }));
     expect(screen.getByTestId("cap-hit-timeline")).toBeInTheDocument();
 
     // Click again to hide
-    fireEvent.click(screen.getByRole("button", { name: "Cap Hits" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cap Pressure" }));
     expect(screen.queryByTestId("cap-hit-timeline")).not.toBeInTheDocument();
   });
 });

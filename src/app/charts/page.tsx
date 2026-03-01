@@ -49,7 +49,7 @@ export default function ChartsPage() {
   const [activeToggles, setActiveToggles] = useState<ActiveToggles>({
     damageOut: true,
     damageIn: true,
-    capPressure: true,
+    capPressure: false,
     reps: true,
     tracking: true,
   });
@@ -73,7 +73,6 @@ export default function ChartsPage() {
     end: Date;
   } | null>(null);
   const [brushResetKey, setBrushResetKey] = useState(0);
-  const [showCapHits, setShowCapHits] = useState(false);
   const [initialBrushWindow, setInitialBrushWindow] = useState<{
     start: Date;
     end: Date;
@@ -127,12 +126,6 @@ export default function ChartsPage() {
             active={activeToggles.capPressure}
             color="#e58c00"
             onClick={() => toggleKey("capPressure")}
-          />
-          <ToggleButton
-            label="Cap Hits"
-            active={showCapHits}
-            color="#c2410c"
-            onClick={() => setShowCapHits((v) => !v)}
           />
           <ToggleButton
             label="Reps"
@@ -222,8 +215,8 @@ export default function ChartsPage() {
           </div>
         </div>
 
-        {/* Cap hit timeline — per-hit neut bars, off by default */}
-        {showCapHits && (
+        {/* Cap hit timeline — per-hit neut bars, shown when Cap Pressure is toggled on */}
+        {activeToggles.capPressure && (
           <Panel title="CAP HIT TIMELINE — PER HIT">
             <CapHitTimelineChart entries={entries} />
           </Panel>
