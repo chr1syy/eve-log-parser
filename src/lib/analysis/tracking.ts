@@ -4,6 +4,18 @@ import { WeaponSystemType } from "../types";
 
 import type { TrackingSeries } from "../types";
 
+function isDisintegratorWeapon(weapon?: string): boolean {
+  return weapon?.toLowerCase().includes("disintegrator") ?? false;
+}
+
+export function isTrackingEligibleTurretShot(entry: LogEntry): boolean {
+  if (entry.weaponSystemType !== WeaponSystemType.TURRET) return false;
+  // Tracking overlay is for the pilot's own weapon application only.
+  if (entry.eventType !== "damage-dealt" && entry.eventType !== "miss-outgoing")
+    return false;
+  return !isDisintegratorWeapon(entry.weapon);
+}
+
 /**
  * Compute rolling tracking quality for turret weapon entries.
  * Uses an efficient two-pointer sliding window (windowMs) and
@@ -15,7 +27,7 @@ export function computeRollingTracking(
 ): TrackingSeries[] {
   // Filter turret shots (include misses and hits) and sort by timestamp
   const turretShots = entries
-    .filter((e) => e.weaponSystemType === WeaponSystemType.TURRET)
+    .filter(isTrackingEligibleTurretShot)
     .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
   if (turretShots.length === 0) return [];

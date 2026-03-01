@@ -21,7 +21,10 @@ import {
   analyzeDamageDealt,
   generateDamageDealtTimeSeries,
 } from "@/lib/analysis/damageDealt";
-import { computeRollingTracking } from "@/lib/analysis/tracking";
+import {
+  computeRollingTracking,
+  isTrackingEligibleTurretShot,
+} from "@/lib/analysis/tracking";
 import type {
   TargetEngagement,
   WeaponApplicationSummary,
@@ -394,9 +397,9 @@ export default function DamageDealtPage() {
   // shots. This prevents drawing a tracking line for purely missile/drone
   // logs where tracking is irrelevant and could confuse users.
   const hasTurretWeapons = useMemo(() => {
-    if (!analysis) return false;
-    return analysis.weaponSummaries.some((w) => w.isTurret === true);
-  }, [analysis]);
+    if (!deferredActiveLog) return false;
+    return deferredActiveLog.entries.some(isTrackingEligibleTurretShot);
+  }, [deferredActiveLog]);
 
   const effectiveZoomedWindow = resolveZoomedWindow(zoomedWindow, zoomedTarget);
 

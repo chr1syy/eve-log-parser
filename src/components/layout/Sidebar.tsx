@@ -6,7 +6,6 @@ import {
   Crosshair,
   LayoutDashboard,
   Upload,
-  Database,
   Users,
   BarChart3,
 } from "lucide-react";
@@ -15,7 +14,6 @@ const navItems = [
   { label: "Logs", href: "/upload", icon: Upload },
   { label: "Fleet", href: "/fleet", icon: Users, badge: "beta" },
   { label: "Overview", href: "/", icon: LayoutDashboard },
-  { label: "Raw Data", href: "/kills", icon: Database },
   { label: "Charts", href: "/charts", icon: BarChart3 },
 ];
 

@@ -52,7 +52,7 @@ export default function RawLogPanel({
   brushWindow,
   activeToggles,
 }: RawLogPanelProps) {
-  const topRef = useRef<HTMLDivElement | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   const filteredEntries = useMemo(() => {
     const allowedTypes = new Set<EventType>();
@@ -79,7 +79,9 @@ export default function RawLogPanel({
   }, [entries, brushWindow, activeToggles]);
 
   useEffect(() => {
-    topRef.current?.scrollIntoView({ behavior: "auto" });
+    if (!scrollContainerRef.current) return;
+    // Keep log panel anchored to top without moving the page viewport.
+    scrollContainerRef.current.scrollTop = 0;
   }, [filteredEntries]);
 
   return (
@@ -99,8 +101,10 @@ export default function RawLogPanel({
         </span>
       </div>
 
-      <div className="flex-1 overflow-y-auto font-mono text-[11px] leading-relaxed">
-        <div ref={topRef} />
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 overflow-y-auto font-mono text-[11px] leading-relaxed"
+      >
         {filteredEntries.length === 0 ? (
           <div className="flex items-center justify-center h-full text-[#555]">
             No entries in selection
@@ -126,4 +130,3 @@ export default function RawLogPanel({
     </div>
   );
 }
-

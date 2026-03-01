@@ -56,4 +56,46 @@ describe("computeRollingTracking", () => {
     const series = computeRollingTracking(entries as LogEntry[], 1000);
     expect(series.length).toBe(0);
   });
+
+  test("ignores disintegrator weapons for tracking overlays", () => {
+    const t0 = Date.now();
+    const entries = [
+      {
+        id: "1",
+        timestamp: new Date(t0),
+        rawLine: "",
+        eventType: "damage-dealt",
+        weaponSystemType: WeaponSystemType.TURRET,
+        weapon: "Heavy Entropic Disintegrator II",
+        damageMultiplier: 1.2,
+      },
+    ];
+    const series = computeRollingTracking(entries as LogEntry[], 1000);
+    expect(series.length).toBe(0);
+  });
+
+  test("ignores incoming turret shots for tracking overlays", () => {
+    const t0 = Date.now();
+    const entries = [
+      {
+        id: "1",
+        timestamp: new Date(t0),
+        rawLine: "",
+        eventType: "damage-received",
+        weaponSystemType: WeaponSystemType.TURRET,
+        weapon: "Heavy Neutron Blaster II",
+        damageMultiplier: 0.8,
+      },
+      {
+        id: "2",
+        timestamp: new Date(t0 + 1000),
+        rawLine: "",
+        eventType: "miss-incoming",
+        weaponSystemType: WeaponSystemType.TURRET,
+        weapon: "Heavy Neutron Blaster II",
+      },
+    ];
+    const series = computeRollingTracking(entries as LogEntry[], 10_000);
+    expect(series.length).toBe(0);
+  });
 });

@@ -54,7 +54,7 @@ I write as an experienced capsuleer and as the resident code-first parser for th
 - Per-weapon: count, total, mean/median, hit-quality distribution, DPS in windows, turret tracking quality (rolling average `damageMultiplier` in 10-second windows via `computeRollingTracking`).
 - Per-actor: usage profile, e-war produced, rep throughput, module uptime.
 - Encounter timeline: annotate module activations, e-war windows, rep ticks, tackle events.
-- Turret tracking quality: `src/lib/analysis/tracking.ts` — `computeRollingTracking(entries, windowMs)` returns `TrackingSeries[]` (timestamp, trackingQuality, shotCount, hitCount, missCount). Only processes `WeaponSystemType.TURRET` entries; uses `damageMultiplier` as a proxy for tracking. Visualised in `DamageDealtChart` as three colour-coded lines (high ≥1.0 green, mid 0.7–1.0 yellow, low <0.7 red) with interpolation and tier-bridging. Guard: only shown when `hasTurretWeapons` is true so missile/drone logs are unaffected.
+- Turret tracking quality: `src/lib/analysis/tracking.ts` — `computeRollingTracking(entries, windowMs)` returns `TrackingSeries[]` (timestamp, trackingQuality, shotCount, hitCount, missCount). It only processes outgoing turret shots (`damage-dealt` and `miss-outgoing`) and excludes disintegrator weapons; uses `damageMultiplier` as a proxy for tracking. Visualised in `DamageDealtChart` as three colour-coded lines (high ≥1.0 green, mid 0.7–1.0 yellow, low <0.7 red) with interpolation and tier-bridging. Guard: only shown when tracking-eligible turret shots exist so missile/drone logs are unaffected.
 
 7. Contributing and maintenance notes
 

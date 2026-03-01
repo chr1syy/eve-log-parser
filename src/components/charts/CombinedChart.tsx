@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useCallback, useMemo } from "react";
-import { WeaponSystemType } from "@/lib/types";
 import type { LogEntry, TrackingSeries } from "@/lib/types";
 import type { FightSegment } from "@/lib/analysis/damageTaken";
-import { computeRollingTracking } from "@/lib/analysis/tracking";
+import {
+  computeRollingTracking,
+  isTrackingEligibleTurretShot,
+} from "@/lib/analysis/tracking";
 import type { TackleWindow } from "@/lib/analysis/damageDealt";
 import { generateDamageDealtTimeSeries } from "@/lib/analysis/damageDealt";
 import { analyzeDamageTaken } from "@/lib/analysis/damageTaken";
@@ -59,6 +61,8 @@ export type CombinedChartData = {
   tackleWindows: TackleWindow[];
   hasTurretWeapons: boolean;
 };
+
+const UNIFIED_BUCKET_MS = 10_000;
 
 // Merge a TrackingSeries into UnifiedPoints using interpolation + tier-bridging.
 // Mirrors buildEnrichedTrackingData from DamageDealtChart, adapted for UnifiedPoint
@@ -146,35 +150,46 @@ function applyTrackingTiers(
 export function useCombinedChartData(entries: LogEntry[]): CombinedChartData {
   return useMemo(() => {
     const map = new Map<number, UnifiedPoint>();
+    const toBucket = (ts: number) =>
+      Math.floor(ts / UNIFIED_BUCKET_MS) * UNIFIED_BUCKET_MS;
 
     // Damage Out
     const dealtSeries = generateDamageDealtTimeSeries(entries);
     for (const pt of dealtSeries.points) {
-      const ts = pt.timestamp.getTime();
+      const ts = toBucket(pt.timestamp.getTime());
       const existing = map.get(ts) ?? { timestamp: ts };
-      map.set(ts, { ...existing, dpsOut: pt.dps });
+      map.set(ts, {
+        ...existing,
+        dpsOut: Math.max(existing.dpsOut ?? 0, pt.dps),
+      });
     }
 
     // Damage In
     const takenAnalysis = analyzeDamageTaken(entries);
     for (const pt of takenAnalysis.dpsTimeSeries) {
-      const ts = pt.timestamp.getTime();
+      const ts = toBucket(pt.timestamp.getTime());
       const existing = map.get(ts) ?? { timestamp: ts };
-      map.set(ts, { ...existing, dpsIn: pt.dps });
+      map.set(ts, {
+        ...existing,
+        dpsIn: Math.max(existing.dpsIn ?? 0, pt.dps),
+      });
     }
 
     // Reps
     const repResult = analyzeReps(entries);
     for (const pt of repResult.incomingRepTimeSeries) {
-      const ts = pt.timestamp.getTime();
+      const ts = toBucket(pt.timestamp.getTime());
       const existing = map.get(ts) ?? { timestamp: ts };
-      map.set(ts, { ...existing, repsPerSec: pt.repsPerSecond });
+      map.set(ts, {
+        ...existing,
+        repsPerSec: Math.max(existing.repsPerSec ?? 0, pt.repsPerSecond),
+      });
     }
 
     // Cap Pressure — bucket into 10-second windows
     const capResult = analyzeCapPressure(entries);
     for (const pt of capResult.neutReceivedTimeline) {
-      const bucket = Math.floor(pt.timestamp.getTime() / 10_000) * 10_000;
+      const bucket = toBucket(pt.timestamp.getTime());
       const existing = map.get(bucket) ?? { timestamp: bucket };
       map.set(bucket, {
         ...existing,
@@ -182,14 +197,26 @@ export function useCombinedChartData(entries: LogEntry[]): CombinedChartData {
       });
     }
 
-    const sortedPoints = Array.from(map.values()).sort(
-      (a, b) => a.timestamp - b.timestamp,
-    );
+    const sortedBuckets = Array.from(map.keys()).sort((a, b) => a - b);
+    const firstTs = sortedBuckets[0];
+    const lastTs = sortedBuckets[sortedBuckets.length - 1];
+    const sortedPoints: UnifiedPoint[] = [];
+
+    if (firstTs != null && lastTs != null) {
+      for (let ts = firstTs; ts <= lastTs; ts += UNIFIED_BUCKET_MS) {
+        const existing = map.get(ts);
+        sortedPoints.push({
+          timestamp: ts,
+          dpsOut: existing?.dpsOut ?? 0,
+          dpsIn: existing?.dpsIn ?? 0,
+          repsPerSec: existing?.repsPerSec ?? 0,
+          capGj: existing?.capGj ?? 0,
+        });
+      }
+    }
 
     // Turret tracking quality overlay
-    const hasTurretWeapons = entries.some(
-      (e) => e.weaponSystemType === WeaponSystemType.TURRET,
-    );
+    const hasTurretWeapons = entries.some(isTrackingEligibleTurretShot);
     const points = hasTurretWeapons
       ? applyTrackingTiers(sortedPoints, computeRollingTracking(entries))
       : sortedPoints;
