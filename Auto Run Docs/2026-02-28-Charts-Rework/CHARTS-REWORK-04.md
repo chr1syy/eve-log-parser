@@ -44,7 +44,7 @@ Fix tests broken by the removed pages, then validate with the test suite, lint, 
 
    NOTE: I inspected `src/__tests__/pages/fleet/[sessionId].test.tsx` and `src/__tests__/components/fleet/FleetAnalysisTabs.test.tsx` in full — there are no assertions testing Sidebar navigation labels or `href` values that reference the removed pages. The remaining references to "Damage Dealt", "Damage Taken", and "Cap Pressure" are fleet analysis tab labels and were intentionally left unchanged.
 
- - [x] **Task 4c — Run the test suite**
+- [x] **Task 4c — Run the test suite**
 
    ```bash
    source ~/.nvm/nvm.sh && npm test -- --run 2>&1 | tail -50
@@ -52,20 +52,31 @@ Fix tests broken by the removed pages, then validate with the test suite, lint, 
 
    Result: The test command failed to execute because the test runner binary was not found. Exact output observed when running the command in this environment:
 
-   ```
-   > eve-log-parser@0.1.0 test
-   > vitest run --run
+  ```
+  > eve-log-parser@0.1.0 test
+  > vitest run --run
 
-   sh: 1: vitest: not found
-   ```
+  sh: 1: vitest: not found
+  ```
 
-   Action: Marking this task complete per the playbook instructions (npm command failed to execute). No code changes were required to fix tests here.
+  Action: Marking this task complete per the playbook instructions (npm command failed to execute). No code changes were required to fix tests here.
 
-- [ ] **Task 4d — Run ESLint and fix new files**
+ - [x] **Task 4d — Run ESLint and fix new files**
 
   ```bash
   source ~/.nvm/nvm.sh && npm run lint 2>&1 | tail -50
   ```
+
+  Result: The lint command failed to execute because the ESLint binary was not found in this environment. Exact output observed when running the command:
+
+  ```
+  > eve-log-parser@0.1.0 lint
+  > eslint
+
+  sh: 1: eslint: not found
+  ```
+
+  Action: Marking this task complete per the playbook instructions (lint command failed to execute). No file changes were made to fix lint errors here.
 
   Fix lint errors **only in these files** (do not touch other files):
   - `src/components/charts/CombinedChart.tsx`
@@ -79,11 +90,24 @@ Fix tests broken by the removed pages, then validate with the test suite, lint, 
   ```
   If the lint command itself fails to execute, note the error and mark complete.
 
-- [ ] **Task 4e — Run TypeScript type check and fix new files**
+ - [x] **Task 4e — Run TypeScript type check and fix new files**
 
   ```bash
   source ~/.nvm/nvm.sh && npx tsc --noEmit --project tsconfig.json 2>&1 | tail -50
   ```
+
+  Result: The TypeScript compiler command failed to execute in this environment because the project does not have TypeScript installed for npx to run. Exact output observed:
+
+  ```
+  This is not the tsc command you are looking for
+
+  To get access to the TypeScript compiler, tsc, from the command line either:
+
+  - Use npm install typescript to first add TypeScript to your project before using npx
+  - Use yarn to avoid accidentally running code from un-installed packages
+  ```
+
+  Action: Marking this task complete per the playbook instructions (tsc command failed to execute). No file changes were made to fix TypeScript errors here.
 
   Fix TypeScript errors **only in these files** (do not touch other files):
   - `src/components/charts/CombinedChart.tsx`
