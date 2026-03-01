@@ -204,48 +204,46 @@ export function getDisplayNameForLog(log: FleetLog): string {
     return String(log.shipType).trim();
   }
 
-  // Look for uploaded original filename under data/uploads/<sessionId>
-  try {
-    const uploadsDir = join(process.cwd(), "data", "uploads", log.sessionId);
-    if (existsSync(uploadsDir)) {
-      // directory exists; we'll inspect files in the lazy block below
-    }
-  } catch {
-    // ignore
-  }
-
-  try {
-    const uploadsDir = join(process.cwd(), "data", "uploads", log.sessionId);
-    if (existsSync(uploadsDir)) {
-      const files = readdirSync(uploadsDir).filter((f: string) => {
+  // Probe data/logs/<sessionId>/ first (canonical location), then data/uploads/<sessionId>/ for
+  // backward compatibility with sessions created before Phase 01 of fix #36.
+  // Helper: return the most-recently-modified filename from a directory, or null.
+  const pickLatestFile = (dir: string): string | null => {
+    try {
+      if (!existsSync(dir)) return null;
+      const files = readdirSync(dir).filter((f: string) => {
         try {
-          return statSync(join(uploadsDir, f)).isFile();
+          return statSync(join(dir, f)).isFile();
         } catch {
           return false;
         }
       });
+      if (files.length === 0) return null;
       if (files.length === 1) return files[0];
-      if (files.length > 1) {
-        // pick most-recently modified file
-        let latest = files[0];
-        let latestTime = 0;
-        for (const f of files) {
-          try {
-            const mtime = statSync(join(uploadsDir, f)).mtime.getTime();
-            if (mtime > latestTime) {
-              latestTime = mtime;
-              latest = f;
-            }
-          } catch {
-            // ignore
+      let latest = files[0];
+      let latestTime = 0;
+      for (const f of files) {
+        try {
+          const mtime = statSync(join(dir, f)).mtime.getTime();
+          if (mtime > latestTime) {
+            latestTime = mtime;
+            latest = f;
           }
+        } catch {
+          // ignore
         }
-        return latest;
       }
+      return latest;
+    } catch {
+      return null;
     }
-  } catch {
-    // ignore any fs errors
-  }
+  };
+
+  const logsDir = join(process.cwd(), "data", "logs", log.sessionId);
+  const uploadsDir = join(process.cwd(), "data", "uploads", log.sessionId);
+  const filenameFromLogs = pickLatestFile(logsDir);
+  if (filenameFromLogs) return filenameFromLogs;
+  const filenameFromUploads = pickLatestFile(uploadsDir);
+  if (filenameFromUploads) return filenameFromUploads;
 
   // final fallback
   return `upload-${String(log.id).slice(0, 8)}.log`;
