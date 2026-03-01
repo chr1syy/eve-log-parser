@@ -5,6 +5,7 @@ import CombinedChart from "@/components/charts/CombinedChart";
 import type { ActiveToggles } from "@/components/charts/CombinedChart";
 import RawLogPanel from "@/components/charts/RawLogPanel";
 import DamagePerTargetTable from "@/components/charts/DamagePerTargetTable";
+import DamageReceivedPerTargetTable from "@/components/charts/DamageReceivedPerTargetTable";
 import AppLayout from "@/components/layout/AppLayout";
 import Panel from "@/components/ui/Panel";
 import { useParsedLogs } from "@/hooks/useParsedLogs";
@@ -213,6 +214,15 @@ export default function ChartsPage() {
             entries={entries}
             brushWindow={brushWindow}
             onTargetClick={handleTargetClick}
+          />
+        )}
+
+        {/* Damage received per attacker table — only when Damage In toggle is active */}
+        {activeToggles.damageIn && (
+          <DamageReceivedPerTargetTable
+            entries={entries}
+            brushWindow={brushWindow}
+            onAttackerClick={handleTargetClick}
           />
         )}
       </div>
