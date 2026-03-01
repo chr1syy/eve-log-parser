@@ -12,12 +12,14 @@ vi.mock("recharts", async () => {
   return {
     ResponsiveContainer: Passthrough,
     ComposedChart: Passthrough,
+    BarChart: Passthrough,
     CartesianGrid: () => null,
     XAxis: () => null,
     YAxis: () => null,
     Tooltip: () => null,
     ReferenceArea: () => null,
-    Bar: () => null,
+    Bar: Passthrough,
+    Cell: () => null,
     Line: () => null,
     Brush: () => null,
   };
