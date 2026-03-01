@@ -24,6 +24,10 @@ export async function POST(request: NextRequest) {
       userId?: string;
       log?: { sessionId?: string };
     };
+    const rawLogText =
+      typeof body?.rawLogText === "string" ? body.rawLogText : undefined;
+    const rawFileName =
+      typeof body?.rawFileName === "string" ? body.rawFileName : undefined;
 
     if (!userId || !log?.sessionId) {
       return NextResponse.json(
@@ -47,13 +51,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid path" }, { status: 400 });
     }
 
-    // Skip write if file already exists (same content-hash sessionId = idempotent)
-    if (fs.existsSync(filePath)) {
-      return NextResponse.json({ ok: true });
+    fs.mkdirSync(userDir, { recursive: true });
+    if (!fs.existsSync(filePath)) {
+      fs.writeFileSync(filePath, JSON.stringify(log), "utf-8");
     }
 
-    fs.mkdirSync(userDir, { recursive: true });
-    fs.writeFileSync(filePath, JSON.stringify(log), "utf-8");
+    if (rawLogText && rawLogText.length > 0) {
+      const safeRawName = (rawFileName || `${log.sessionId}.txt`)
+        .replace(/[\u0000-\u001f\u007f]/g, "-")
+        .replace(/[\\\/]/g, "-");
+      const baseName = path.basename(safeRawName);
+      const parsedName = path.parse(baseName);
+      const rawName =
+        parsedName.ext.toLowerCase() === ".txt"
+          ? baseName
+          : `${parsedName.name}.txt`;
+      const rawPath = path.join(userDir, rawName);
+      if (!rawPath.startsWith(userDir + path.sep)) {
+        return NextResponse.json(
+          { error: "Invalid raw log path" },
+          { status: 400 },
+        );
+      }
+      if (!fs.existsSync(rawPath)) {
+        fs.writeFileSync(rawPath, rawLogText, "utf-8");
+      }
+    }
 
     return NextResponse.json({ ok: true });
   } catch {

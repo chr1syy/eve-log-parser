@@ -9,11 +9,20 @@ describe("getDisplayNameForLog", () => {
     try {
       mkdirSync(uploadsRoot, { recursive: true });
     } catch {}
+    try {
+      mkdirSync(join(process.cwd(), "data", "logs"), { recursive: true });
+    } catch {}
   });
 
   afterAll(() => {
     try {
       rmSync(uploadsRoot, { recursive: true, force: true });
+    } catch {}
+    try {
+      rmSync(join(process.cwd(), "data", "logs"), {
+        recursive: true,
+        force: true,
+      });
     } catch {}
   });
 
@@ -69,5 +78,37 @@ describe("getDisplayNameForLog", () => {
     expect(getDisplayNameForLog(logWithFile)).toBe("original.log");
 
     // cleanup handled in afterAll
+  });
+
+  it("returns filename from data/logs/<sessionId>/ when present (canonical location)", () => {
+    const sessionId = "s3-logs";
+    const logsDir = join(process.cwd(), "data", "logs", sessionId);
+    mkdirSync(logsDir, { recursive: true });
+    writeFileSync(join(logsDir, "combat.txt"), "log content");
+
+    const log = {
+      id: "aaa00001",
+      sessionId,
+      logData: "",
+    } as unknown as FleetLog;
+    expect(getDisplayNameForLog(log)).toBe("combat.txt");
+  });
+
+  it("prefers data/logs/<sessionId>/ over data/uploads/<sessionId>/", () => {
+    const sessionId = "s4-prefer-logs";
+    const logsDir = join(process.cwd(), "data", "logs", sessionId);
+    const uploadsDir = join(process.cwd(), "data", "uploads", sessionId);
+    mkdirSync(logsDir, { recursive: true });
+    mkdirSync(uploadsDir, { recursive: true });
+    writeFileSync(join(logsDir, "from-logs.txt"), "canonical");
+    writeFileSync(join(uploadsDir, "from-uploads.log"), "legacy");
+
+    const log = {
+      id: "bbb00001",
+      sessionId,
+      logData: "",
+    } as unknown as FleetLog;
+    // Should return the file from data/logs/ not data/uploads/
+    expect(getDisplayNameForLog(log)).toBe("from-logs.txt");
   });
 });

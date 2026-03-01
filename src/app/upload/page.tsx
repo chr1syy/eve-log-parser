@@ -60,16 +60,21 @@ export default function UploadPage() {
 
     try {
       const results: ParsedLog[] = [];
+      const raws: Array<{ text: string; fileName: string }> = [];
       for (const file of files) {
-        const log = await parseLogFile(file);
+        const [rawText, log] = await Promise.all([
+          file.text(),
+          parseLogFile(file),
+        ]);
         results.push(log);
+        raws.push({ text: rawText, fileName: file.name });
       }
 
       // Update state with parsed logs
-      results.forEach((log) => setActiveLog(log));
-      if (results.length > 0) {
-        setActiveLog(results[results.length - 1]); // Ensure last is active
-      }
+      results.forEach((log, idx) => {
+        const raw = raws[idx];
+        setActiveLog(log, raw?.text, raw?.fileName);
+      });
       setParsedLogs(results);
       // Clear the file input list after parsing so we don't re-parse the same files
       setFiles([]);

@@ -33,7 +33,11 @@ export interface LogsContextValue {
   activeLog: ParsedLog | null;
   userId: string | null;
   needsRecovery: boolean;
-  setActiveLog: (log: ParsedLog) => void;
+  setActiveLog: (
+    log: ParsedLog,
+    rawLogText?: string,
+    rawFileName?: string,
+  ) => void;
   removeLog: (sessionId: string) => void;
   clearLogs: () => void;
   restoreFromUserId: (uuid: string) => Promise<number>;
@@ -293,7 +297,8 @@ export function LogsProvider({ children }: { children: ReactNode }) {
     );
   }, [state.logs, state.activeSessionId]);
 
-  const setActiveLog = useCallback((log: ParsedLog) => {
+  const setActiveLog = useCallback(
+    (log: ParsedLog, rawLogText?: string, rawFileName?: string) => {
     dispatch({ type: "SET_ACTIVE_LOG", payload: log });
 
     // Fire-and-forget: persist full log to server for recovery
@@ -302,10 +307,12 @@ export function LogsProvider({ children }: { children: ReactNode }) {
       fetch("/api/user-logs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: uid, log }),
+        body: JSON.stringify({ userId: uid, log, rawLogText, rawFileName }),
       }).catch(() => {});
     }
-  }, []);
+    },
+    [],
+  );
 
   const removeLog = useCallback((sessionId: string) => {
     dispatch({ type: "REMOVE_LOG", payload: sessionId });
