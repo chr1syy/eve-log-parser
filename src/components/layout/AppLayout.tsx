@@ -1,5 +1,6 @@
-import Sidebar from './Sidebar';
-import Topbar from './Topbar';
+import Sidebar from "./Sidebar";
+import Topbar from "./Topbar";
+import VersionFooter from "./VersionFooter";
 
 interface AppLayoutProps {
   title: string;
@@ -18,9 +19,10 @@ export default function AppLayout({ title, children }: AppLayoutProps) {
         <Topbar title={title} />
 
         {/* Scrollable content */}
-        <main className="flex-1 overflow-auto p-6">
-          {children}
-        </main>
+        <main className="flex-1 overflow-auto p-6">{children}</main>
+
+        {/* Footer */}
+        <VersionFooter />
       </div>
     </div>
   );

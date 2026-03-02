@@ -34,7 +34,11 @@ export interface LogsContextValue {
   currentLogId?: string; // Track selected log ID for authenticated users
   userId: string | null;
   needsRecovery: boolean;
-  setActiveLog: (log: ParsedLog) => void;
+  setActiveLog: (
+    log: ParsedLog,
+    rawLogText?: string,
+    rawFileName?: string,
+  ) => void;
   selectLog: (id: string) => Promise<void>; // Load a specific log by ID
   deleteLog: (id: string) => Promise<void>; // Delete a specific log by ID
   removeLog: (sessionId: string) => void; // Legacy: remove by sessionId
@@ -42,6 +46,12 @@ export interface LogsContextValue {
   loadUserLogs: () => Promise<void>; // Fetch and load user's logs from API
   uploadLog: (filename: string, log: ParsedLog) => Promise<string>; // Upload log, returns log ID
   restoreFromUserId: (uuid: string) => Promise<number>;
+  updateLogMetadata: (
+    sessionId: string,
+    updates: Partial<
+      Pick<ParsedLog, "displayName" | "characterName" | "fileName">
+    >,
+  ) => void;
 }
 
 interface LogsState {
@@ -52,6 +62,10 @@ interface LogsState {
 
 type LogsAction =
   | { type: "SET_ACTIVE_LOG"; payload: ParsedLog }
+  | {
+      type: "UPDATE_LOG_META";
+      payload: { sessionId: string; updates: Partial<ParsedLog> };
+    }
   | {
       type: "HYDRATE_FROM_STORAGE";
       payload: { logs: ParsedLog[]; activeSessionId: string | null };
@@ -80,8 +94,9 @@ function logsReducer(state: LogsState, action: LogsAction): LogsState {
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedLogs));
           localStorage.setItem(ACTIVE_SESSION_KEY, log.sessionId);
-        } catch (err) {
-          console.error(`[LogsContext] localStorage error:`, err);
+        } catch {
+          // Log storage failures
+          console.error(`[LogsContext] localStorage error:`);
         }
       }
 
@@ -89,6 +104,23 @@ function logsReducer(state: LogsState, action: LogsAction): LogsState {
         logs: updatedLogs,
         activeSessionId: log.sessionId,
       };
+    }
+
+    case "UPDATE_LOG_META": {
+      const { sessionId, updates } = action.payload;
+      const updatedLogs = state.logs.map((l) =>
+        l.sessionId === sessionId ? ({ ...l, ...updates } as ParsedLog) : l,
+      );
+
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedLogs));
+        } catch {
+          // ignore
+        }
+      }
+
+      return { ...state, logs: updatedLogs };
     }
 
     case "HYDRATE_FROM_STORAGE": {
@@ -255,8 +287,26 @@ export function LogsProvider({ children }: { children: ReactNode }) {
   const userIdRef = useRef<string | null>(null);
   const autoRestoredRef = useRef(false);
 
-  const [userId, setUserId] = useState<string | null>(null);
-  const [needsRecovery, setNeedsRecovery] = useState(false);
+  const initial = useMemo(() => {
+    if (typeof window === "undefined") {
+      return { userId: null, needsRecovery: false };
+    }
+
+    const storedUserId = localStorage.getItem(USER_ID_KEY);
+    const parsedLogsRaw = localStorage.getItem(STORAGE_KEY);
+    const needsRecovery = !storedUserId && !parsedLogsRaw;
+
+    let resolvedUserId = storedUserId;
+    if (!resolvedUserId) {
+      resolvedUserId = generateUUID();
+      localStorage.setItem(USER_ID_KEY, resolvedUserId);
+    }
+
+    return { userId: resolvedUserId, needsRecovery };
+  }, []);
+
+  const [userId, setUserId] = useState<string | null>(initial.userId);
+  const [needsRecovery, setNeedsRecovery] = useState(initial.needsRecovery);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -265,26 +315,15 @@ export function LogsProvider({ children }: { children: ReactNode }) {
     if (autoRestoredRef.current) return;
     autoRestoredRef.current = true;
 
-    const storedUserId = localStorage.getItem(USER_ID_KEY);
     const parsedLogsRaw = localStorage.getItem(STORAGE_KEY);
 
-    if (!storedUserId && !parsedLogsRaw) {
-      // Both keys absent: full cache wipe. Generate a fresh userId and ask the
-      // user to supply their old one via the recovery banner.
-      const newUserId = generateUUID();
-      localStorage.setItem(USER_ID_KEY, newUserId);
-      userIdRef.current = newUserId;
-      setUserId(newUserId);
-      setNeedsRecovery(true);
+    if (needsRecovery) {
+      userIdRef.current = initial.userId;
       return;
     }
 
     // Resolve or generate userId
-    let resolvedUserId = storedUserId;
-    if (!resolvedUserId) {
-      resolvedUserId = generateUUID();
-      localStorage.setItem(USER_ID_KEY, resolvedUserId);
-    }
+    const resolvedUserId = initial.userId;
     userIdRef.current = resolvedUserId;
     setUserId(resolvedUserId);
 
@@ -330,6 +369,7 @@ export function LogsProvider({ children }: { children: ReactNode }) {
         }
       })();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Compute activeLog from state
@@ -341,7 +381,8 @@ export function LogsProvider({ children }: { children: ReactNode }) {
     );
   }, [state.logs, state.activeSessionId]);
 
-  const setActiveLog = useCallback((log: ParsedLog) => {
+  const setActiveLog = useCallback(
+    (log: ParsedLog, rawLogText?: string, rawFileName?: string) => {
     dispatch({ type: "SET_ACTIVE_LOG", payload: log });
 
     // Fire-and-forget: persist full log to server for recovery
@@ -350,10 +391,12 @@ export function LogsProvider({ children }: { children: ReactNode }) {
       fetch("/api/user-logs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: uid, log }),
+        body: JSON.stringify({ userId: uid, log, rawLogText, rawFileName }),
       }).catch(() => {});
     }
-  }, []);
+    },
+    [],
+  );
 
   const removeLog = useCallback((sessionId: string) => {
     dispatch({ type: "REMOVE_LOG", payload: sessionId });
@@ -362,6 +405,18 @@ export function LogsProvider({ children }: { children: ReactNode }) {
   const clearLogs = useCallback(() => {
     dispatch({ type: "CLEAR_LOGS" });
   }, []);
+
+  const updateLogMetadata = useCallback(
+    (
+      sessionId: string,
+      updates: Partial<
+        Pick<ParsedLog, "displayName" | "characterName" | "fileName">
+      >,
+    ) => {
+      dispatch({ type: "UPDATE_LOG_META", payload: { sessionId, updates } });
+    },
+    [],
+  );
 
   /**
    * Select a specific log by ID (for authenticated users)
@@ -507,6 +562,7 @@ export function LogsProvider({ children }: { children: ReactNode }) {
       loadUserLogs,
       uploadLog,
       restoreFromUserId,
+      updateLogMetadata,
     }),
     [
       state.logs,
@@ -522,6 +578,7 @@ export function LogsProvider({ children }: { children: ReactNode }) {
       loadUserLogs,
       uploadLog,
       restoreFromUserId,
+      updateLogMetadata,
     ],
   );
 

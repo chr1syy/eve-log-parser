@@ -49,8 +49,11 @@ function computeRepTimeSeries(
 
   const timestamps = sorted.map((e) => e.timestamp.getTime());
   const uniqueTs = Array.from(new Set(timestamps)).sort((a, b) => a - b);
+  const GAP_INSERT_THRESHOLD_MS = 90_000; // 1.5 minutes
+  const points: RepTimeSeriesPoint[] = [];
 
-  return uniqueTs.map((ts) => {
+  for (let i = 0; i < uniqueTs.length; i++) {
+    const ts = uniqueTs[i];
     const windowStart = ts - rollingWindowMs;
     const windowAmount = sorted
       .filter((e) => {
@@ -58,11 +61,21 @@ function computeRepTimeSeries(
         return t > windowStart && t <= ts;
       })
       .reduce((sum, e) => sum + (e.amount ?? 0), 0);
-    return {
+    points.push({
       timestamp: new Date(ts),
       repsPerSecond: windowAmount / (rollingWindowMs / 1000),
-    };
-  });
+    });
+
+    const nextTs = uniqueTs[i + 1];
+    if (nextTs !== undefined && nextTs - ts > GAP_INSERT_THRESHOLD_MS) {
+      const after = ts + 1;
+      const before = nextTs - 1;
+      points.push({ timestamp: new Date(after), repsPerSecond: 0 });
+      points.push({ timestamp: new Date(before), repsPerSecond: 0 });
+    }
+  }
+
+  return points;
 }
 
 function computePeakRepsPerSecond(
@@ -101,15 +114,15 @@ function buildRepSourceSummaries(entries: LogEntry[]): RepSourceSummary[] {
 
   for (const entry of entries) {
     const shipType = entry.repShipType ?? "Unknown";
-    const moduleName = entry.repModule ?? "Unknown";
-    const key = `${shipType}||${moduleName}`;
+    const repModule = entry.repModule ?? "Unknown";
+    const key = `${shipType}||${repModule}`;
     if (!map.has(key)) map.set(key, []);
     map.get(key)!.push(entry);
   }
 
   const summaries: RepSourceSummary[] = [];
   for (const [key, group] of map) {
-    const [shipType, moduleName] = key.split("||");
+    const [shipType, repModule] = key.split("||");
     const isBot = group.some((e) => e.isRepBot === true);
     const amounts = group.map((e) => e.amount ?? 0);
     const totalRepaired = amounts.reduce((a, b) => a + b, 0);
@@ -119,7 +132,7 @@ function buildRepSourceSummaries(entries: LogEntry[]): RepSourceSummary[] {
 
     summaries.push({
       shipType,
-      module: moduleName,
+      module: repModule,
       isBot,
       totalRepaired,
       repCount,

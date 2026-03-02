@@ -19,8 +19,17 @@ export interface TimeSeriesDpsPoint {
   fightIndex: number; // which fight segment
 }
 
+export interface AttackerTimeSeries {
+  source: string;
+  shipType?: string;
+  isNpc?: boolean;
+  color: string;
+  timeSeries: TimeSeriesDpsPoint[];
+}
+
 export interface IncomingWeaponSummary {
   source: string; // attacker name/NPC
+  shipType?: string; // ship type of attacker (auto-detected from first matching entry)
   weapon: string;
   isDrone: boolean;
   hitCount: number;
@@ -29,6 +38,10 @@ export interface IncomingWeaponSummary {
   minHit: number;
   maxHit: number;
   hitQualities: Partial<Record<HitQuality, number>>;
+  // first/last hit timestamps for this source+weapon window — useful for
+  // programmatic zooming of the timeline when the user clicks a row.
+  firstHit?: Date;
+  lastHit?: Date;
 }
 
 export interface DamageTakenAnalysis {
@@ -41,10 +54,19 @@ export interface DamageTakenAnalysis {
   peakDps60s: DpsWindow;
   incomingWeaponSummaries: IncomingWeaponSummary[]; // non-drone
   incomingDroneSummaries: IncomingWeaponSummary[]; // drone only
+  attackerTimeSeries: AttackerTimeSeries[]; // per-non-npc attacker DPS time series
   overallHitQualities: Partial<Record<HitQuality, number>>;
 }
 
 const FIGHT_GAP_MS = 60_000; // 60 seconds
+// If two events are separated by more than this threshold we insert zero
+// points in the time series to avoid visually interpolating a slow decline.
+// (defined for parity with damageDealt but unused here)
+// Gap insert threshold kept for documentation parity with damageDealt
+// (unused but intentionally present for future behavior alignment).
+/* eslint-disable @typescript-eslint/no-unused-vars */
+const _GAP_INSERT_THRESHOLD_MS = 90_000; // 1.5 minutes
+/* eslint-enable @typescript-eslint/no-unused-vars */
 
 function segmentFights(entries: LogEntry[]): FightSegment[] {
   const sorted = [...entries].sort(
@@ -89,40 +111,83 @@ function segmentFights(entries: LogEntry[]): FightSegment[] {
   return segments;
 }
 
-function computeDpsTimeSeries(
+export function computeDpsTimeSeries(
   fights: FightSegment[],
   rollingWindowMs = 10_000,
 ): TimeSeriesDpsPoint[] {
   const points: TimeSeriesDpsPoint[] = [];
 
-  for (let fi = 0; fi < fights.length; fi++) {
-    const fight = fights[fi];
-    const sorted = [...fight.entries].sort(
-      (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
-    );
-    if (sorted.length === 0) continue;
+  if (fights.length === 0) return points;
 
-    // Collect unique timestamps from fight entries (step through each event timestamp)
-    const timestamps = sorted.map((e) => e.timestamp.getTime());
-    const uniqueTs = Array.from(new Set(timestamps)).sort((a, b) => a - b);
+  // Build a global uniform sampling grid across all fights so there is a
+  // point every `rollingWindowMs` (typically 10s). This fills gaps between
+  // fights with zero-valued points and produces a smooth time series.
+  // Additionally insert zero points between fights if the gap is large to
+  // ensure the chart visually drops to zero instead of interpolating.
+  const firstStart = fights[0].start.getTime();
+  const lastEnd = fights[fights.length - 1].end.getTime();
+  const alignedStart =
+    Math.floor(firstStart / rollingWindowMs) * rollingWindowMs;
+  const timestampsToUse: number[] = [];
+  for (let t = alignedStart; t <= lastEnd; t += rollingWindowMs) {
+    timestampsToUse.push(t);
+  }
 
-    for (const ts of uniqueTs) {
-      const windowStart = ts - rollingWindowMs;
-      const windowDamage = sorted
-        .filter((e) => {
-          const t = e.timestamp.getTime();
-          return t > windowStart && t <= ts;
-        })
-        .reduce((sum, e) => sum + (e.amount ?? 0), 0);
-      const dps = windowDamage / (rollingWindowMs / 1000);
-      points.push({ timestamp: new Date(ts), dps, fightIndex: fi });
+  // Prepare a single sorted list of all entries across fights (for sliding window)
+  const allEntries = fights
+    .flatMap((f) => f.entries)
+    .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+
+  let damageStart = 0;
+  let damageEnd = 0;
+  let damageSum = 0;
+
+  // Maintain a pointer to current fight for assigning fightIndex to timestamps
+  let fi = 0;
+  for (const ts of timestampsToUse) {
+    const windowStart = ts - rollingWindowMs;
+
+    while (
+      damageStart < allEntries.length &&
+      allEntries[damageStart].timestamp.getTime() < windowStart
+    ) {
+      damageSum -= allEntries[damageStart].amount ?? 0;
+      damageStart++;
     }
+
+    while (
+      damageEnd < allEntries.length &&
+      allEntries[damageEnd].timestamp.getTime() <= ts
+    ) {
+      damageSum += allEntries[damageEnd].amount ?? 0;
+      damageEnd++;
+    }
+
+    // Advance fight pointer so fi points at the first fight with end >= ts,
+    // or fights.length if past the last fight.
+    while (fi < fights.length && ts > fights[fi].end.getTime()) fi++;
+
+    // Determine fightIndex: prefer fight containing ts, otherwise use previous fight
+    let fightIndex = 0;
+    if (fi === fights.length) {
+      fightIndex = fights.length - 1;
+    } else if (ts < fights[fi].start.getTime()) {
+      fightIndex = Math.max(0, fi - 1);
+    } else {
+      fightIndex = fi;
+    }
+
+    const dps = damageSum / (rollingWindowMs / 1000);
+    points.push({ timestamp: new Date(ts), dps, fightIndex });
   }
 
   return points;
 }
 
-function computePeakDps(entries: LogEntry[], windowSeconds: number): DpsWindow {
+export function computePeakDps(
+  entries: LogEntry[],
+  windowSeconds: number,
+): DpsWindow {
   const windowMs = windowSeconds * 1000;
   const sorted = [...entries].sort(
     (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
@@ -166,6 +231,7 @@ export function analyzeDamageTaken(entries: LogEntry[]): DamageTakenAnalysis {
     peakDps60s: { windowSeconds: 60, maxDps: 0, peakTimestamp: new Date(0) },
     incomingWeaponSummaries: [],
     incomingDroneSummaries: [],
+    attackerTimeSeries: [],
     overallHitQualities: {},
   };
 
@@ -181,6 +247,83 @@ export function analyzeDamageTaken(entries: LogEntry[]): DamageTakenAnalysis {
   const peakDps10s = computePeakDps(damageEntries, 10);
   const peakDps30s = computePeakDps(damageEntries, 30);
   const peakDps60s = computePeakDps(damageEntries, 60);
+
+  // Build per-attacker DPS time series for non-NPC attackers.
+  // Use the timestamps from the global dpsTimeSeries so lines align.
+  const attackerSeries: AttackerTimeSeries[] = [];
+  // collect sources -> entries
+  const sourceMap = new Map<string, LogEntry[]>();
+  for (const e of damageEntries) {
+    const src = e.pilotName ?? e.shipType ?? "Unknown";
+    if (!sourceMap.has(src)) sourceMap.set(src, []);
+    sourceMap.get(src)!.push(e);
+  }
+
+  const palette = [
+    "#00b4d8",
+    "#ff7448",
+    "#66cc66",
+    "#ffbf00",
+    "#b28cff",
+    "#ff6bcb",
+    "#4dd0e1",
+    "#ffa066",
+    "#9be564",
+    "#7aa2ff",
+  ];
+
+  const rollingWindowMs = 10_000;
+  const globalTimestamps = dpsTimeSeries.map((p) => p.timestamp.getTime());
+
+  const hashString = (s: string) => {
+    let h = 2166136261 >>> 0;
+    for (let i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 16777619) >>> 0;
+    }
+    return h;
+  };
+
+  for (const [src, srcEntries] of sourceMap) {
+    // skip NPC attackers
+    const anyNpc = srcEntries.some((e) => e.isNpc === true);
+    if (anyNpc) continue;
+
+    // Pre-sort source entries
+    const sortedSrc = [...srcEntries].sort(
+      (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
+    );
+
+    const pts: TimeSeriesDpsPoint[] = [];
+    for (let i = 0; i < globalTimestamps.length; i++) {
+      const ts = globalTimestamps[i];
+      const windowStart = ts - rollingWindowMs;
+      // sum damage from this source within (windowStart, ts]
+      let windowDamage = 0;
+      // iterate backwards until before windowStart for efficiency
+      for (let j = sortedSrc.length - 1; j >= 0; j--) {
+        const t = sortedSrc[j].timestamp.getTime();
+        if (t <= ts && t > windowStart) {
+          windowDamage += sortedSrc[j].amount ?? 0;
+        }
+        if (t <= windowStart) break;
+      }
+      pts.push({
+        timestamp: new Date(ts),
+        dps: windowDamage / (rollingWindowMs / 1000),
+        fightIndex: dpsTimeSeries[i]?.fightIndex ?? 0,
+      });
+    }
+
+    const color = palette[hashString(src) % palette.length];
+    attackerSeries.push({
+      source: src,
+      shipType: srcEntries[0]?.shipType,
+      isNpc: false,
+      color,
+      timeSeries: pts,
+    });
+  }
 
   // Incoming weapon/drone summaries grouped by (source + weapon)
   // First, add all damage entries
@@ -211,6 +354,7 @@ export function analyzeDamageTaken(entries: LogEntry[]): DamageTakenAnalysis {
   for (const [key, { damage, misses }] of weaponMap) {
     const [source, weapon] = key.split("||");
     const isDrone = damage.some((e) => e.isDrone === true);
+    const shipType = damage[0]?.shipType ?? misses[0]?.shipType;
     const amounts = damage.map((e) => e.amount ?? 0);
     const totalDamage = amounts.reduce((a, b) => a + b, 0);
     const hitCount = damage.length;
@@ -226,8 +370,17 @@ export function analyzeDamageTaken(entries: LogEntry[]): DamageTakenAnalysis {
       }
     }
 
+    const firstTimestamp =
+      (damage[0]?.timestamp?.getTime() ?? misses[0]?.timestamp?.getTime()) ||
+      undefined;
+    const lastTimestamp =
+      (damage[damage.length - 1]?.timestamp?.getTime() ??
+        misses[misses.length - 1]?.timestamp?.getTime()) ||
+      undefined;
+
     const summary: IncomingWeaponSummary = {
       source,
+      shipType,
       weapon,
       isDrone,
       hitCount,
@@ -236,6 +389,8 @@ export function analyzeDamageTaken(entries: LogEntry[]): DamageTakenAnalysis {
       minHit,
       maxHit,
       hitQualities,
+      firstHit: firstTimestamp ? new Date(firstTimestamp) : undefined,
+      lastHit: lastTimestamp ? new Date(lastTimestamp) : undefined,
     };
 
     if (isDrone) {
@@ -273,6 +428,7 @@ export function analyzeDamageTaken(entries: LogEntry[]): DamageTakenAnalysis {
     peakDps60s,
     incomingWeaponSummaries,
     incomingDroneSummaries,
+    attackerTimeSeries: attackerSeries,
     overallHitQualities,
   };
 }

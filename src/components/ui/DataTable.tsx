@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState, useMemo, ReactNode } from 'react';
-import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useState, useMemo, ReactNode } from "react";
+import { ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export interface Column<T> {
   key: string;
@@ -21,9 +21,13 @@ interface DataTableProps<T> {
   searchPlaceholder?: string;
   emptyState?: ReactNode;
   rowKey?: (row: T, index: number) => string;
+  defaultSortKey?: string;
+  defaultSortDirection?: "asc" | "desc";
+  // Optional click handler for rows (used by pages to make rows actionable)
+  onRowClick?: (row: T) => void;
 }
 
-type SortDirection = 'asc' | 'desc' | null;
+type SortDirection = "asc" | "desc" | null;
 
 interface SortState {
   key: string;
@@ -35,12 +39,18 @@ export default function DataTable<T extends Record<string, unknown>>({
   data,
   searchable = false,
   pageSize = 50,
-  searchPlaceholder = 'SEARCH...',
+  searchPlaceholder = "SEARCH...",
   emptyState,
   rowKey,
+  defaultSortKey,
+  defaultSortDirection,
+  onRowClick,
 }: DataTableProps<T>) {
-  const [search, setSearch] = useState('');
-  const [sort, setSort] = useState<SortState>({ key: '', direction: null });
+  const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<SortState>({
+    key: defaultSortKey || "",
+    direction: defaultSortDirection || null,
+  });
   const [page, setPage] = useState(1);
 
   // Filter data by search query
@@ -48,9 +58,9 @@ export default function DataTable<T extends Record<string, unknown>>({
     if (!search.trim()) return data;
     const q = search.toLowerCase();
     return data.filter((row) =>
-      Object.values(row).some((v) =>
-        v != null && String(v).toLowerCase().includes(q)
-      )
+      Object.values(row).some(
+        (v) => v != null && String(v).toLowerCase().includes(q),
+      ),
     );
   }, [data, search]);
 
@@ -64,23 +74,26 @@ export default function DataTable<T extends Record<string, unknown>>({
       if (av == null) return 1;
       if (bv == null) return -1;
       const cmp =
-        typeof av === 'number' && typeof bv === 'number'
+        typeof av === "number" && typeof bv === "number"
           ? av - bv
           : String(av).localeCompare(String(bv));
-      return sort.direction === 'asc' ? cmp : -cmp;
+      return sort.direction === "asc" ? cmp : -cmp;
     });
   }, [filtered, sort]);
 
   // Paginate
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
   const currentPage = Math.min(page, totalPages);
-  const paginated = sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const paginated = sorted.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
 
   function handleSort(colKey: string) {
     setSort((prev) => {
-      if (prev.key !== colKey) return { key: colKey, direction: 'asc' };
-      if (prev.direction === 'asc') return { key: colKey, direction: 'desc' };
-      return { key: '', direction: null };
+      if (prev.key !== colKey) return { key: colKey, direction: "asc" };
+      if (prev.direction === "asc") return { key: colKey, direction: "desc" };
+      return { key: "", direction: null };
     });
     setPage(1);
   }
@@ -89,6 +102,8 @@ export default function DataTable<T extends Record<string, unknown>>({
     setSearch(value);
     setPage(1);
   }
+
+  const clickable = typeof onRowClick === "function";
 
   return (
     <div className="flex flex-col gap-3">
@@ -99,10 +114,10 @@ export default function DataTable<T extends Record<string, unknown>>({
           onChange={(e) => handleSearch(e.target.value)}
           placeholder={searchPlaceholder}
           className={cn(
-            'w-full bg-space border border-border rounded-sm px-3 py-1.5',
-            'text-text-primary font-mono text-xs placeholder:text-text-muted',
-            'focus:outline-none focus:border-cyan-dim focus:ring-1 focus:ring-cyan-dim/30',
-            'transition-colors',
+            "w-full bg-space border border-border rounded-sm px-3 py-1.5",
+            "text-text-primary font-mono text-xs placeholder:text-text-muted",
+            "focus:outline-none focus:border-cyan-dim focus:ring-1 focus:ring-cyan-dim/30",
+            "transition-colors",
           )}
         />
       )}
@@ -117,9 +132,10 @@ export default function DataTable<T extends Record<string, unknown>>({
                   key={col.key}
                   style={col.width ? { width: col.width } : undefined}
                   className={cn(
-                    'bg-panel text-text-secondary uppercase tracking-widest text-xs font-ui',
-                    'border-b border-border px-3 py-2 text-left',
-                    col.sortable && 'cursor-pointer select-none hover:text-text-primary transition-colors',
+                    "bg-panel text-text-secondary uppercase tracking-widest text-xs font-ui",
+                    "border-b border-border px-3 py-2 text-left",
+                    col.sortable &&
+                      "cursor-pointer select-none hover:text-text-primary transition-colors",
                   )}
                   onClick={col.sortable ? () => handleSort(col.key) : undefined}
                 >
@@ -127,9 +143,10 @@ export default function DataTable<T extends Record<string, unknown>>({
                     {col.label}
                     {col.sortable && (
                       <span className="text-text-muted">
-                        {sort.key === col.key && sort.direction === 'asc' ? (
+                        {sort.key === col.key && sort.direction === "asc" ? (
                           <ChevronUp size={12} />
-                        ) : sort.key === col.key && sort.direction === 'desc' ? (
+                        ) : sort.key === col.key &&
+                          sort.direction === "desc" ? (
                           <ChevronDown size={12} />
                         ) : (
                           <ChevronsUpDown size={12} />
@@ -158,7 +175,23 @@ export default function DataTable<T extends Record<string, unknown>>({
                 return (
                   <tr
                     key={key}
-                    className="border-b border-border-subtle hover:bg-elevated transition-colors"
+                    className={cn(
+                      "border-b border-border-subtle hover:bg-elevated transition-colors",
+                      clickable && "cursor-pointer",
+                    )}
+                    onClick={clickable ? () => onRowClick(row as T) : undefined}
+                    onKeyDown={
+                      clickable
+                        ? (e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              onRowClick(row as T);
+                            }
+                          }
+                        : undefined
+                    }
+                    role={clickable ? "button" : undefined}
+                    tabIndex={clickable ? 0 : undefined}
                   >
                     {columns.map((col) => {
                       const value = row[col.key];
@@ -166,11 +199,15 @@ export default function DataTable<T extends Record<string, unknown>>({
                         <td
                           key={col.key}
                           className={cn(
-                            'px-3 py-2 text-text-primary text-sm',
-                            col.numeric && 'font-mono',
+                            "px-3 py-2 text-text-primary text-sm",
+                            col.numeric && "font-mono",
                           )}
                         >
-                          {col.render ? col.render(value, row) : (value != null ? String(value) : '—')}
+                          {col.render
+                            ? col.render(value, row)
+                            : value != null
+                              ? String(value)
+                              : "—"}
                         </td>
                       );
                     })}
@@ -186,8 +223,8 @@ export default function DataTable<T extends Record<string, unknown>>({
       {totalPages > 1 && (
         <div className="flex items-center justify-between px-1">
           <span className="font-mono text-text-muted text-xs">
-            {sorted.length.toLocaleString()} rows &middot; page{' '}
-            <span className="text-text-secondary">{currentPage}</span> /{' '}
+            {sorted.length.toLocaleString()} rows &middot; page{" "}
+            <span className="text-text-secondary">{currentPage}</span> /{" "}
             <span className="text-text-secondary">{totalPages}</span>
           </span>
           <div className="flex gap-2">
@@ -195,9 +232,9 @@ export default function DataTable<T extends Record<string, unknown>>({
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
               className={cn(
-                'font-mono text-xs px-3 py-1 border border-border rounded-sm',
-                'text-text-secondary hover:border-cyan-dim hover:text-text-primary transition-colors',
-                'disabled:opacity-30 disabled:cursor-not-allowed',
+                "font-mono text-xs px-3 py-1 border border-border rounded-sm",
+                "text-text-secondary hover:border-cyan-dim hover:text-text-primary transition-colors",
+                "disabled:opacity-30 disabled:cursor-not-allowed",
               )}
             >
               PREV
@@ -206,9 +243,9 @@ export default function DataTable<T extends Record<string, unknown>>({
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
               className={cn(
-                'font-mono text-xs px-3 py-1 border border-border rounded-sm',
-                'text-text-secondary hover:border-cyan-dim hover:text-text-primary transition-colors',
-                'disabled:opacity-30 disabled:cursor-not-allowed',
+                "font-mono text-xs px-3 py-1 border border-border rounded-sm",
+                "text-text-secondary hover:border-cyan-dim hover:text-text-primary transition-colors",
+                "disabled:opacity-30 disabled:cursor-not-allowed",
               )}
             >
               NEXT

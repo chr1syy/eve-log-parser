@@ -1,4 +1,4 @@
-version: "3.8"
+version: "3.9"
 
 services:
   # PostgreSQL database service for EVE Log Parser
@@ -30,18 +30,14 @@ services:
 
   # Next.js application service
   app:
-    build:
-      context: .
-      args:
-        VERSION: 0.1.0
-    container_name: eve-logs-app
+    image: ghcr.io/chr1syy/eve-log-parser:latest
+    container_name: eve-log-parser
     depends_on:
       postgres:
         # Wait for PostgreSQL to be healthy before starting app
         condition: service_healthy
     environment:
       NODE_ENV: production
-      VERSION: 0.1.0
       # Database connection string for PostgreSQL service (use container network hostname)
       DATABASE_URL: postgresql://eve_parser:eve_parser_dev_pass@postgres:5432/eve_logs
       # EVE SSO Configuration (populate from .env file or secrets)
@@ -51,11 +47,18 @@ services:
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
     ports:
       - "3000:3000"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/version"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    networks:
+      - eve-logs-network
+
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: eve-log-parser-watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 300 --cleanup
     restart: unless-stopped
     networks:
       - eve-logs-network

@@ -1,4 +1,5 @@
 import type { LogEntry, HitQuality } from "../types";
+import { WeaponSystemType } from "../types";
 
 export interface TargetEngagement {
   target: string; // pilotName or NPC name
@@ -25,6 +26,10 @@ export interface WeaponApplicationSummary {
   maxHit: number;
   avgHit: number;
   hitQualities: Partial<Record<HitQuality, number>>;
+  // Optional: whether this weapon group includes turret shots
+  isTurret?: boolean;
+  // Optional: average damage multiplier (used to approximate tracking quality)
+  avgDamageMultiplier?: number | null;
 }
 
 export interface DamageDealtAnalysis {
@@ -151,6 +156,20 @@ export function analyzeDamageDealt(entries: LogEntry[]): DamageDealtAnalysis {
       maxHit,
       avgHit,
       hitQualities,
+      // Determine whether this weapon group contains turret-classified shots
+      isTurret: group.some(
+        (e) => e.weaponSystemType === WeaponSystemType.TURRET,
+      ),
+      // Compute average damageMultiplier over turret shots only when present
+      avgDamageMultiplier: (() => {
+        const turretMs = group
+          .filter((e) => e.weaponSystemType === WeaponSystemType.TURRET)
+          .map((e) => e.damageMultiplier)
+          .filter((m) => m !== undefined) as number[];
+        if (turretMs.length === 0) return null;
+        const sum = turretMs.reduce((a, b) => a + (b ?? 1), 0);
+        return sum / turretMs.length;
+      })(),
     };
 
     if (isDrone) {
@@ -200,6 +219,14 @@ export interface DamageDealtPoint {
   timestamp: Date;
   dps: number; // rolling 10s total outgoing DPS
   badHitPct: number; // % of hits in this window that are Glances Off or Grazes
+  // Optional tracking fields added so chart enrichment that attaches
+  // trackingQuality / segmented tracking values matches the type used
+  // by the tooltip and chart. These are optional because not all time
+  // series will have tracking samples.
+  trackingQuality?: number | null;
+  trackingHigh?: number | null;
+  trackingMid?: number | null;
+  trackingLow?: number | null;
 }
 
 export interface TackleWindow {
@@ -216,6 +243,15 @@ export interface DamageDealtTimeSeries {
 
 const BAD_HIT_QUALITIES = new Set<HitQuality>(["Glances Off", "Grazes"]);
 const WINDOW_MS = 10_000;
+// Fight segmentation and gap thresholds (match damageTaken behavior)
+// Fight gap threshold defined for reference; unused in the current
+// sampling implementation but kept for documentation parity. Prefix with
+// leading underscore and disable the eslint rule where declared to avoid
+// warnings.
+/* eslint-disable @typescript-eslint/no-unused-vars */
+const _FIGHT_GAP_MS = 60_000; // 60 seconds
+/* eslint-enable @typescript-eslint/no-unused-vars */
+// (removed unused segmentFights and gap constant to avoid lint warnings)
 
 export function computeTackleWindows(entries: LogEntry[]): TackleWindow[] {
   const scramEvents = entries
@@ -273,12 +309,17 @@ export function computeTackleWindows(entries: LogEntry[]): TackleWindow[] {
 
 export function generateDamageDealtTimeSeries(
   entries: LogEntry[],
+  excludeDrones?: boolean,
 ): DamageDealtTimeSeries {
   const dealtEntries = entries
-    .filter((e) => e.eventType === "damage-dealt")
+    .filter(
+      (e) => e.eventType === "damage-dealt" && (!excludeDrones || !e.isDrone),
+    )
     .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
-  const missEntries = entries.filter((e) => e.eventType === "miss-outgoing");
+  const missEntries = entries.filter(
+    (e) => e.eventType === "miss-outgoing" && (!excludeDrones || !e.isDrone),
+  );
 
   const tackleWindows = computeTackleWindows(entries);
 
@@ -291,9 +332,20 @@ export function generateDamageDealtTimeSeries(
 
   const points: DamageDealtPoint[] = [];
 
-  // Extract unique timestamps from dealt entries
+  // Build a global uniform sampling grid across the span of outgoing
+  // damage events so there is a sample every WINDOW_MS (10s). This
+  // guarantees a smoothing point even when no damage occurred in the
+  // interval (dps will be 0).
   const timestamps = dealtEntries.map((e) => e.timestamp.getTime());
-  const uniqueTs = Array.from(new Set(timestamps)).sort((a, b) => a - b);
+  const firstTs = Math.min(...timestamps);
+  const lastTs = Math.max(...timestamps);
+  const alignedStart = Math.floor(firstTs / WINDOW_MS) * WINDOW_MS;
+  const alignedEnd = Math.ceil(lastTs / WINDOW_MS) * WINDOW_MS;
+
+  const timestampsToUse: number[] = [];
+  for (let t = alignedStart; t <= alignedEnd; t += WINDOW_MS) {
+    timestampsToUse.push(t);
+  }
 
   // Sliding window pointers for damage (O(n))
   let damageStart = 0;
@@ -304,7 +356,7 @@ export function generateDamageDealtTimeSeries(
   let shotStart = 0;
   let shotEnd = 0;
 
-  for (const t of uniqueTs) {
+  for (const t of timestampsToUse) {
     const windowStart = t - WINDOW_MS;
 
     // Advance damageStart pointer: remove entries older than window
@@ -346,9 +398,18 @@ export function generateDamageDealtTimeSeries(
     // Count bad hits in [shotStart, shotEnd)
     let badHits = 0;
     for (let i = shotStart; i < shotEnd; i++) {
+      const shot = allShots[i];
+      if (shot.eventType === "miss-outgoing") {
+        badHits++;
+        continue;
+      }
+      if (shot.hitQuality === "misses") {
+        badHits++;
+        continue;
+      }
       if (
-        allShots[i].hitQuality != null &&
-        BAD_HIT_QUALITIES.has(allShots[i].hitQuality as HitQuality)
+        shot.hitQuality != null &&
+        BAD_HIT_QUALITIES.has(shot.hitQuality as HitQuality)
       ) {
         badHits++;
       }

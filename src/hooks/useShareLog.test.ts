@@ -1,5 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, expectTypeOf } from "vitest";
 import type { ParsedLog } from "@/lib/types";
+import type { ShareState, UseShareLogResult } from "./useShareLog";
 
 // Hook testing notes:
 // This project does not currently have @testing-library/react installed,
@@ -21,17 +22,15 @@ describe("useShareLog hook", () => {
   });
 
   it("has correct hook signature", () => {
-    // Verifies hook contract
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    interface UseShareLogSignature {
-      (): {
-        shareState: "idle" | "loading" | "copied" | "error";
-        handleShare: (log: ParsedLog) => Promise<void>;
-      };
-    }
-
-    // If hook doesn't match this signature, TypeScript will catch it
-    expect(true).toBe(true);
+    // Verify ShareState is the expected union type
+    expectTypeOf<ShareState>().toEqualTypeOf<
+      "idle" | "loading" | "copied" | "error"
+    >();
+    // Verify UseShareLogResult has the expected shape
+    expectTypeOf<UseShareLogResult>().toMatchTypeOf<{
+      shareState: ShareState;
+      handleShare: (log: ParsedLog) => Promise<void>;
+    }>();
   });
 
   describe("Verification steps from PR-REVIEW-03.md", () => {

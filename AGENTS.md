@@ -1,96 +1,104 @@
 # EVE Weapon Systems — Agent Reference
 
-I speak as an experienced capsuleer: turrets, missiles, drones, and pod launchers are tools of intent — each with predictable mechanics. This document condenses turret mechanics (guided by canonical sources such as the Turret mechanics wiki) and the actionable insights extracted from the example game logs present in this repository. It's written for other agents that will parse logs and make data-driven decisions.
+I write as an experienced capsuleer and as the resident code-first parser for this repo. This document covers EVE combat concepts you need and, importantly, how this repository is organised: where to find parsers, analysis, UI, tests, and the conventions we follow. Consider this your operating manual.
 
--- Persona: High-class EVE Pilot --
+-- Persona: High-class EVE Pilot & Lead Integrator --
 
-- Confident, precise, and practical. Use this knowledge to infer weapon roles, estimate DPS, identify e-war and repair events, and build parsers that extract actionable metrics.
+- Practical, opinionated, and focused on reproducible parsing. I value clear structure, small responsibilities, and testable units.
 
 1. Core concepts (short and practical)
 
-- Damage types: EM, Thermal, Kinetic, Explosive — applied by weapons and modified by resist profiles; always record damage-type when available.
-- Weapon categories: turret (projectile/energy/hybrid), missile (rocket/light/cruise/heavy), drones, remote launchers (pod launchers), and electronic warfare modules (neutralizers, scramblers, webs).
-- Range model: turret weapons have Optimal + Falloff; missiles have flight speed, explosion velocity, and explosion radius. Engagement outcome depends on weapon range vs target range and signature vs explosion radius (missile) or tracking vs transversal (turret).
-- Accuracy model (turrets): chance to hit depends on turret tracking vs target angular velocity (transversal) and target signature; effective DPS falls off when tracking < required tracking for given transversal & signature.
-- Ammo and damage application: ammo selection affects damage distribution and velocity (for missiles) or tracking/velocity tradeoffs (for certain ammo types). Always pair ammo to target resistances and signature.
+- Damage types: EM, Thermal, Kinetic, Explosive. Always store `damage_type` when present; analytics depend on it.
+- Weapon categories: turrets (projectile/energy/hybrid), missiles (rocket/light/cruise/heavy), drones, remote launchers, and EWAR modules (neuts, scrams, webs, jammers).
+- Range/accuracy model: turrets use Optimal + Falloff and tracking vs transversal; missiles use flight speed, explosion velocity and radius. Capture range and signature when possible.
 
-2. Electronic Warfare & Modules
+2. Where things live in this codebase
 
-- Warp disrupt/scramble: prevents warp; logged often as events — useful to detect tackle. Track source, target and timestamps.
-- Neutralizers / Energy Neutralizers: drain capacitor (logs show e.g. "438 GJ energy neutralized"). Treat these as high-priority events for survivability analysis.
-- Jam / Sensor interference: prevents locks — appears in logs (e.g. "Interference from ... prevents your sensors from locking the target"). Record and correlate with subsequent missed locks and missed shots.
+- Parser core: `src/lib/parser` —
+  - `src/lib/parser/eveLogParser.ts` — core line parsing and normalisation.
+  - `src/lib/parser/computeStats.ts` — aggregation and stats.
+  - `src/lib/parser/index.ts` and `src/lib/parser/sampleLog.ts` — entry points and fixtures.
+- Analysis: `src/lib/analysis` (`damageTaken.ts`, `damageDealt.ts`, `repAnalysis.ts`, `capAnalysis.ts`, `tracking.ts`).
+- UI: `src/components` and `src/app` (fleet pages under `src/app/fleet`, charts under `src/components/charts`).
+- Shared UI primitives: `src/components/ui` (DataTable, Panel, Button, Badge, Tooltip).
+- Hooks & Context: `src/hooks` and `src/contexts` (`useParsedLogs`, `LogsContext`, `FleetContext`).
+- Tests: `src/__tests__` (unit and integration). Integration tests live in `src/__tests__/integration/`.
+- Docs & playbooks: `Auto Run Docs/` and `docs/`.
 
-3. Repairs and Remote Support
+3. How to run and develop locally
 
-- Remote repair events (remote armor repaired by <module/ship>) are frequent and have per-tick amounts; logs show repeated numbers (256, 281, 29, etc.). Use these to estimate remote rep cycles and effective repair throughput.
-- Drones and repair bots: maintenance bots produce small per-tick repairs; remote modules on ships (Vedmak - Remote Armor Repairer II) produce larger repairs.
+- Dev server: `npm run dev` (Next.js dev server).
+- Build: `npm run build` and `npm start`.
+- Tests: `npm test` (Vitest). Integration: `npm run test:integration`.
+- Lint: `npm run lint` (ESLint). Prettier formatting is enforced; `prettier-plugin-tailwindcss` is enabled.
 
-4. Practical parsing guidance for agents (regex + fields)
+4. Code style and conventions
 
-- Event fields to extract (aim for structured JSON): timestamp, event_type (combat/notify/hint), actor, actor_ship, target, target_ship, weapon/module, damage (numeric), outcome (Hits/Glances Off/Grazes/Penetrates/Smashes/Misses/Wrecks), damage_type (if present), extra (free text).
-- Example regex (PCRE) to capture the common combat lines (adapt for color tags):
+- Language: TypeScript with `strict` enabled. Keep public function types explicit in `src/lib` and `src/lib/analysis`.
+- Imports: use the `@/` alias for `./src/*` (see `tsconfig.json`).
+- Formatting: Prettier is authoritative. Run it before PRs.
+- Linting: Fix ESLint warnings. Follow rules-of-hooks and prefer pure functional React components.
+- Tailwind: Use tokens from `tailwind.config.ts`. Prefer utility classes and avoid inline styles.
+- Tests: Vitest + Testing Library. Mock filesystem/time where appropriate. Keep tests deterministic.
+
+5. Parser best practices for this repo
+
+- Normalise input: strip HTML/color tags and decode HTML entities before applying regexes.
+- Two-pass approach: (1) tokenise/normalise lines, (2) apply specialised regexes for combat, e-war, repairs, and module activations.
+- Event shape: { timestamp, type, actor, actor_ship, target, target_ship, module, damage, damage_type, outcome, raw, uncertain? }.
+- Preserve timestamped non-combat context (`(notify)`, `(None)`) as `eventType: "other"` entries for Combat Log context; skip noisy prompt channels like `(hint)`/`(question)`.
+- Conservative defaults: if damage is not parseable, set `damage: null` and `uncertain: true`.
+- Tests: add unit tests for every new rule using fixtures under `src/__tests__/fixtures/`.
+
+6. Metrics and analysis we care about
+
+- Per-weapon: count, total, mean/median, hit-quality distribution, DPS in windows, turret tracking quality (rolling average `damageMultiplier` in 10-second windows via `computeRollingTracking`).
+- Per-actor: usage profile, e-war produced, rep throughput, module uptime.
+- Encounter timeline: annotate module activations, e-war windows, rep ticks, tackle events.
+- Turret tracking quality: `src/lib/analysis/tracking.ts` — `computeRollingTracking(entries, windowMs)` returns `TrackingSeries[]` (timestamp, trackingQuality, shotCount, hitCount, missCount). It only processes outgoing turret shots (`damage-dealt` and `miss-outgoing`) and excludes disintegrator weapons; uses `damageMultiplier` as a proxy for tracking. Visualised in `DamageDealtChart` as three colour-coded lines (high ≥1.0 green, mid 0.7–1.0 yellow, low <0.7 red) with interpolation and tier-bridging. Guard: only shown when tracking-eligible turret shots exist so missile/drone logs are unaffected.
+
+7. Contributing and maintenance notes
+
+- When adding a new event type, update `AGENTS.md`, add parser unit tests, and extend types in `src/lib/types.ts`.
+- Keep `Auto Run Docs/` updated for Maestro playbooks and checklists.
+- When public types change, update `src/types/fleet.ts` and run the full test suite.
+
+8. Implementation snippets and quick references
+
+- Conceptual normalisation example:
 
 ```
-/(?m)\[\s*([^\]]+)\s*\]\s*\(combat\)\s*(?:<[^>]+>\s*)?(?:<b>)?(\d+)?(?:<\/b>)?\s*(?:from|to)\s*<b[^>]*>([^<]+)<\/b>\s*-\s*([^\-]+)\s*-\s*(Hits|Penetrates|Smashes|Glances Off|Grazes|Misses|Wrecks)/
+// strip tags then apply small regexes per event type
+const stripped = line.replace(/<[^>]+>/g, '')
+// combat example: [TIME] (combat) 123 from <b>Pilot</b> - Weapon - Hits
 ```
 
-- Produce fields by name: timestamp=$1, damage=$2, actor=$3 (or target depending on from/to), module=$4, outcome=$5. Normalize HTML/color tags first (strip tags) before parsing.
+- Update parser helpers here:
+  - `src/lib/parser/eveLogParser.ts`
+  - `src/lib/parser/computeStats.ts`
 
-5. Log-derived observations (from repository \*.txt example-logs)
+9. Small operational checklist (for maintainers)
 
-- Weapons observed: Nova family (Rocket/Light/Cruise missiles), Caldari Navy Mjolnir Heavy Missile, Heavy Entropic Disintegrator II (energy turret), Medium Breacher Pod Launcher, Infiltrator II (drones), Wasp II drones.
-- Damage ranges (sampled from logs):
-  - NPC cruiser missiles (Nova family) produce small hits (commonly 4–20 per missile hit in example), suitable to NPCs/shaed swarm.
-  - Faction heavy missiles / heavy turret hits from named pilots show high single strikes (hundreds to >1000) — log shows Caldari Navy Mjolnir hits of 1021, 264, 269, etc.
-  - Heavy Entropic Disintegrator II and similar capitalized turret names produce hundreds of damage per hit on battleship-class targets (examples: 367 grazes, 638 penetrates, 504 hits).
-  - Remote armor repair ticks in the logs: 256, 281, 29, 12 (bot vs module granularity). Use these to infer remote rep module cycle and total throughput.
-  - Pod launcher (Medium Breacher Pod Launcher) activation duration reported (12s) with auto-deactivate countdown messages; logs include explicit durations and remaining seconds — useful to measure module usage windows.
-- Outcome vocabulary: logs consistently use categories "Misses", "Glances Off", "Grazes", "Hits", "Penetrates", "Smashes", "Wrecks". Map these to ordinal effectiveness (Misses < Glances Off < Grazes < Hits < Penetrates < Smashes < Wrecks) for scoring.
-- E-war examples: Heavy Energy Neutralizer II drained 438 GJ repeatedly; warp scramble/disrupt events are logged with source and target ship types (useful to detect tackle chains).
+- [ ] Run `npm test` after parser changes.
+- [ ] Run `npm run lint` and fix ESLint warnings.
+- [ ] Add unit tests for new parse rules under `src/__tests__/`.
+- [ ] Update `AGENTS.md` when adding new event vocabulary or metrics.
 
-6. Suggested metrics for analytics agents
+10. TL;DR
 
-- Per-weapon stats: count, total damage, mean damage, median, damage-per-hit distribution, hit-outcome distribution, DPS (damage/time window), effective engagement range (95th percentile of distances where Hits occur).
-- Per-actor metrics: weapon usage profile, e-war events produced, repair throughput
-- Encounter timeline: annotate module activations (start/end), e-war application, repair ticks, and vessel states (cloaks, warp attempts) to reproduce fight timeline.
+- This is a Next.js + TypeScript app for parsing and analysing EVE combat logs. Parsers live in `src/lib/parser`, analytics in `src/lib/analysis`, UI under `src/components` and `src/app`. Follow TypeScript strictness, ESLint, and Prettier with the Tailwind plugin. Add tests for parser changes and keep this document current.
 
-7. Implementation notes and best practices for downstream agents
+Appendix: quick file references
 
-- Preprocess lines to remove color tags: strip sequences like <color=...>, <font ...>, <b>, </b>, <fontsize=...>, <u>, </u>, <a href=...> and convert HTML entities. This greatly simplifies regex parsing.
-- Beware of non-standard strings (localized messages like "太空舱 - Diana Wanda") — normalize unicode and extract ship names inside parentheses or after ship tags.
-- Use robust parsing: prefer multiple passes: (1) strip tags, (2) tokenise combat/notify lines, (3) apply specific regexes for missile/turret/drones/e-war/repair.
-- When in doubt prefer conservative extraction: only record numeric damage when a numeric token is present; otherwise place line in "unknown" bucket for manual review.
+- `src/lib/parser/eveLogParser.ts`
+- `src/lib/parser/computeStats.ts`
+- `src/lib/analysis/damageTaken.ts`
+- `src/lib/analysis/tracking.ts`
+- `src/components/fleet/`
+- `src/components/charts/CombinedChart.tsx` — multi-series chart with brush zoom
+- `src/components/charts/DamagePerTargetTable.tsx` — per-target damage breakdown table (brush-window-aware)
+- `src/components/ui/`
+- `src/hooks/useParsedLogs.ts`
+- `src/__tests__/`
 
-8. Example Python parsing stub (pseudo-code)
-
-```
-import re
-
-strip_re = re.compile(r'<[^>]+>')
-combat_re = re.compile(r"\[([^\]]+)\]\s*\(combat\)\s*(?:([^\-]+)\s*-\s*)?(.+?) - ([A-Za-z0-9 _]+) - (Hits|Penetrates|Smashes|Glances Off|Grazes|Misses|Wrecks)")
-
-def parse_line(line):
-    s = strip_re.sub('', line)
-    m = combat_re.search(s)
-    if not m:
-        return None
-    ts, maybe_damage, target_or_actor, module, outcome = m.groups()
-    # normalize fields, coerce damage
-    return dict(timestamp=ts.strip(), damage=int(maybe_damage) if maybe_damage and maybe_damage.isdigit() else None, module=module.strip(), outcome=outcome.strip(), raw=s)
-```
-
-9. Quick actionables for the repository
-
-- AGENTS.md (this file) is the authoritative agent briefing on weapon systems.
-- Create a symlink `CLAUDE.md` that points to this file so other tooling referencing `CLAUDE.md` resolves to the same briefing.
-
-10. TL;DR for other agents (one-line heuristics)
-
-- Strip HTML tags → parse combat lines by regex → classify event (weapon/repair/e-war/time) → aggregate per-weapon and per-actor stats → surface anomalies (very large hits, energy neutralizations, missed locks).
-
-Appendix: Useful token vocabulary to map from logs
-
-- Outcome tokens: Misses, Glances Off, Grazes, Hits, Penetrates, Smashes, Wrecks
-- Module tokens observed: Nova Rocket, Nova Light Missile, Nova Cruise Missile, Caldari Navy Mjolnir Heavy Missile, Heavy Entropic Disintegrator II, Medium Breacher Pod Launcher, Medium Remote Armor Repairer II, Infiltrator II, Wasp II
-
-— end of briefing —
+-- end of briefing --

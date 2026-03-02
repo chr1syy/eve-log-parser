@@ -11,8 +11,8 @@ function fileFromDisk(filePath: string): File {
   return new File([blob], filePath.split("/").pop()!, { type: "text/plain" });
 }
 
-const LOG_A_PATH = resolve(__dirname, "../../../20251023_013333_151402274.txt");
-const LOG_B_PATH = resolve(__dirname, "../../../20260219_045352_151402274.txt");
+const LOG_A_PATH = resolve(__dirname, "../../20251023_013333_151402274.txt");
+const LOG_B_PATH = resolve(__dirname, "../../20260219_045352_151402274.txt");
 
 let logA: ParsedLog;
 let logB: ParsedLog;

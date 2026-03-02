@@ -6,7 +6,6 @@ import {
   Share2,
   ChevronDown,
   FileText,
-  X,
   Copy,
   Check,
   LogOut,
@@ -27,20 +26,11 @@ function truncate(name: string, max = 24): string {
 
 export default function Topbar({ title }: TopbarProps) {
   const router = useRouter();
-  const {
-    logs,
-    activeLog,
-    setActiveLog,
-    removeLog,
-    userId,
-    needsRecovery,
-    restoreFromUserId,
-  } = useParsedLogs();
+  const { logs, activeLog, userId, needsRecovery, restoreFromUserId } =
+    useParsedLogs();
   const { isAuthenticated, character, isLoading: authLoading } = useAuth();
-  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [authMenuOpen, setAuthMenuOpen] = useState(false);
   const { shareState, handleShare } = useShareLog();
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const authMenuRef = useRef<HTMLDivElement>(null);
 
   // Recovery banner state
@@ -52,26 +42,29 @@ export default function Topbar({ title }: TopbarProps) {
 
   // User ID copy state
   const [copied, setCopied] = useState(false);
-
-  // Close dropdown on outside click
+  // Mounted flag to avoid SSR/client hydration mismatch for user-specific UI.
+  const [mounted, setMounted] = useState(false);
   useEffect(() => {
-    if (!dropdownOpen && !authMenuOpen) return;
+    const id = window.setTimeout(() => setMounted(true), 0);
+    return () => window.clearTimeout(id);
+  }, []);
+
+  // Close auth menu on outside click
+  useEffect(() => {
+    if (!authMenuOpen) return;
 
     function handleMouseDown(e: MouseEvent) {
       if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(e.target as Node) &&
         authMenuRef.current &&
         !authMenuRef.current.contains(e.target as Node)
       ) {
-        setDropdownOpen(false);
         setAuthMenuOpen(false);
       }
     }
 
     document.addEventListener("mousedown", handleMouseDown);
     return () => document.removeEventListener("mousedown", handleMouseDown);
-  }, [dropdownOpen, authMenuOpen]);
+  }, [authMenuOpen]);
 
   const shareLabel =
     shareState === "copied"
@@ -194,7 +187,8 @@ export default function Topbar({ title }: TopbarProps) {
           </div>
 
           {/* User ID indicator (Scenario B — shown when session is normal) */}
-          {!needsRecovery && userId && (
+          {/* Render user ID only after client mount to avoid hydration mismatches */}
+          {!needsRecovery && mounted && userId && (
             <button
               type="button"
               onClick={handleCopyUserId}
@@ -221,51 +215,16 @@ export default function Topbar({ title }: TopbarProps) {
 
           {/* Log selector */}
           {logs.length > 0 && activeLog && (
-            <div className="relative" ref={dropdownRef}>
+            <div>
               <button
                 type="button"
-                onClick={() => logs.length > 1 && setDropdownOpen((o) => !o)}
                 className="flex items-center gap-1.5 px-3 py-1.5 border border-border text-text-secondary font-mono text-xs rounded-sm hover:border-cyan-dim transition-colors"
               >
                 <FileText className="w-3 h-3 text-text-muted flex-shrink-0" />
-                <span>{truncate(activeLog.fileName)}</span>
-                {logs.length > 1 && (
-                  <ChevronDown className="w-3 h-3 text-text-muted" />
-                )}
+                <span className="truncate">
+                  {activeLog.displayName ?? activeLog.fileName}
+                </span>
               </button>
-
-              {dropdownOpen && logs.length > 1 && (
-                <div className="absolute right-0 top-full mt-1 z-50 bg-panel border border-border rounded-sm shadow-lg min-w-[200px]">
-                  {logs.map((log) => (
-                    <div
-                      key={log.sessionId}
-                      className="flex items-center group"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveLog(log);
-                          setDropdownOpen(false);
-                        }}
-                        className="flex-1 text-left px-3 py-2 font-mono text-xs text-text-secondary hover:bg-elevated hover:text-text-primary transition-colors"
-                      >
-                        {log.fileName}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeLog(log.sessionId);
-                        }}
-                        className="px-2 py-2 text-text-muted hover:text-status-kill transition-colors opacity-0 group-hover:opacity-100"
-                        aria-label={`Remove ${log.fileName}`}
-                      >
-                        <X size={10} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           )}
 
