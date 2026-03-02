@@ -1,66 +1,72 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser, isUserAuthenticated } from "@/lib/auth-utils";
-import { getLog, deleteLog, getAnonymousLog } from "@/lib/db/logs";
 import fs from "fs";
 import path from "path";
 import { z } from "zod";
 
+const BASE_DIR = path.join(process.cwd(), "data", "user-logs");
 const DATA_DIR = path.join(process.cwd(), "data", "shared-logs");
+// Accepts UUIDs, EVE character IDs (integers), and other safe identifiers
+const SAFE_ID_RE = /^[0-9a-zA-Z_-]{1,64}$/;
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function safeFilePath(userId: string, uuid: string): string | null {
+  if (!SAFE_ID_RE.test(userId)) return null;
+  if (!UUID_RE.test(uuid)) return null;
+  const userDir = path.join(BASE_DIR, userId);
+  if (!userDir.startsWith(BASE_DIR + path.sep)) return null;
+  const filePath = path.join(userDir, `${uuid}.json`);
+  if (!filePath.startsWith(userDir + path.sep)) return null;
+  return filePath;
+}
 
 /**
  * GET /api/logs/[id]
- * Retrieves a specific log:
- * - Authenticated: Returns log if user owns it
- * - Unauthenticated: Returns anonymous log if session matches
+ * Returns the full log (including entries) for the owner.
+ * Authenticated: looks in data/user-logs/<characterId>/<uuid>.json
+ * Unauthenticated: looks in data/user-logs/<uuid>/<uuid>.json
+ *   (anonymous users use sessionId as their userId directory)
  */
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ uuid: string }> },
 ) {
   const { uuid } = await params;
 
-  // Strict UUID validation to prevent path traversal
-  if (
-    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-      uuid,
-    )
-  ) {
+  if (!UUID_RE.test(uuid)) {
     return NextResponse.json({ error: "Invalid UUID" }, { status: 400 });
   }
 
   try {
     const authenticated = await isUserAuthenticated();
+    let userId: string | null = null;
 
     if (authenticated) {
-      // Authenticated: verify ownership
       const user = await getCurrentUser();
-      if (!user?.id) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
-
-      const log = await getLog(uuid, user.id);
-      if (!log) {
-        return NextResponse.json({ error: "Log not found" }, { status: 404 });
-      }
-
-      return NextResponse.json({ log });
+      userId = user?.id ?? null;
     } else {
-      // Unauthenticated: check if session ID matches or use query param
-      const sessionId =
-        request.nextUrl.searchParams.get("sessionId") ||
-        request.cookies.get("eve-session-id")?.value;
-
-      if (!sessionId) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
-
-      const log = await getAnonymousLog(sessionId);
-      if (!log || log.id !== uuid) {
-        return NextResponse.json({ error: "Log not found" }, { status: 404 });
-      }
-
-      return NextResponse.json({ log });
+      // Anonymous: sessionId IS the userId directory
+      userId = uuid;
     }
+
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const filePath = safeFilePath(userId, uuid);
+    if (!filePath) {
+      return NextResponse.json({ error: "Invalid path" }, { status: 400 });
+    }
+
+    if (!fs.existsSync(filePath)) {
+      return NextResponse.json({ error: "Log not found" }, { status: 404 });
+    }
+
+    const raw = fs.readFileSync(filePath, "utf-8");
+    const log = JSON.parse(raw);
+
+    return NextResponse.json({ log });
   } catch (error) {
     console.error("[API] GET /api/logs/[uuid] error:", error);
     return NextResponse.json({ error: "Failed to fetch log" }, { status: 500 });
@@ -69,59 +75,48 @@ export async function GET(
 
 /**
  * DELETE /api/logs/[id]
- * Deletes a log:
- * - Authenticated: Deletes if user owns it
- * - Unauthenticated: Deletes if session matches
+ * Deletes a log file owned by the caller.
+ * Authenticated: deletes data/user-logs/<characterId>/<uuid>.json
+ * Unauthenticated: deletes data/user-logs/<uuid>/<uuid>.json
  */
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ uuid: string }> },
 ) {
   const { uuid } = await params;
 
-  // Validate UUID format
-  if (
-    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-      uuid,
-    )
-  ) {
+  if (!UUID_RE.test(uuid)) {
     return NextResponse.json({ error: "Invalid UUID" }, { status: 400 });
   }
 
   try {
     const authenticated = await isUserAuthenticated();
+    let userId: string | null = null;
 
     if (authenticated) {
-      // Authenticated: verify ownership and delete
       const user = await getCurrentUser();
-      if (!user?.id) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
-
-      const rowsDeleted = await deleteLog(uuid, user.id);
-      if (rowsDeleted === 0) {
-        return NextResponse.json({ error: "Log not found" }, { status: 404 });
-      }
-
-      return NextResponse.json({ success: true });
+      userId = user?.id ?? null;
     } else {
-      // Unauthenticated: must be in the database already to delete
-      const sessionId =
-        request.nextUrl.searchParams.get("sessionId") ||
-        request.cookies.get("eve-session-id")?.value;
-
-      if (!sessionId) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
-
-      // For anonymous logs, we use sessionId as user_id
-      const rowsDeleted = await deleteLog(uuid, sessionId);
-      if (rowsDeleted === 0) {
-        return NextResponse.json({ error: "Log not found" }, { status: 404 });
-      }
-
-      return NextResponse.json({ success: true });
+      // Anonymous: sessionId IS the userId directory
+      userId = uuid;
     }
+
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const filePath = safeFilePath(userId, uuid);
+    if (!filePath) {
+      return NextResponse.json({ error: "Invalid path" }, { status: 400 });
+    }
+
+    if (!fs.existsSync(filePath)) {
+      return NextResponse.json({ error: "Log not found" }, { status: 404 });
+    }
+
+    fs.unlinkSync(filePath);
+
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error("[API] DELETE /api/logs/[uuid] error:", error);
     return NextResponse.json(
@@ -144,11 +139,7 @@ export async function PATCH(
     const { uuid } = await params;
 
     // Strict UUID validation
-    if (
-      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-        uuid,
-      )
-    ) {
+    if (!UUID_RE.test(uuid)) {
       return NextResponse.json({ error: "Invalid UUID" }, { status: 400 });
     }
 

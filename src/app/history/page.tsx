@@ -9,7 +9,6 @@ import LogHistoryItem from "@/components/LogHistoryItem";
 import { useLogsContext } from "@/contexts/LogsContext";
 import { useAuth } from "@/contexts/AuthContext";
 import type { ParsedLog } from "@/lib/types";
-import type { Log } from "@/lib/db/models";
 import { cn } from "@/lib/utils";
 
 interface LogHistoryEntry {
@@ -51,20 +50,15 @@ export default function HistoryPage() {
           throw new Error(`Failed to fetch logs: ${res.statusText}`);
         }
 
-        const data = (await res.json()) as { logs: Log[] };
+        const data = (await res.json()) as { logs: ParsedLog[] };
         const logsWithMetadata: LogHistoryEntry[] = (data.logs || []).map(
           (log) => ({
-            id: log.id,
-            filename: log.filename,
-            uploadedAt: new Date(log.uploaded_at),
-            fileSize: log.metadata?.file_size as number | undefined,
-            combatDuration: log.metadata?.combat_duration_ms
-              ? (log.metadata.combat_duration_ms as number) / 1000 / 60
-              : undefined,
-            parsedLog:
-              typeof log.log_data === "string"
-                ? JSON.parse(log.log_data)
-                : log.log_data,
+            id: log.sessionId,
+            filename: log.displayName ?? log.fileName,
+            uploadedAt: new Date(log.parsedAt as unknown as string),
+            fileSize: undefined,
+            combatDuration: log.stats?.activeTimeMinutes,
+            parsedLog: log,
           }),
         );
 

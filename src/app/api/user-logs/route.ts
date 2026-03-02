@@ -5,12 +5,14 @@ import path from "path";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { z } from "zod";
 
+// Accepts UUIDs, EVE character IDs (integers), and other safe identifiers
+const SAFE_ID_RE = /^[0-9a-zA-Z_-]{1,64}$/;
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const BASE_DIR = path.join(process.cwd(), "data", "user-logs");
 
 function safeUserDir(userId: string): string | null {
-  if (!UUID_RE.test(userId)) return null;
+  if (!SAFE_ID_RE.test(userId)) return null;
   const dir = path.join(BASE_DIR, userId);
   // Prevent path traversal: resolved path must be a direct child of BASE_DIR
   if (!dir.startsWith(BASE_DIR + path.sep)) return null;

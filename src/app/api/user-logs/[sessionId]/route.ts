@@ -3,9 +3,21 @@ import fs from "fs";
 import path from "path";
 import { z } from "zod";
 
+// Accepts UUIDs, EVE character IDs (integers), and other safe identifiers
+const SAFE_ID_RE = /^[0-9a-zA-Z_-]{1,64}$/;
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const BASE_DIR = path.join(process.cwd(), "data", "user-logs");
+
+function safeFilePath(userId: string, sessionId: string): string | null {
+  if (!SAFE_ID_RE.test(userId)) return null;
+  if (!UUID_RE.test(sessionId)) return null;
+  const userDir = path.join(BASE_DIR, userId);
+  if (!userDir.startsWith(BASE_DIR + path.sep)) return null;
+  const filePath = path.join(userDir, `${sessionId}.json`);
+  if (!filePath.startsWith(userDir + path.sep)) return null;
+  return filePath;
+}
 
 export async function GET(
   request: NextRequest,
@@ -16,24 +28,12 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId") ?? "";
 
-    if (!UUID_RE.test(userId)) {
-      return NextResponse.json({ error: "Invalid userId" }, { status: 400 });
-    }
-
-    if (!UUID_RE.test(sessionId)) {
-      return NextResponse.json({ error: "Invalid sessionId" }, { status: 400 });
-    }
-
-    const userDir = path.join(BASE_DIR, userId);
-    // Prevent path traversal: userDir must be a direct child of BASE_DIR
-    if (!userDir.startsWith(BASE_DIR + path.sep)) {
-      return NextResponse.json({ error: "Invalid userId" }, { status: 400 });
-    }
-
-    const filePath = path.join(userDir, `${sessionId}.json`);
-    // Prevent path traversal: filePath must be within userDir
-    if (!filePath.startsWith(userDir + path.sep)) {
-      return NextResponse.json({ error: "Invalid sessionId" }, { status: 400 });
+    const filePath = safeFilePath(userId, sessionId);
+    if (!filePath) {
+      return NextResponse.json(
+        { error: "Invalid userId or sessionId" },
+        { status: 400 },
+      );
     }
 
     if (!fs.existsSync(filePath)) {
@@ -58,20 +58,12 @@ export async function PATCH(
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId") ?? "";
 
-    const userDir = path.join(BASE_DIR, userId);
-    // Basic validation
-    if (!UUID_RE.test(userId))
-      return NextResponse.json({ error: "Invalid userId" }, { status: 400 });
-    if (!UUID_RE.test(sessionId))
-      return NextResponse.json({ error: "Invalid sessionId" }, { status: 400 });
-
-    // Prevent path traversal
-    if (!userDir.startsWith(BASE_DIR + path.sep))
-      return NextResponse.json({ error: "Invalid userId" }, { status: 400 });
-
-    const filePath = path.join(userDir, `${sessionId}.json`);
-    if (!filePath.startsWith(userDir + path.sep))
-      return NextResponse.json({ error: "Invalid sessionId" }, { status: 400 });
+    const filePath = safeFilePath(userId, sessionId);
+    if (!filePath)
+      return NextResponse.json(
+        { error: "Invalid userId or sessionId" },
+        { status: 400 },
+      );
 
     if (!fs.existsSync(filePath))
       return NextResponse.json({ error: "Log not found" }, { status: 404 });
@@ -111,6 +103,38 @@ export async function PATCH(
     console.error("Failed to PATCH user log:", err);
     return NextResponse.json(
       { error: "Failed to update log" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ sessionId: string }> },
+) {
+  try {
+    const { sessionId } = await params;
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get("userId") ?? "";
+
+    const filePath = safeFilePath(userId, sessionId);
+    if (!filePath) {
+      return NextResponse.json(
+        { error: "Invalid userId or sessionId" },
+        { status: 400 },
+      );
+    }
+
+    if (!fs.existsSync(filePath)) {
+      return NextResponse.json({ error: "Log not found" }, { status: 404 });
+    }
+
+    fs.unlinkSync(filePath);
+
+    return NextResponse.json({ success: true });
+  } catch {
+    return NextResponse.json(
+      { error: "Failed to delete log" },
       { status: 500 },
     );
   }

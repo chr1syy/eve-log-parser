@@ -11,6 +11,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useSession } from "next-auth/react";
 import type { ParsedLog } from "@/lib/types";
 
 const STORAGE_KEY = "eve-parsed-logs";
@@ -269,7 +270,7 @@ function hydrateLog(log: ParsedLog): ParsedLog {
     sessionEnd: log.sessionEnd
       ? new Date(log.sessionEnd as unknown as string)
       : undefined,
-    entries: log.entries.map((e) => ({
+    entries: (log.entries ?? []).map((e) => ({
       ...e,
       timestamp: new Date(e.timestamp as unknown as string),
     })),
@@ -286,6 +287,10 @@ export function LogsProvider({ children }: { children: ReactNode }) {
 
   const userIdRef = useRef<string | null>(null);
   const autoRestoredRef = useRef(false);
+  // Track which character ID we've already loaded server logs for
+  const loadedForCharacterRef = useRef<string | null>(null);
+
+  const { data: session, status: sessionStatus } = useSession();
 
   const initial = useMemo(() => {
     if (typeof window === "undefined") {
@@ -371,6 +376,65 @@ export function LogsProvider({ children }: { children: ReactNode }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // When authenticated via EVE SSO, override userId with character ID and
+  // load any server-persisted logs for that character (cross-device restore).
+  useEffect(() => {
+    if (sessionStatus !== "authenticated" || !session?.user) return;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const user = session.user as any;
+    // user.id is set to String(character_id) by the profile() callback
+    const characterId: string | null = user.id
+      ? String(user.id)
+      : user.character_id
+        ? String(user.character_id)
+        : null;
+
+    if (!characterId) return;
+
+    // Update userId to character ID so new uploads go to the right directory
+    if (userIdRef.current !== characterId) {
+      userIdRef.current = characterId;
+      setUserId(characterId);
+      setNeedsRecovery(false);
+      try {
+        localStorage.setItem(USER_ID_KEY, characterId);
+      } catch {
+        // ignore storage errors
+      }
+    }
+
+    // Load server logs once per character ID per session
+    if (loadedForCharacterRef.current === characterId) return;
+    loadedForCharacterRef.current = characterId;
+
+    void (async () => {
+      try {
+        const res = await fetch(`/api/user-logs?userId=${characterId}`);
+        if (!res.ok) return;
+        const { logs: metas } = (await res.json()) as {
+          logs: Array<{ sessionId: string }>;
+        };
+        if (!metas || metas.length === 0) return;
+
+        for (const meta of metas) {
+          try {
+            const logRes = await fetch(
+              `/api/user-logs/${meta.sessionId}?userId=${characterId}`,
+            );
+            if (!logRes.ok) continue;
+            const { log } = (await logRes.json()) as { log: ParsedLog };
+            dispatch({ type: "SET_ACTIVE_LOG", payload: hydrateLog(log) });
+          } catch {
+            // Skip individual failed fetches
+          }
+        }
+      } catch {
+        // Ignore network errors
+      }
+    })();
+  }, [sessionStatus, session]);
 
   // Compute activeLog from state
   const activeLog: ParsedLog | null = useMemo(() => {

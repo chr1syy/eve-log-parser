@@ -1,40 +1,14 @@
 /**
  * Next.js Authentication Configuration
- * Configures OAuth 2.0 with EVE Online SSO using next-auth
- * Uses PostgreSQL adapter for persistent session storage
+ * JWT-only sessions — no database required.
+ * EVE character info is stored directly in the signed JWT cookie.
  */
 
 import NextAuth, { type NextAuthConfig } from "next-auth";
 import type { Session } from "next-auth";
 import type { JWT } from "next-auth/jwt";
-import PostgresAdapter from "@auth/pg-adapter";
-import { Pool } from "pg";
 
-/**
- * Initialize PostgreSQL connection pool for next-auth adapter
- */
-function getAuthPool(): Pool {
-  const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) {
-    throw new Error(
-      "DATABASE_URL environment variable is not set. Configure it in .env.local or your deployment environment.",
-    );
-  }
-
-  return new Pool({
-    connectionString,
-    max: 20,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 5000,
-  });
-}
-
-/**
- * Next-auth configuration
- * Supports EVE Online OAuth 2.0 provider with custom claims for character info
- */
 export const authConfig: NextAuthConfig = {
-  adapter: PostgresAdapter(getAuthPool()),
   providers: [
     {
       id: "eve-sso",
@@ -79,10 +53,6 @@ export const authConfig: NextAuthConfig = {
     },
   },
   callbacks: {
-    /**
-     * Invoked after successful sign in
-     * Used to add custom claims to JWT token
-     */
     async jwt({ token, account, profile }) {
       if (account && profile) {
         token.character_id = profile.character_id;
@@ -92,10 +62,6 @@ export const authConfig: NextAuthConfig = {
       return token;
     },
 
-    /**
-     * Invoked whenever session is checked
-     * Used to add custom claims to session
-     */
     async session({ session, token }: { session: Session; token: JWT }) {
       if (session.user) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -108,13 +74,7 @@ export const authConfig: NextAuthConfig = {
       return session;
     },
 
-    /**
-     * Control sign in authorization
-     * Can be used to restrict access based on character/corporation
-     */
     async signIn({ profile }) {
-      // Allow all EVE Online characters to sign in
-      // Add custom logic here to restrict access if needed (e.g., whitelist corps)
       return !!profile?.character_id;
     },
   },

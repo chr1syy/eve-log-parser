@@ -31,7 +31,7 @@ EVE Log Parser transforms raw EVE Online combat logs into actionable intelligenc
 
 - **Node.js** 20+ ([download](https://nodejs.org/))
 - **npm** or **yarn**
-- Optional: **Docker** & **Docker Compose** (for PostgreSQL + container deployment)
+- Optional: **Docker** & **Docker Compose** (for container deployment)
 
 ### Installation
 
@@ -91,14 +91,14 @@ eve-log-parser/
 │   ├── contexts/               # React Context (logs, auth, fleet)
 │   ├── lib/
 │   │   ├── analysis/           # Cap, rep, and damage analysis utilities
-│   │   ├── db/                 # PostgreSQL client and log DB functions
 │   │   ├── fleet/              # Fleet session management
 │   │   ├── parser/             # EVE combat log parser
 │   │   └── auth.ts             # NextAuth configuration
 │   └── __tests__/              # Unit & integration tests
-├── scripts/                    # DB init, changelog generation
+├── data/user-logs/             # File-based log storage (per-user subdirs)
+├── scripts/                    # Changelog generation
 ├── public/                     # Static assets
-├── docker-compose.yml          # Docker services (app + PostgreSQL)
+├── docker-compose.yml          # Docker services (app container)
 ├── tsconfig.json               # TypeScript config
 ├── vitest.config.ts            # Test config
 └── package.json
@@ -128,9 +128,6 @@ npm run test:integration
 
 # Lint code
 npm run lint
-
-# Initialize database schema
-npm run db:init
 
 # Generate changelog
 npm run generate-changelog
@@ -177,7 +174,7 @@ npm run generate-changelog
 The application is fully containerized and can be deployed using Docker:
 
 ```bash
-# Using Docker Compose (includes PostgreSQL)
+# Using Docker Compose
 docker-compose up -d
 ```
 
@@ -211,10 +208,9 @@ NEXTAUTH_SECRET=<generate-with: openssl rand -base64 32>
 # EVE SSO (for authentication)
 EVE_SSO_CLIENT_ID=your_client_id_here
 EVE_SSO_SECRET=your_secret_here
-
-# Database (for persistent log storage)
-DATABASE_URL=postgresql://user:password@localhost:5432/eve_logs
 ```
+
+Logs are stored as JSON files under `data/user-logs/`. No database setup required.
 
 Register an EVE SSO application at [https://developers.eveonline.com](https://developers.eveonline.com). Set the callback URL to `<NEXTAUTH_URL>/api/auth/callback/eve-sso`.
 
@@ -234,7 +230,7 @@ Tests cover:
 
 - Log parsing accuracy (damage, reps, e-war, shield/armor events)
 - DPS calculations and damage aggregation
-- Auth utilities and database functions
+- Auth utilities and session handling
 - NPC filtering logic
 
 ### Integration Tests
