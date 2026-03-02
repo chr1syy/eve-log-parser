@@ -1,8 +1,8 @@
 version: "3.9"
 
 services:
-  # PostgreSQL database service for EVE Log Parser
-  # Persists user data, logs, and authentication sessions
+  # Optional PostgreSQL service for future or external integrations
+  # Core app storage remains file-based under ./data
   postgres:
     image: postgres:15-alpine
     container_name: eve-logs-postgres

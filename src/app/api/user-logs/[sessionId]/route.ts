@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 import { z } from "zod";
+import { getCurrentUser, isUserAuthenticated } from "@/lib/auth-utils";
 
 // Accepts UUIDs, EVE character IDs (integers), and other safe identifiers
 const SAFE_ID_RE = /^[0-9a-zA-Z_-]{1,64}$/;
@@ -28,7 +29,27 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId") ?? "";
 
-    const filePath = safeFilePath(userId, sessionId);
+    const authenticated = await isUserAuthenticated();
+    let effectiveUserId: string | null = null;
+
+    if (authenticated) {
+      const user = await getCurrentUser();
+      const sessionUserId = user?.id ? String(user.id) : null;
+      if (!sessionUserId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      if (userId && userId !== sessionUserId) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+      effectiveUserId = sessionUserId;
+    } else {
+      if (!userId || !UUID_RE.test(userId)) {
+        return NextResponse.json({ error: "Invalid userId" }, { status: 400 });
+      }
+      effectiveUserId = userId;
+    }
+
+    const filePath = safeFilePath(effectiveUserId, sessionId);
     if (!filePath) {
       return NextResponse.json(
         { error: "Invalid userId or sessionId" },
@@ -58,7 +79,27 @@ export async function PATCH(
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId") ?? "";
 
-    const filePath = safeFilePath(userId, sessionId);
+    const authenticated = await isUserAuthenticated();
+    let effectiveUserId: string | null = null;
+
+    if (authenticated) {
+      const user = await getCurrentUser();
+      const sessionUserId = user?.id ? String(user.id) : null;
+      if (!sessionUserId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      if (userId && userId !== sessionUserId) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+      effectiveUserId = sessionUserId;
+    } else {
+      if (!userId || !UUID_RE.test(userId)) {
+        return NextResponse.json({ error: "Invalid userId" }, { status: 400 });
+      }
+      effectiveUserId = userId;
+    }
+
+    const filePath = safeFilePath(effectiveUserId, sessionId);
     if (!filePath)
       return NextResponse.json(
         { error: "Invalid userId or sessionId" },
@@ -117,7 +158,27 @@ export async function DELETE(
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId") ?? "";
 
-    const filePath = safeFilePath(userId, sessionId);
+    const authenticated = await isUserAuthenticated();
+    let effectiveUserId: string | null = null;
+
+    if (authenticated) {
+      const user = await getCurrentUser();
+      const sessionUserId = user?.id ? String(user.id) : null;
+      if (!sessionUserId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      if (userId && userId !== sessionUserId) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+      effectiveUserId = sessionUserId;
+    } else {
+      if (!userId || !UUID_RE.test(userId)) {
+        return NextResponse.json({ error: "Invalid userId" }, { status: 400 });
+      }
+      effectiveUserId = userId;
+    }
+
+    const filePath = safeFilePath(effectiveUserId, sessionId);
     if (!filePath) {
       return NextResponse.json(
         { error: "Invalid userId or sessionId" },

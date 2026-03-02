@@ -20,7 +20,7 @@ function safeUserDir(userId: string): string | null {
  * Authenticated: returns metadata for all logs belonging to the character.
  * Unauthenticated: returns empty list.
  */
-export async function GET(_request: NextRequest) {
+export async function GET() {
   const authenticated = await isUserAuthenticated();
   if (!authenticated) {
     return NextResponse.json({ logs: [] });

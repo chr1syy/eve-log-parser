@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { ExternalLink } from "lucide-react";
+import Link from "next/link";
 import AppLayout from "@/components/layout/AppLayout";
 import Panel from "@/components/ui/Panel";
 import Button from "@/components/ui/Button";
@@ -201,9 +202,7 @@ export default function SharePage() {
             size="md"
             icon={<ExternalLink size={14} />}
           >
-            <a href={`/charts?shared=${uuid}`} rel="noreferrer">
-              SHOW IN CHARTS
-            </a>
+            <Link href={`/charts?shared=${uuid}`}>SHOW IN CHARTS</Link>
           </Button>
           <Button
             asChild
@@ -211,9 +210,7 @@ export default function SharePage() {
             size="md"
             icon={<ExternalLink size={14} />}
           >
-            <a href="/" rel="noreferrer">
-              BACK TO MY LOGS
-            </a>
+            <Link href="/">BACK TO MY LOGS</Link>
           </Button>
         </div>
       </div>

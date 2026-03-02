@@ -2,10 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser, isUserAuthenticated } from "@/lib/auth-utils";
 import fs from "fs";
 import path from "path";
-import { z } from "zod";
-
 const BASE_DIR = path.join(process.cwd(), "data", "user-logs");
-const DATA_DIR = path.join(process.cwd(), "data", "shared-logs");
 // Accepts UUIDs, EVE character IDs (integers), and other safe identifiers
 const SAFE_ID_RE = /^[0-9a-zA-Z_-]{1,64}$/;
 const UUID_RE =
@@ -128,75 +125,18 @@ export async function DELETE(
 
 /**
  * PATCH /api/logs/[id]
- * Updates metadata (displayName, pilotName, shipType) for a shared log.
- * Operates on the file-based shared-logs store.
+ * Shared logs are read-only via this route.
  */
 export async function PATCH(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ uuid: string }> },
 ) {
-  try {
-    const { uuid } = await params;
-
-    // Strict UUID validation
-    if (!UUID_RE.test(uuid)) {
-      return NextResponse.json({ error: "Invalid UUID" }, { status: 400 });
-    }
-
-    const filePath = path.join(DATA_DIR, `${uuid}.json`);
-    if (!fs.existsSync(filePath)) {
-      return NextResponse.json({ error: "Log not found" }, { status: 404 });
-    }
-
-    // Validate input using zod to ensure sane lengths and types
-    const body = await request.json().catch(() => ({}));
-    const schema = z
-      .object({
-        displayName: z.string().min(1).max(200).optional(),
-        pilotName: z.string().min(1).max(100).optional(),
-        shipType: z.string().min(1).max(100).optional(),
-      })
-      .strict();
-
-    const parsedBody = schema.safeParse(body);
-    if (!parsedBody.success) {
-      return NextResponse.json(
-        { error: "Invalid request body", details: parsedBody.error.issues },
-        { status: 400 },
-      );
-    }
-
-    const { displayName, pilotName, shipType } = parsedBody.data;
-
-    const raw = fs.readFileSync(filePath, "utf-8");
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
-
-    if (typeof displayName === "string")
-      parsed.displayName = displayName.trim();
-    if (typeof pilotName === "string") parsed.pilotName = pilotName.trim();
-    if (typeof shipType === "string") parsed.shipType = shipType.trim();
-
-    // Pretty-print to keep on-disk store readable
-    fs.writeFileSync(filePath, JSON.stringify(parsed, null, 2), "utf-8");
-
-    // best-effort audit
-    try {
-      const { appendAuditEntry } = await import("@/lib/audit");
-      appendAuditEntry({
-        action: "patchSharedLog",
-        uuid,
-        updates: { displayName, pilotName, shipType },
-      });
-    } catch {
-      // ignore
-    }
-
-    return NextResponse.json({ ok: true, log: parsed });
-  } catch (err) {
-    console.error("Failed to PATCH shared log:", err);
-    return NextResponse.json(
-      { error: "Failed to update log" },
-      { status: 500 },
-    );
+  const { uuid } = await params;
+  if (!UUID_RE.test(uuid)) {
+    return NextResponse.json({ error: "Invalid UUID" }, { status: 400 });
   }
+  return NextResponse.json(
+    { error: "Shared logs are read-only" },
+    { status: 405 },
+  );
 }

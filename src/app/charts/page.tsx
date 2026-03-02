@@ -13,6 +13,7 @@ import Panel from "@/components/ui/Panel";
 import { useParsedLogs } from "@/hooks/useParsedLogs";
 import type { ParsedLog } from "@/lib/types";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 
 function ToggleButton({
   label,
@@ -51,10 +52,12 @@ export default function ChartsPage() {
     "idle" | "loading" | "error" | "notfound" | "ready"
   >("idle");
   // useParsedLogs exposes activeLog (see src/app/damage-dealt/page.tsx)
-  const sharedLoading = !!sharedId && sharedStatus !== "ready";
+  const effectiveSharedLog = sharedId ? sharedLog : null;
+  const effectiveSharedStatus = sharedId ? sharedStatus : "idle";
+  const sharedLoading = !!sharedId && effectiveSharedStatus !== "ready";
   const entries = sharedId
-    ? sharedStatus === "ready"
-      ? sharedLog?.entries ?? []
+    ? effectiveSharedStatus === "ready"
+      ? effectiveSharedLog?.entries ?? []
       : []
     : ctx.activeLog?.entries ?? [];
 
@@ -91,26 +94,24 @@ export default function ChartsPage() {
   } | null>(null);
 
   useEffect(() => {
-    if (!sharedId) {
-      setSharedLog(null);
-      setSharedStatus("idle");
-      return;
-    }
+    if (!sharedId) return;
 
     let cancelled = false;
-    setSharedStatus("loading");
-    fetch(`/api/shared-logs/${sharedId}`)
-      .then((r) => {
-        if (r.status === 404) {
+    const loadShared = async () => {
+      try {
+        if (cancelled) return;
+        setSharedStatus("loading");
+
+        const res = await fetch(`/api/shared-logs/${sharedId}`);
+        if (res.status === 404) {
           if (!cancelled) setSharedStatus("notfound");
-          return null;
+          return;
         }
-        if (!r.ok) throw new Error();
-        return r.json();
-      })
-      .then((data) => {
+        if (!res.ok) throw new Error();
+
+        const data = (await res.json()) as { log: ParsedLog } | null;
         if (!data || cancelled) return;
-        const log = (data as { log: ParsedLog }).log;
+        const log = data.log;
         const hydrated: ParsedLog = {
           ...log,
           parsedAt: new Date(log.parsedAt as unknown as string),
@@ -127,10 +128,12 @@ export default function ChartsPage() {
         };
         setSharedLog(hydrated);
         setSharedStatus("ready");
-      })
-      .catch(() => {
+      } catch {
         if (!cancelled) setSharedStatus("error");
-      });
+      }
+    };
+
+    void loadShared();
 
     return () => {
       cancelled = true;
@@ -159,7 +162,7 @@ export default function ChartsPage() {
   const toggleKey = (key: keyof ActiveToggles) =>
     setActiveToggles((prev) => ({ ...prev, [key]: !prev[key] }));
 
-  if (sharedId && sharedStatus === "loading") {
+  if (sharedId && effectiveSharedStatus === "loading") {
     return (
       <AppLayout title="COMBINED CHART">
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -171,7 +174,7 @@ export default function ChartsPage() {
     );
   }
 
-  if (sharedId && sharedStatus === "notfound") {
+  if (sharedId && effectiveSharedStatus === "notfound") {
     return (
       <AppLayout title="COMBINED CHART">
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -190,7 +193,7 @@ export default function ChartsPage() {
     );
   }
 
-  if (sharedId && sharedStatus === "error") {
+  if (sharedId && effectiveSharedStatus === "error") {
     return (
       <AppLayout title="COMBINED CHART">
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -223,12 +226,12 @@ export default function ChartsPage() {
                   Read-only view from share link
                 </p>
               </div>
-              <a
+              <Link
                 href="/"
                 className="text-xs font-mono uppercase tracking-widest text-cyan-glow hover:text-text-primary transition-colors"
               >
                 Back To My Logs
-              </a>
+              </Link>
             </div>
           </Panel>
         )}

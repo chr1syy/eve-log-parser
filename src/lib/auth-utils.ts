@@ -25,14 +25,15 @@ export async function getCurrentUser() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const user = session.user as any;
-  const userId =
-    user.id ??
-    user.character_id ??
-    user.characterId ??
-    (user.characterID != null ? String(user.characterID) : undefined);
+  const rawUserId =
+    user.id ?? user.character_id ?? user.characterId ?? user.characterID;
+  const userId = rawUserId != null ? String(rawUserId) : undefined;
+  const rawCharacterId =
+    user.character_id ?? user.characterId ?? user.characterID ?? user.id;
+  const characterId = rawCharacterId != null ? String(rawCharacterId) : undefined;
   return {
     id: userId,
-    characterId: user.character_id,
+    characterId,
     characterName: user.character_name,
     corporationId: user.corporation_id,
     email: user.email,

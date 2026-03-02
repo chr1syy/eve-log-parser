@@ -98,7 +98,7 @@ describe("Authenticated Multi-Log Flow Integration", () => {
     it("authenticated user has character info", async () => {
       const mockUser = {
         id: "user-id-123",
-        characterId: 12345,
+        characterId: "12345",
         characterName: "Test Capsuleer",
         corporationId: 67890,
         email: "capsuleer@eveonline.com",
@@ -108,16 +108,16 @@ describe("Authenticated Multi-Log Flow Integration", () => {
       const user = await authUtils.getCurrentUser();
 
       expect(user).not.toBeNull();
-      expect(user?.characterId).toBe(12345);
+      expect(user?.characterId).toBe("12345");
       expect(user?.characterName).toBe("Test Capsuleer");
     });
 
     it("authenticated user has character ID", async () => {
-      vi.spyOn(authUtils, "getCurrentCharacterId").mockResolvedValueOnce(12345);
+      vi.spyOn(authUtils, "getCurrentCharacterId").mockResolvedValueOnce("12345");
 
       const charId = await authUtils.getCurrentCharacterId();
 
-      expect(charId).toBe(12345);
+      expect(charId).toBe("12345");
     });
   });
 

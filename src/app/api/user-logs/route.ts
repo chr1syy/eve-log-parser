@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getCurrentUser, isUserAuthenticated } from "@/lib/auth-utils";
 import fs from "fs";
 import path from "path";
 // zod is used by other user-logs handlers; keep import for parity
@@ -32,14 +33,37 @@ export async function POST(request: NextRequest) {
       typeof body?.rawFileName === "string" ? body.rawFileName : undefined;
     const singleLog = body?.singleLog === true;
 
-    if (!userId || !log?.sessionId) {
+    if (!log?.sessionId) {
       return NextResponse.json(
-        { error: "Missing userId or log.sessionId" },
+        { error: "Missing log.sessionId" },
         { status: 400 },
       );
     }
 
-    const userDir = safeUserDir(userId);
+    const authenticated = await isUserAuthenticated();
+    let effectiveUserId: string | null = null;
+
+    if (authenticated) {
+      const user = await getCurrentUser();
+      const sessionUserId = user?.id ? String(user.id) : null;
+      if (!sessionUserId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      if (userId && userId !== sessionUserId) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+      effectiveUserId = sessionUserId;
+    } else {
+      if (!userId) {
+        return NextResponse.json({ error: "Missing userId" }, { status: 400 });
+      }
+      if (!UUID_RE.test(userId)) {
+        return NextResponse.json({ error: "Invalid userId" }, { status: 400 });
+      }
+      effectiveUserId = userId;
+    }
+
+    const userDir = safeUserDir(effectiveUserId);
     if (!userDir) {
       return NextResponse.json({ error: "Invalid userId" }, { status: 400 });
     }
@@ -109,7 +133,27 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId") ?? "";
 
-    const userDir = safeUserDir(userId);
+    const authenticated = await isUserAuthenticated();
+    let effectiveUserId: string | null = null;
+
+    if (authenticated) {
+      const user = await getCurrentUser();
+      const sessionUserId = user?.id ? String(user.id) : null;
+      if (!sessionUserId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      if (userId && userId !== sessionUserId) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+      effectiveUserId = sessionUserId;
+    } else {
+      if (!userId || !UUID_RE.test(userId)) {
+        return NextResponse.json({ error: "Invalid userId" }, { status: 400 });
+      }
+      effectiveUserId = userId;
+    }
+
+    const userDir = safeUserDir(effectiveUserId);
     if (!userDir) {
       return NextResponse.json({ error: "Invalid userId" }, { status: 400 });
     }

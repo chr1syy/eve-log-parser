@@ -101,7 +101,7 @@ describe("Authentication Utilities", () => {
 
       expect(result).not.toBeNull();
       expect(result?.id).toBe("user-id-123");
-      expect(result?.characterId).toBe(12345);
+      expect(result?.characterId).toBe("12345");
       expect(result?.characterName).toBe("Test Character");
       expect(result?.corporationId).toBe(67890);
     });
@@ -138,7 +138,7 @@ describe("Authentication Utilities", () => {
       const result = await getCurrentUser();
 
       expect(result?.id).toBe("custom-id");
-      expect(result?.characterId).toBe(99999);
+      expect(result?.characterId).toBe("99999");
       expect(result?.characterName).toBe("Custom Character");
       expect(result?.corporationId).toBe(88888);
     });
@@ -248,7 +248,7 @@ describe("Authentication Utilities", () => {
 
       const result = await getCurrentCharacterId();
 
-      expect(result).toBe(12345);
+      expect(result).toBe("12345");
     });
 
     it("returns null when not authenticated", async () => {
@@ -270,8 +270,8 @@ describe("Authentication Utilities", () => {
       vi.spyOn(authModule, "auth").mockResolvedValueOnce(mockSession2);
       const result2 = await getCurrentCharacterId();
 
-      expect(result1).toBe(111);
-      expect(result2).toBe(222);
+      expect(result1).toBe("111");
+      expect(result2).toBe("222");
     });
   });
 

@@ -36,7 +36,8 @@ export async function POST() {
  */
 export async function GET(request: NextRequest) {
   try {
-    await signOut({ redirect: true, redirectTo: "/" });
+    const response = await signOut({ redirect: true, redirectTo: "/" });
+    return response ?? NextResponse.redirect(new URL("/", request.url));
   } catch (error) {
     console.error("[Auth] Logout error:", error);
     return NextResponse.redirect(new URL("/", request.url));

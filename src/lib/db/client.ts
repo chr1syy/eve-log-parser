@@ -4,22 +4,28 @@ interface QueryResult {
 }
 
 export async function query(
-  _sql: string,
-  _params?: unknown[],
+  sql: string,
+  params?: unknown[],
 ): Promise<QueryResult> {
+  void sql;
+  void params;
   throw new Error("Database client not configured");
 }
 
 export async function queryOne<T>(
-  _sql: string,
-  _params?: unknown[],
+  sql: string,
+  params?: unknown[],
 ): Promise<T | null> {
+  void sql;
+  void params;
   throw new Error("Database client not configured");
 }
 
 export async function queryAll<T>(
-  _sql: string,
-  _params?: unknown[],
+  sql: string,
+  params?: unknown[],
 ): Promise<T[]> {
+  void sql;
+  void params;
   throw new Error("Database client not configured");
 }

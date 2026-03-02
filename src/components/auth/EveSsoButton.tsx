@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 type EveSsoButtonSize = "large" | "small";
 type EveSsoButtonVariant = "white" | "black";
@@ -21,6 +22,14 @@ const BUTTONS: Record<
   },
 };
 
+const BUTTON_DIMENSIONS: Record<
+  EveSsoButtonSize,
+  { width: number; height: number; className: string }
+> = {
+  large: { width: 360, height: 70, className: "max-w-full" },
+  small: { width: 240, height: 46, className: "max-w-[220px]" },
+};
+
 interface EveSsoButtonProps {
   size?: EveSsoButtonSize;
   variant?: EveSsoButtonVariant;
@@ -37,6 +46,7 @@ export default function EveSsoButton({
   onClick,
 }: EveSsoButtonProps) {
   const src = BUTTONS[variant][size];
+  const { width, height, className: sizeClassName } = BUTTON_DIMENSIONS[size];
 
   return (
     <button
@@ -51,12 +61,15 @@ export default function EveSsoButton({
         className,
       )}
     >
-      <img
+      <Image
         src={src}
         alt="Log in with EVE Online"
+        width={width}
+        height={height}
+        sizes={size === "large" ? "(max-width: 768px) 100vw, 360px" : "220px"}
         className={cn(
           "block h-auto",
-          size === "large" ? "max-w-full" : "max-w-[220px]",
+          sizeClassName,
         )}
       />
     </button>

@@ -50,9 +50,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const user = session.user as any;
+    const rawId =
+      user.id ?? user.character_id ?? user.characterId ?? user.characterID;
+    const id = rawId != null ? String(rawId) : "";
+    const name = user.character_name ?? "";
     return {
-      id: user.character_id ?? "",
-      name: user.character_name ?? "",
+      id,
+      name,
       corporationId: user.corporation_id,
     };
   }, [session?.user]);
