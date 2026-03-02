@@ -11,10 +11,8 @@ import type { TackleWindow } from "@/lib/analysis/damageDealt";
 import { generateDamageDealtTimeSeries } from "@/lib/analysis/damageDealt";
 import { analyzeDamageTaken } from "@/lib/analysis/damageTaken";
 import { analyzeReps } from "@/lib/analysis/repAnalysis";
-import { analyzeCapPressure } from "@/lib/analysis/capAnalysis";
 import {
   ComposedChart,
-  Bar,
   Line,
   XAxis,
   YAxis,
@@ -48,7 +46,6 @@ export type UnifiedPoint = {
   dpsOut?: number;
   dpsIn?: number;
   repsPerSec?: number;
-  capGj?: number;
   trackingQuality?: number | null;
   trackingHigh?: number | null;
   trackingMid?: number | null;
@@ -186,17 +183,6 @@ export function useCombinedChartData(entries: LogEntry[]): CombinedChartData {
       });
     }
 
-    // Cap Pressure — bucket into 10-second windows
-    const capResult = analyzeCapPressure(entries);
-    for (const pt of capResult.neutReceivedTimeline) {
-      const bucket = toBucket(pt.timestamp.getTime());
-      const existing = map.get(bucket) ?? { timestamp: bucket };
-      map.set(bucket, {
-        ...existing,
-        capGj: (existing.capGj ?? 0) + pt.gjAmount,
-      });
-    }
-
     const sortedBuckets = Array.from(map.keys()).sort((a, b) => a - b);
     const firstTs = sortedBuckets[0];
     const lastTs = sortedBuckets[sortedBuckets.length - 1];
@@ -210,7 +196,6 @@ export function useCombinedChartData(entries: LogEntry[]): CombinedChartData {
           dpsOut: existing?.dpsOut ?? 0,
           dpsIn: existing?.dpsIn ?? 0,
           repsPerSec: existing?.repsPerSec ?? 0,
-          capGj: existing?.capGj ?? 0,
         });
       }
     }
@@ -269,19 +254,16 @@ function CombinedTooltip({
     dpsOut: "#00d4ff",
     dpsIn: "#e53e3e",
     repsPerSec: "#66cc66",
-    capGj: "#e58c00",
   };
   const labelMap: Record<string, string> = {
     dpsOut: "Damage Out",
     dpsIn: "Damage In",
     repsPerSec: "Reps/s",
-    capGj: "Cap Drain",
   };
   const unitMap: Record<string, string> = {
     dpsOut: " DPS",
     dpsIn: " DPS",
     repsPerSec: " /s",
-    capGj: " GJ",
   };
 
   return (
@@ -444,22 +426,6 @@ export default function CombinedChart({
               fontSize: 11,
             }}
           />
-          <YAxis
-            yAxisId="cap"
-            orientation="right"
-            tickFormatter={(v: number) => `${Math.round(v)}`}
-            tick={{ fill: "#888", fontSize: 11 }}
-            tickLine={false}
-            axisLine={false}
-            width={36}
-            label={{
-              value: "GJ",
-              angle: 90,
-              position: "insideRight",
-              fill: "#888",
-              fontSize: 11,
-            }}
-          />
           {activeToggles.tracking && hasTurretWeapons && (
             <YAxis
               yAxisId="tracking"
@@ -552,18 +518,6 @@ export default function CombinedChart({
               isAnimationActive={false}
             />
           )}
-          {activeToggles.capPressure && (
-            <Bar
-              yAxisId="cap"
-              dataKey="capGj"
-              fill="#e58c00"
-              name="Cap Pressure (GJ)"
-              opacity={0.75}
-              maxBarSize={8}
-              isAnimationActive={false}
-            />
-          )}
-
           {/* Turret tracking quality — three coloured tier lines */}
           {activeToggles.tracking && hasTurretWeapons && (
             <Line

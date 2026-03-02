@@ -8,6 +8,7 @@ import DamagePerTargetTable from "@/components/charts/DamagePerTargetTable";
 import DamageReceivedPerTargetTable from "@/components/charts/DamageReceivedPerTargetTable";
 import RepsPerSourceTable from "@/components/charts/RepsPerSourceTable";
 import CapPressurePerSourceTable from "@/components/charts/CapPressurePerSourceTable";
+import CapHitTimelineChart from "@/components/charts/CapHitTimelineChart";
 import AppLayout from "@/components/layout/AppLayout";
 import Panel from "@/components/ui/Panel";
 import { useParsedLogs } from "@/hooks/useParsedLogs";
@@ -48,7 +49,7 @@ export default function ChartsPage() {
   const [activeToggles, setActiveToggles] = useState<ActiveToggles>({
     damageOut: true,
     damageIn: true,
-    capPressure: true,
+    capPressure: false,
     reps: true,
     tracking: true,
   });
@@ -213,6 +214,13 @@ export default function ChartsPage() {
             />
           </div>
         </div>
+
+        {/* Cap hit timeline — per-hit neut bars, shown when Cap Pressure is toggled on */}
+        {activeToggles.capPressure && (
+          <Panel title="CAP HIT TIMELINE — PER HIT">
+            <CapHitTimelineChart entries={entries} />
+          </Panel>
+        )}
 
         {/* Damage per target table — only when Damage Out toggle is active */}
         {activeToggles.damageOut && (

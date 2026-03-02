@@ -11,11 +11,17 @@ vi.mock("@/hooks/useParsedLogs", () => ({
 }));
 
 vi.mock("@/components/ui/Panel", () => ({
-  default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  default: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
 }));
 
 vi.mock("@/components/charts/RawLogPanel", () => ({
-  default: ({ brushWindow }: { brushWindow: { start: Date; end: Date } | null }) => (
+  default: ({
+    brushWindow,
+  }: {
+    brushWindow: { start: Date; end: Date } | null;
+  }) => (
     <div data-testid="raw-log">{brushWindow ? "brush-on" : "brush-off"}</div>
   ),
 }));
@@ -92,6 +98,11 @@ vi.mock("@/components/charts/CapPressurePerSourceTable", () => ({
   default: () => <div>cap-table</div>,
 }));
 
+// Mock CapHitTimelineChart to allow toggle testing
+vi.mock("@/components/charts/CapHitTimelineChart", () => ({
+  default: () => <div data-testid="cap-hit-timeline">cap-hit-timeline</div>,
+}));
+
 describe("ChartsPage", () => {
   beforeEach(() => {
     const entries: LogEntry[] = [
@@ -133,5 +144,20 @@ describe("ChartsPage", () => {
     expect(screen.getByTestId("combined-initial-window")).toHaveTextContent(
       "none",
     );
+  });
+
+  it("toggles CapHitTimelineChart visibility via Cap Pressure button (off by default)", () => {
+    render(<ChartsPage />);
+
+    // Chart is hidden by default
+    expect(screen.queryByTestId("cap-hit-timeline")).not.toBeInTheDocument();
+
+    // Click the "Cap Pressure" toggle to show it
+    fireEvent.click(screen.getByRole("button", { name: "Cap Pressure" }));
+    expect(screen.getByTestId("cap-hit-timeline")).toBeInTheDocument();
+
+    // Click again to hide
+    fireEvent.click(screen.getByRole("button", { name: "Cap Pressure" }));
+    expect(screen.queryByTestId("cap-hit-timeline")).not.toBeInTheDocument();
   });
 });
