@@ -14,7 +14,7 @@ A Next.js web application for parsing and analyzing EVE Online combat logs. Uplo
 
 ## Tech Stack
 
-- [Next.js 15](https://nextjs.org) (App Router)
+- [Next.js 16](https://nextjs.org) (App Router)
 - [NextAuth v5](https://authjs.dev) with EVE Online SSO provider
 - [PostgreSQL](https://www.postgresql.org) via `pg` + `@auth/pg-adapter` for session and log storage
 - [Recharts](https://recharts.org) for data visualization
