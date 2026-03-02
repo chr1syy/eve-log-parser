@@ -146,9 +146,10 @@ describe("Upload Page - Upload Flow", () => {
     it("shows sign-in button in auth banner for unauthenticated users", async () => {
       render(<UploadPage />);
 
-      const signInButton = screen.getByTestId("button-sign in");
+      const signInButton = screen.getByRole("button", {
+        name: /log in with eve online/i,
+      });
       expect(signInButton).toBeInTheDocument();
-      expect(signInButton).toHaveTextContent("SIGN IN");
 
       // Click should trigger signIn
       fireEvent.click(signInButton);
@@ -223,7 +224,9 @@ describe("Upload Page - Upload Flow", () => {
       render(<UploadPage />);
 
       // Auth banner should not be present or should not show sign-in button
-      const signInButton = screen.queryByTestId("button-sign in");
+      const signInButton = screen.queryByRole("button", {
+        name: /log in with eve online/i,
+      });
       expect(signInButton).not.toBeInTheDocument();
     });
 
@@ -289,7 +292,9 @@ describe("Upload Page - Upload Flow", () => {
 
       render(<UploadPage />);
 
-      const signInButton = screen.queryByTestId("button-sign in");
+      const signInButton = screen.queryByRole("button", {
+        name: /log in with eve online/i,
+      });
       expect(signInButton).not.toBeInTheDocument();
 
       const authBanner = screen.queryByText(/Sign in to Save Logs/);

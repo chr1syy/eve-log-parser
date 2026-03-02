@@ -135,14 +135,18 @@ describe("Dashboard Page - Login Prompt", () => {
     it("shows sign-in button in empty state", () => {
       render(<DashboardPage />);
 
-      const signInButton = screen.getByTestId("button-sign in with eve online");
+      const signInButton = screen.getByRole("button", {
+        name: /log in with eve online/i,
+      });
       expect(signInButton).toBeInTheDocument();
     });
 
     it("triggers signIn with eve-sso on sign-in button click", () => {
       render(<DashboardPage />);
 
-      const signInButton = screen.getByTestId("button-sign in with eve online");
+      const signInButton = screen.getByRole("button", {
+        name: /log in with eve online/i,
+      });
       fireEvent.click(signInButton);
 
       expect(signIn).toHaveBeenCalledWith("eve-sso");
@@ -177,9 +181,9 @@ describe("Dashboard Page - Login Prompt", () => {
     it("does not show sign-in button when authenticated", () => {
       render(<DashboardPage />);
 
-      const signInButton = screen.queryByTestId(
-        "button-sign in with eve online",
-      );
+      const signInButton = screen.queryByRole("button", {
+        name: /log in with eve online/i,
+      });
       expect(signInButton).not.toBeInTheDocument();
     });
 
@@ -212,9 +216,9 @@ describe("Dashboard Page - Login Prompt", () => {
 
       render(<DashboardPage />);
 
-      const signInButton = screen.queryByTestId(
-        "button-sign in with eve online",
-      );
+      const signInButton = screen.queryByRole("button", {
+        name: /log in with eve online/i,
+      });
       expect(signInButton).not.toBeInTheDocument();
     });
   });
@@ -277,9 +281,9 @@ describe("Dashboard Page - Login Prompt", () => {
     it("does not show sign-in button with active log", () => {
       render(<DashboardPage />);
 
-      const signInButton = screen.queryByTestId(
-        "button-sign in with eve online",
-      );
+      const signInButton = screen.queryByRole("button", {
+        name: /log in with eve online/i,
+      });
       expect(signInButton).not.toBeInTheDocument();
     });
 

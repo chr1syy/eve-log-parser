@@ -41,9 +41,19 @@ export async function getCurrentUser() {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function extractCharacterInfo(profile: any) {
   return {
-    characterId: profile.character_id,
-    characterName: profile.character_name,
-    corporationId: profile.corporation_id,
+    characterId:
+      profile.character_id ??
+      profile.CharacterID ??
+      profile.characterId ??
+      profile.characterID,
+    characterName:
+      profile.character_name ??
+      profile.CharacterName ??
+      profile.characterName,
+    corporationId:
+      profile.corporation_id ??
+      profile.CorporationID ??
+      profile.corporationId,
   };
 }
 

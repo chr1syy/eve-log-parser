@@ -8,6 +8,7 @@ import Button from "@/components/ui/Button";
 import StatCard from "@/components/dashboard/StatCard";
 import DamageOverTimeChart from "@/components/dashboard/DamageOverTimeChart";
 import DamageBreakdownChart from "@/components/dashboard/DamageBreakdownChart";
+import EveSsoButton from "@/components/auth/EveSsoButton";
 import { useParsedLogs } from "@/hooks/useParsedLogs";
 import { useAuth } from "@/contexts/AuthContext";
 import { signIn } from "next-auth/react";
@@ -133,14 +134,13 @@ export default function DashboardPage() {
                   <p className="text-text-muted font-mono text-xs mb-3">
                     Or save logs persistently:
                   </p>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => signIn("eve-sso")}
-                    className="w-full"
-                  >
-                    SIGN IN WITH EVE ONLINE
-                  </Button>
+                  <div className="flex justify-center">
+                    <EveSsoButton
+                      size="small"
+                      variant="white"
+                      onClick={() => signIn("eve-sso")}
+                    />
+                  </div>
                 </div>
               )}
             </div>

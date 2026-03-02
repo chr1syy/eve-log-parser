@@ -32,6 +32,15 @@ vi.mock("@/components/layout/AppLayout", () => ({
   default: ({ children }: { children: React.ReactNode }) => children,
 }));
 
+vi.mock("next-auth/react", () => ({
+  signIn: vi.fn(),
+  signOut: vi.fn(),
+  useSession: vi.fn(() => ({
+    data: null,
+    status: "unauthenticated",
+  })),
+}));
+
 // Mock localStorage
 Object.defineProperty(window, "localStorage", {
   value: {

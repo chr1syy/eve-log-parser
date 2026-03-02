@@ -15,6 +15,7 @@ import { signOut } from "next-auth/react";
 import { useParsedLogs } from "@/hooks/useParsedLogs";
 import { useShareLog } from "@/hooks/useShareLog";
 import { useAuth } from "@/contexts/AuthContext";
+import EveSsoButton from "@/components/auth/EveSsoButton";
 
 interface TopbarProps {
   title: string;
@@ -174,13 +175,11 @@ export default function Topbar({ title }: TopbarProps) {
             ) : !authLoading ? (
               <>
                 {/* Unauthenticated: Show login button */}
-                <button
-                  type="button"
+                <EveSsoButton
+                  size="small"
+                  variant="white"
                   onClick={handleLogin}
-                  className="flex items-center gap-2 px-3 py-1.5 border border-border text-text-secondary font-ui font-semibold uppercase tracking-wider text-xs rounded-sm transition-all duration-150 hover:border-cyan-dim hover:text-text-primary"
-                >
-                  Sign In
-                </button>
+                />
               </>
             ) : null}
             {/* Loading state: show nothing while auth is initializing */}

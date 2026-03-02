@@ -60,7 +60,9 @@ describe("Topbar Component", () => {
 
     render(<Topbar title="Test Page" />);
 
-    const loginButton = screen.getByRole("button", { name: /sign in/i });
+    const loginButton = screen.getByRole("button", {
+      name: /log in with eve online/i,
+    });
     expect(loginButton).toBeInTheDocument();
   });
 
@@ -136,7 +138,9 @@ describe("Topbar Component", () => {
     render(<Topbar title="Test Page" />);
 
     // When loading, neither login button nor auth menu should be visible
-    const loginButton = screen.queryByRole("button", { name: /sign in/i });
+    const loginButton = screen.queryByRole("button", {
+      name: /log in with eve online/i,
+    });
     expect(loginButton).not.toBeInTheDocument();
   });
 

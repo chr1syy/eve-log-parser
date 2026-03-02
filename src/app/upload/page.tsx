@@ -7,7 +7,6 @@ import {
   Loader2,
   ChevronRight,
   AlertTriangle,
-  LogIn,
   Lock,
 } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
@@ -15,6 +14,7 @@ import Panel from "@/components/ui/Panel";
 import Button from "@/components/ui/Button";
 import DropZone from "@/components/upload/DropZone";
 import ShareButton from "@/components/upload/ShareButton";
+import EveSsoButton from "@/components/auth/EveSsoButton";
 import { parseLogFile } from "@/lib/parser";
 import { useParsedLogs } from "@/hooks/useParsedLogs";
 import { useAuth } from "@/contexts/AuthContext";
@@ -38,12 +38,13 @@ function formatMinutes(minutes: number): string {
 export default function UploadPage() {
   const {
     setActiveLog,
-    logs,
+    logs: rawLogs,
     activeLog,
     removeLog,
     updateLogMetadata,
     userId,
   } = useParsedLogs();
+  const logs = rawLogs ?? [];
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [files, setFiles] = useState<File[]>([]);
@@ -99,7 +100,7 @@ export default function UploadPage() {
   };
 
   return (
-    <AppLayout title="LOGS">
+    <AppLayout title="UPLOAD LOGS">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Authentication info banner for unauthenticated users */}
         {!authLoading && !isAuthenticated && (
@@ -120,15 +121,13 @@ export default function UploadPage() {
                   </p>
                 </div>
               </div>
-              <Button
-                variant="primary"
-                size="sm"
-                icon={<LogIn size={14} />}
-                onClick={() => signIn("eve-sso")}
-                className="flex-shrink-0 whitespace-nowrap"
-              >
-                SIGN IN
-              </Button>
+              <div className="flex-shrink-0">
+                <EveSsoButton
+                  size="small"
+                  variant="white"
+                  onClick={() => signIn("eve-sso")}
+                />
+              </div>
             </div>
           </Panel>
         )}
@@ -347,6 +346,11 @@ export default function UploadPage() {
                   PARSE RESULTS — {parsedLogs.length} FILE
                   {parsedLogs.length !== 1 ? "S" : ""}
                 </h2>
+                {isAuthenticated && (
+                  <p className="text-text-secondary font-mono text-xs">
+                    Log saved to your account.
+                  </p>
+                )}
                 {parsedLogs.map((log) => (
                   <Panel key={log.sessionId} variant="accent">
                     <div className="flex items-start justify-between gap-4">

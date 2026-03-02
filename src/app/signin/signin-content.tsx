@@ -6,6 +6,7 @@ import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Loader } from "lucide-react";
+import EveSsoButton from "@/components/auth/EveSsoButton";
 
 export default function SignInContent() {
   const router = useRouter();
@@ -61,14 +62,21 @@ export default function SignInContent() {
           )}
 
           {/* Sign In Button */}
-          <button
-            onClick={handleSignIn}
-            disabled={isLoading}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-cyan-glow hover:bg-cyan-glow/90 disabled:opacity-50 disabled:cursor-not-allowed text-space font-ui font-bold uppercase tracking-wider text-sm rounded-sm transition-all duration-150 mb-4"
-          >
-            {isLoading && <Loader className="w-4 h-4 animate-spin" />}
-            {isLoading ? "Signing in..." : "Sign In with EVE Online"}
-          </button>
+          <div className="flex flex-col items-center gap-3 mb-4">
+            <EveSsoButton
+              onClick={handleSignIn}
+              disabled={isLoading}
+              size="large"
+              variant="white"
+              className="w-full"
+            />
+            {isLoading && (
+              <div className="flex items-center gap-2 text-text-muted font-mono text-xs uppercase tracking-wider">
+                <Loader className="w-4 h-4 animate-spin" />
+                Signing in...
+              </div>
+            )}
+          </div>
 
           {/* Back Link */}
           <button
