@@ -17,6 +17,8 @@ import type { ParsedLog } from "@/lib/types";
 const STORAGE_KEY = "eve-parsed-logs";
 const ACTIVE_SESSION_KEY = "eve-active-session";
 const USER_ID_KEY = "eve-user-id";
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function generateUUID(): string {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -27,6 +29,11 @@ function generateUUID(): string {
     const v = c === "x" ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
+}
+
+function isAnonymousUserId(userId: string | null): boolean {
+  if (!userId) return false;
+  return UUID_RE.test(userId);
 }
 
 export interface LogsContextValue {
@@ -291,6 +298,8 @@ export function LogsProvider({ children }: { children: ReactNode }) {
   const loadedForCharacterRef = useRef<string | null>(null);
 
   const { data: session, status: sessionStatus } = useSession();
+  const isAuthenticated =
+    sessionStatus === "authenticated" && !!session?.user;
 
   const initial = useMemo(() => {
     if (typeof window === "undefined") {
@@ -357,17 +366,25 @@ export function LogsProvider({ children }: { children: ReactNode }) {
           };
           if (!metas || metas.length === 0) return;
 
-          for (const meta of metas) {
+          const isAnonymous = isAnonymousUserId(resolvedUserId);
+          const metasToLoad = isAnonymous ? metas.slice(0, 1) : metas;
+          const restored: ParsedLog[] = [];
+
+          for (const meta of metasToLoad) {
             try {
               const logRes = await fetch(
                 `/api/user-logs/${meta.sessionId}?userId=${resolvedUserId}`,
               );
               if (!logRes.ok) continue;
               const { log } = (await logRes.json()) as { log: ParsedLog };
-              dispatch({ type: "SET_ACTIVE_LOG", payload: hydrateLog(log) });
+              restored.push(hydrateLog(log));
             } catch {
               // Skip individual failed fetches
             }
+          }
+
+          if (restored.length > 0) {
+            dispatch({ type: "REPLACE_LOGS", payload: restored });
           }
         } catch {
           // Ignore network errors during silent restore
@@ -436,6 +453,24 @@ export function LogsProvider({ children }: { children: ReactNode }) {
     })();
   }, [sessionStatus, session]);
 
+  // When logging out, rotate to a fresh anonymous ID and clear local logs
+  useEffect(() => {
+    if (sessionStatus !== "unauthenticated") return;
+    const current = userIdRef.current;
+    if (!current || isAnonymousUserId(current)) return;
+
+    const anonId = generateUUID();
+    userIdRef.current = anonId;
+    setUserId(anonId);
+    setNeedsRecovery(false);
+    try {
+      localStorage.setItem(USER_ID_KEY, anonId);
+    } catch {
+      // ignore storage errors
+    }
+    dispatch({ type: "CLEAR_LOGS" });
+  }, [sessionStatus]);
+
   // Compute activeLog from state
   const activeLog: ParsedLog | null = useMemo(() => {
     return (
@@ -447,19 +482,29 @@ export function LogsProvider({ children }: { children: ReactNode }) {
 
   const setActiveLog = useCallback(
     (log: ParsedLog, rawLogText?: string, rawFileName?: string) => {
-    dispatch({ type: "SET_ACTIVE_LOG", payload: log });
+      if (isAuthenticated) {
+        dispatch({ type: "SET_ACTIVE_LOG", payload: log });
+      } else {
+        dispatch({ type: "REPLACE_LOGS", payload: [log] });
+      }
 
-    // Fire-and-forget: persist full log to server for recovery
-    const uid = userIdRef.current;
-    if (uid) {
-      fetch("/api/user-logs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: uid, log, rawLogText, rawFileName }),
-      }).catch(() => {});
-    }
+      // Fire-and-forget: persist full log to server for recovery
+      const uid = userIdRef.current;
+      if (uid) {
+        fetch("/api/user-logs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: uid,
+            log,
+            rawLogText,
+            rawFileName,
+            singleLog: !isAuthenticated,
+          }),
+        }).catch(() => {});
+      }
     },
-    [],
+    [isAuthenticated],
   );
 
   const removeLog = useCallback((sessionId: string) => {
@@ -591,7 +636,8 @@ export function LogsProvider({ children }: { children: ReactNode }) {
       if (!metas || metas.length === 0) return 0;
 
       let count = 0;
-      for (const meta of metas) {
+      const metasToLoad = UUID_RE.test(uuid) ? metas.slice(0, 1) : metas;
+      for (const meta of metasToLoad) {
         try {
           const logRes = await fetch(
             `/api/user-logs/${meta.sessionId}?userId=${uuid}`,

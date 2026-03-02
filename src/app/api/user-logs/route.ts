@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
       typeof body?.rawLogText === "string" ? body.rawLogText : undefined;
     const rawFileName =
       typeof body?.rawFileName === "string" ? body.rawFileName : undefined;
+    const singleLog = body?.singleLog === true;
 
     if (!userId || !log?.sessionId) {
       return NextResponse.json(
@@ -54,6 +55,23 @@ export async function POST(request: NextRequest) {
     }
 
     fs.mkdirSync(userDir, { recursive: true });
+
+    if (singleLog) {
+      const existing = fs.readdirSync(userDir);
+      for (const entry of existing) {
+        const entryPath = path.join(userDir, entry);
+        if (!entryPath.startsWith(userDir + path.sep)) continue;
+        try {
+          const stat = fs.statSync(entryPath);
+          if (stat.isFile()) {
+            fs.unlinkSync(entryPath);
+          }
+        } catch {
+          // ignore individual cleanup failures
+        }
+      }
+    }
+
     if (!fs.existsSync(filePath)) {
       fs.writeFileSync(filePath, JSON.stringify(log), "utf-8");
     }
