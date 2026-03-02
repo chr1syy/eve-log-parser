@@ -88,8 +88,9 @@ export async function POST(request: NextRequest) {
       filename?: string;
       rawLogText?: string;
       rawFileName?: string;
+      share?: boolean;
     };
-    const { log, rawLogText, rawFileName } = body;
+    const { log, rawLogText, rawFileName, share } = body;
 
     if (!log?.sessionId) {
       return NextResponse.json(
@@ -146,7 +147,24 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ id: log.sessionId, sessionId: log.sessionId });
+    if (share) {
+      const sharedDir = path.join(process.cwd(), "data", "shared-logs");
+      const sharedPath = path.join(sharedDir, `${log.sessionId}.json`);
+      fs.mkdirSync(sharedDir, { recursive: true });
+      if (
+        sharedPath.startsWith(sharedDir + path.sep) &&
+        !fs.existsSync(sharedPath)
+      ) {
+        fs.writeFileSync(sharedPath, JSON.stringify(log), "utf-8");
+      }
+    }
+
+    return NextResponse.json({
+      id: log.sessionId,
+      sessionId: log.sessionId,
+      uuid: log.sessionId,
+      shared: !!share,
+    });
   } catch {
     return NextResponse.json({ error: "Failed to save log" }, { status: 500 });
   }

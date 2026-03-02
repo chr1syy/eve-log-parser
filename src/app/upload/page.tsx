@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -53,6 +53,18 @@ export default function UploadPage() {
   const [error, setError] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+  const totalPages = Math.max(1, Math.ceil(logs.length / pageSize));
+  const pageStart = (page - 1) * pageSize;
+  const pageEnd = pageStart + pageSize;
+  const pagedLogs = logs.slice(pageStart, pageEnd);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
 
   const handleFilesAccepted = (accepted: File[]) => {
     setFiles(accepted);
@@ -196,7 +208,7 @@ export default function UploadPage() {
                 YOUR LOGS — {logs.length}
               </h2>
               <div className="space-y-2">
-                {logs.map((l) => (
+                {pagedLogs.map((l) => (
                   <Panel
                     key={l.sessionId}
                     variant={
@@ -337,6 +349,37 @@ export default function UploadPage() {
                   </Panel>
                 ))}
               </div>
+              {logs.length > pageSize && (
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <p className="text-text-muted font-mono text-xs">
+                    Showing {pageStart + 1}-{Math.min(pageEnd, logs.length)} of{" "}
+                    {logs.length}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={page === 1}
+                      onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                    >
+                      Prev
+                    </Button>
+                    <p className="text-text-secondary font-mono text-xs">
+                      Page {page} of {totalPages}
+                    </p>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={page === totalPages}
+                      onClick={() =>
+                        setPage((prev) => Math.min(totalPages, prev + 1))
+                      }
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             // fallback: recently parsed logs (transient)

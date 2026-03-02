@@ -3,17 +3,13 @@
 import { useState, useRef, useEffect } from "react";
 import {
   Upload,
-  Share2,
   ChevronDown,
   FileText,
-  Copy,
-  Check,
   LogOut,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useParsedLogs } from "@/hooks/useParsedLogs";
-import { useShareLog } from "@/hooks/useShareLog";
 import { useAuth } from "@/contexts/AuthContext";
 import EveSsoButton from "@/components/auth/EveSsoButton";
 
@@ -27,11 +23,10 @@ function truncate(name: string, max = 24): string {
 
 export default function Topbar({ title }: TopbarProps) {
   const router = useRouter();
-  const { logs, activeLog, userId, needsRecovery, restoreFromUserId } =
+  const { logs, activeLog, needsRecovery, restoreFromUserId } =
     useParsedLogs();
   const { isAuthenticated, character, isLoading: authLoading } = useAuth();
   const [authMenuOpen, setAuthMenuOpen] = useState(false);
-  const { shareState, handleShare } = useShareLog();
   const authMenuRef = useRef<HTMLDivElement>(null);
 
   // Recovery banner state
@@ -40,15 +35,6 @@ export default function Topbar({ title }: TopbarProps) {
     "idle" | "loading" | "success" | "error"
   >("idle");
   const [restoredCount, setRestoredCount] = useState(0);
-
-  // User ID copy state
-  const [copied, setCopied] = useState(false);
-  // Mounted flag to avoid SSR/client hydration mismatch for user-specific UI.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    const id = window.setTimeout(() => setMounted(true), 0);
-    return () => window.clearTimeout(id);
-  }, []);
 
   // Close auth menu on outside click
   useEffect(() => {
@@ -66,13 +52,6 @@ export default function Topbar({ title }: TopbarProps) {
     document.addEventListener("mousedown", handleMouseDown);
     return () => document.removeEventListener("mousedown", handleMouseDown);
   }, [authMenuOpen]);
-
-  const shareLabel =
-    shareState === "copied"
-      ? "COPIED!"
-      : shareState === "error"
-        ? "FAILED"
-        : "SHARE";
 
   const UUID_RE =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -97,17 +76,6 @@ export default function Topbar({ title }: TopbarProps) {
     }
   }
 
-  function handleCopyUserId() {
-    if (!userId) return;
-    navigator.clipboard
-      .writeText(userId)
-      .then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      })
-      .catch(() => {});
-  }
-
   async function handleLogout() {
     await signOut({ redirect: true, redirectTo: "/" });
   }
@@ -126,6 +94,21 @@ export default function Topbar({ title }: TopbarProps) {
 
         {/* Right: actions */}
         <div className="flex items-center gap-4">
+          {/* Log selector */}
+          {logs.length > 0 && activeLog && (
+            <div>
+              <button
+                type="button"
+                className="flex items-center gap-1.5 px-3 py-1.5 border border-border text-text-secondary font-mono text-xs rounded-sm hover:border-cyan-dim transition-colors"
+              >
+                <FileText className="w-3 h-3 text-text-muted flex-shrink-0" />
+                <span className="truncate">
+                  {activeLog.displayName ?? activeLog.fileName}
+                </span>
+              </button>
+            </div>
+          )}
+
           {/* Authentication Status and Menu */}
           <div className="relative" ref={authMenuRef}>
             {isAuthenticated && character ? (
@@ -184,61 +167,6 @@ export default function Topbar({ title }: TopbarProps) {
             ) : null}
             {/* Loading state: show nothing while auth is initializing */}
           </div>
-
-          {/* User ID indicator (Scenario B — shown when session is normal) */}
-          {/* Render user ID only after client mount to avoid hydration mismatches */}
-          {!needsRecovery && mounted && userId && (
-            <button
-              type="button"
-              onClick={handleCopyUserId}
-              title={userId}
-              className="flex items-center gap-1.5 text-text-muted hover:text-text-secondary transition-colors"
-              aria-label="Copy User ID"
-            >
-              {copied ? (
-                <Check className="w-3 h-3 text-status-safe flex-shrink-0" />
-              ) : (
-                <Copy className="w-3 h-3 flex-shrink-0" />
-              )}
-              <span className="font-mono text-xs">{userId.slice(0, 8)}…</span>
-            </button>
-          )}
-
-          {/* System online indicator */}
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-status-safe animate-pulse flex-shrink-0" />
-            <span className="text-xs text-text-muted font-mono uppercase tracking-wider">
-              System Online
-            </span>
-          </div>
-
-          {/* Log selector */}
-          {logs.length > 0 && activeLog && (
-            <div>
-              <button
-                type="button"
-                className="flex items-center gap-1.5 px-3 py-1.5 border border-border text-text-secondary font-mono text-xs rounded-sm hover:border-cyan-dim transition-colors"
-              >
-                <FileText className="w-3 h-3 text-text-muted flex-shrink-0" />
-                <span className="truncate">
-                  {activeLog.displayName ?? activeLog.fileName}
-                </span>
-              </button>
-            </div>
-          )}
-
-          {/* Share button */}
-          {activeLog !== null && (
-            <button
-              type="button"
-              onClick={() => activeLog && handleShare(activeLog)}
-              disabled={shareState === "loading"}
-              className="flex items-center gap-2 px-3 py-1.5 border border-border text-text-secondary font-ui font-semibold uppercase tracking-wider text-xs rounded-sm transition-all duration-150 hover:border-cyan-dim hover:text-text-primary disabled:opacity-50"
-            >
-              <Share2 className="w-3.5 h-3.5" />
-              {shareLabel}
-            </button>
-          )}
 
           {/* Upload Logs button */}
           <button

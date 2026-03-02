@@ -2,14 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import Link from "next/link";
-import { Download, ExternalLink } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 import Panel from "@/components/ui/Panel";
 import Button from "@/components/ui/Button";
 import type { ParsedLog } from "@/lib/types";
-
-const STORAGE_KEY = "eve-parsed-logs";
 
 /** Re-hydrate ISO date strings back to Date objects after JSON.parse */
 function rehydrate(log: ParsedLog): ParsedLog {
@@ -47,11 +44,10 @@ export default function SharePage() {
   const [status, setStatus] = useState<
     "loading" | "notfound" | "error" | "ready"
   >("loading");
-  const [imported, setImported] = useState(false);
 
   useEffect(() => {
     if (!uuid) return;
-    fetch(`/api/logs/${uuid}`)
+    fetch(`/api/shared-logs/${uuid}`)
       .then((r) => {
         if (r.status === 404) {
           setStatus("notfound");
@@ -62,26 +58,11 @@ export default function SharePage() {
       })
       .then((data) => {
         if (!data) return;
-        setLog(rehydrate(data as ParsedLog));
+        setLog(rehydrate((data as { log: ParsedLog }).log));
         setStatus("ready");
       })
       .catch(() => setStatus("error"));
   }, [uuid]);
-
-  const handleImport = () => {
-    if (!log) return;
-    let existing: ParsedLog[] = [];
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) existing = JSON.parse(raw) as ParsedLog[];
-    } catch {
-      // ignore
-    }
-    const merged = existing.filter((l) => l.sessionId !== log.sessionId);
-    merged.push(log);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
-    setImported(true);
-  };
 
   if (status === "loading") {
     return (
@@ -139,7 +120,7 @@ export default function SharePage() {
 
   return (
     <AppLayout title="SHARED LOG">
-      <div className="max-w-2xl mx-auto space-y-6">
+      <div className="max-w-5xl mx-auto space-y-6">
         <Panel variant="accent">
           <div className="space-y-3">
             <div>
@@ -214,26 +195,26 @@ export default function SharePage() {
         )}
 
         <div className="flex gap-3">
-          {imported ? (
-            <Link href="/">
-              <Button
-                variant="primary"
-                size="md"
-                icon={<ExternalLink size={14} />}
-              >
-                GO TO DASHBOARD
-              </Button>
-            </Link>
-          ) : (
-            <Button
-              variant="primary"
-              size="md"
-              icon={<Download size={14} />}
-              onClick={handleImport}
-            >
-              IMPORT TO MY SESSION
-            </Button>
-          )}
+          <Button
+            asChild
+            variant="primary"
+            size="md"
+            icon={<ExternalLink size={14} />}
+          >
+            <a href={`/charts?shared=${uuid}`} rel="noreferrer">
+              SHOW IN CHARTS
+            </a>
+          </Button>
+          <Button
+            asChild
+            variant="primary"
+            size="md"
+            icon={<ExternalLink size={14} />}
+          >
+            <a href="/" rel="noreferrer">
+              BACK TO MY LOGS
+            </a>
+          </Button>
         </div>
       </div>
     </AppLayout>

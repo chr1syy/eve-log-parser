@@ -73,11 +73,12 @@ export const authConfig: NextAuthConfig = {
   callbacks: {
     async jwt({ token, account, profile }) {
       if (account && profile) {
-        token.character_id =
+        const characterId =
           profile.character_id ??
           profile.CharacterID ??
           profile.characterId ??
           profile.characterID;
+        token.character_id = characterId;
         token.character_name =
           profile.character_name ??
           profile.CharacterName ??
@@ -86,12 +87,20 @@ export const authConfig: NextAuthConfig = {
           profile.corporation_id ??
           profile.CorporationID ??
           profile.corporationId;
+        if (characterId != null) {
+          token.sub = String(characterId);
+        }
       }
       return token;
     },
 
     async session({ session, token }: { session: Session; token: JWT }) {
       if (session.user) {
+        // Ensure a stable user.id for server-side helpers and API routes.
+        // NextAuth uses token.sub as the canonical user id.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (session.user as any).id =
+          token.sub ?? (token.character_id != null ? String(token.character_id) : undefined);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (session.user as any).character_id = token.character_id;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

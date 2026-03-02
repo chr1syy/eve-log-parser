@@ -22,13 +22,6 @@ vi.mock("@/hooks/useParsedLogs", () => ({
   useParsedLogs: vi.fn(),
 }));
 
-vi.mock("@/hooks/useShareLog", () => ({
-  useShareLog: vi.fn(() => ({
-    shareState: "idle",
-    handleShare: vi.fn(),
-  })),
-}));
-
 vi.mock("@/contexts/AuthContext", () => ({
   useAuth: vi.fn(),
 }));
@@ -53,7 +46,6 @@ describe("Topbar Component", () => {
       activeLog: null,
       setActiveLog: vi.fn(),
       removeLog: vi.fn(),
-      userId: null,
       needsRecovery: false,
       restoreFromUserId: vi.fn(),
     });
@@ -82,7 +74,6 @@ describe("Topbar Component", () => {
       activeLog: null,
       setActiveLog: vi.fn(),
       removeLog: vi.fn(),
-      userId: null,
       needsRecovery: false,
       restoreFromUserId: vi.fn(),
     });
@@ -108,7 +99,6 @@ describe("Topbar Component", () => {
       activeLog: null,
       setActiveLog: vi.fn(),
       removeLog: vi.fn(),
-      userId: null,
       needsRecovery: false,
       restoreFromUserId: vi.fn(),
     });
@@ -130,7 +120,6 @@ describe("Topbar Component", () => {
       activeLog: null,
       setActiveLog: vi.fn(),
       removeLog: vi.fn(),
-      userId: null,
       needsRecovery: false,
       restoreFromUserId: vi.fn(),
     });
@@ -156,7 +145,6 @@ describe("Topbar Component", () => {
       activeLog: null,
       setActiveLog: vi.fn(),
       removeLog: vi.fn(),
-      userId: null,
       needsRecovery: false,
       restoreFromUserId: vi.fn(),
     });
