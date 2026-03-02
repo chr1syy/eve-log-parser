@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -12,14 +13,21 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
-const baseNavItems = [
+interface NavItem {
+  label: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: string;
+}
+
+const baseNavItems: NavItem[] = [
   { label: "Logs", href: "/upload", icon: Upload },
   { label: "Fleet", href: "/fleet", icon: Users, badge: "beta" },
   { label: "Overview", href: "/", icon: LayoutDashboard },
   { label: "Charts", href: "/charts", icon: BarChart3 },
 ];
 
-const authenticatedNavItems = [
+const authenticatedNavItems: NavItem[] = [
   { label: "History", href: "/history", icon: History },
 ];
 
