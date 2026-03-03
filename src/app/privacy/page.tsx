@@ -12,9 +12,8 @@ export default function PrivacyPage() {
 
             <p className="text-base text-text-secondary mb-4">
               This is a draft Privacy Policy for EVE Log Parser. It explains
-              what data we collect, why we collect it, how long we keep it, and
-              how you can exercise your rights. Please review with legal counsel
-              before publishing.
+              what data we collect, why we collect it, and how you can exercise
+              your rights. Please review with legal counsel before publishing.
             </p>
 
             <section className="mb-4">
@@ -64,9 +63,18 @@ export default function PrivacyPage() {
             <section className="mb-4">
               <h3 className="font-semibold">Retention</h3>
               <p className="text-text-secondary">
-                Default retention: raw logs 1 year (configurable by the user),
-                parsed aggregates 2 years. Authentication tokens are stored only
-                as needed and are rotated/expired per best practices.
+                We do not set a fixed automatic deletion schedule for uploaded
+                logs. If you wish to have your logs or account data removed,
+                please contact us and request deletion. We are currently
+                establishing a dedicated contact address — for now email
+                <a
+                  className="ml-1 text-cyan-glow"
+                  href="mailto:privacy@eve-log-parser.app"
+                >
+                  privacy@eve-log-parser.app
+                </a>
+                or open an issue on the project GitHub and we will process the
+                removal manually.
               </p>
             </section>
 

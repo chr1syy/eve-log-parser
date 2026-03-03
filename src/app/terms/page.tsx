@@ -48,7 +48,16 @@ export default function TermsPage() {
               <p className="text-text-secondary">
                 Authentication uses CCP/EVE SSO. We only request scopes
                 necessary to identify your character. We do not claim
-                affiliation with CCP.
+                affiliation with CCP. All intellectual property rights in the
+                EVE Online game, including the EVE name, logos, and in-game
+                content, are the property of CCP hf. For more information see
+                <a
+                  className="ml-1 text-cyan-glow"
+                  href="https://www.ccpgames.com/"
+                >
+                  CCP
+                </a>
+                .
               </p>
             </section>
 
