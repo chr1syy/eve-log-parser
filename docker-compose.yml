@@ -1,14 +1,57 @@
 version: "3.9"
 
 services:
+  # Optional PostgreSQL service for future or external integrations
+  # Core app storage remains file-based under ./data
+  postgres:
+    image: postgres:15-alpine
+    container_name: eve-logs-postgres
+    environment:
+      POSTGRES_DB: eve_logs
+      POSTGRES_USER: eve_parser
+      POSTGRES_PASSWORD: eve_parser_dev_pass
+    volumes:
+      # Mount initialization script to run schema migrations on container start
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/001-init-db.sql
+      # Named volume for data persistence across container restarts
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      # Expose PostgreSQL on localhost for development and debugging
+      - "5432:5432"
+    healthcheck:
+      # Check if PostgreSQL is ready to accept connections
+      test: ["CMD-SHELL", "pg_isready -U eve_parser -d eve_logs"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - eve-logs-network
+
+  # Next.js application service
   app:
     image: ghcr.io/chr1syy/eve-log-parser:latest
     container_name: eve-log-parser
+    depends_on:
+      postgres:
+        # Wait for PostgreSQL to be healthy before starting app
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      # Database connection string for PostgreSQL service (use container network hostname)
+      DATABASE_URL: postgresql://eve_parser:eve_parser_dev_pass@postgres:5432/eve_logs
+      # EVE SSO Configuration (populate from .env file or secrets)
+      EVE_SSO_CLIENT_ID: ${EVE_SSO_CLIENT_ID}
+      EVE_SSO_SECRET: ${EVE_SSO_SECRET}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
     ports:
       - "3000:3000"
     volumes:
       - ./data:/app/data
     restart: unless-stopped
+    networks:
+      - eve-logs-network
 
   watchtower:
     image: containrrr/watchtower:latest
@@ -17,3 +60,15 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     command: --interval 300 --cleanup
     restart: unless-stopped
+    networks:
+      - eve-logs-network
+
+volumes:
+  # Named volume for PostgreSQL data persistence
+  postgres_data:
+    driver: local
+
+networks:
+  # Custom network for service communication
+  eve-logs-network:
+    driver: bridge

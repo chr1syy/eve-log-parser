@@ -3,9 +3,14 @@ import path from "path";
 
 export default defineConfig({
   test: {
-    environment: "jsdom",
     globals: true,
+    environment: "jsdom",
     setupFiles: ["./src/__tests__/setup.ts"],
+    server: {
+      deps: {
+        inline: ["next-auth"],
+      },
+    },
   },
   resolve: {
     alias: {

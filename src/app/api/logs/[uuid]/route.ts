@@ -1,110 +1,142 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getCurrentUser, isUserAuthenticated } from "@/lib/auth-utils";
 import fs from "fs";
 import path from "path";
-import { z } from "zod";
+const BASE_DIR = path.join(process.cwd(), "data", "user-logs");
+// Accepts UUIDs, EVE character IDs (integers), and other safe identifiers
+const SAFE_ID_RE = /^[0-9a-zA-Z_-]{1,64}$/;
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const DATA_DIR = path.join(process.cwd(), "data", "shared-logs");
+function safeFilePath(userId: string, uuid: string): string | null {
+  if (!SAFE_ID_RE.test(userId)) return null;
+  if (!UUID_RE.test(uuid)) return null;
+  const userDir = path.join(BASE_DIR, userId);
+  if (!userDir.startsWith(BASE_DIR + path.sep)) return null;
+  const filePath = path.join(userDir, `${uuid}.json`);
+  if (!filePath.startsWith(userDir + path.sep)) return null;
+  return filePath;
+}
 
+/**
+ * GET /api/logs/[id]
+ * Returns the full log (including entries) for the owner.
+ * Authenticated: looks in data/user-logs/<characterId>/<uuid>.json
+ * Unauthenticated: looks in data/user-logs/<uuid>/<uuid>.json
+ *   (anonymous users use sessionId as their userId directory)
+ */
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ uuid: string }> },
 ) {
   const { uuid } = await params;
 
-  // Strict UUID validation to prevent path traversal
-  if (
-    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-      uuid,
-    )
-  ) {
+  if (!UUID_RE.test(uuid)) {
     return NextResponse.json({ error: "Invalid UUID" }, { status: 400 });
   }
 
-  const filePath = path.join(DATA_DIR, `${uuid}.json`);
-  if (!fs.existsSync(filePath)) {
-    return NextResponse.json({ error: "Log not found" }, { status: 404 });
-  }
-
   try {
-    const data = fs.readFileSync(filePath, "utf-8");
-    return new NextResponse(data, {
-      headers: { "Content-Type": "application/json" },
-    });
-  } catch {
-    return NextResponse.json({ error: "Failed to read log" }, { status: 500 });
-  }
-}
+    const authenticated = await isUserAuthenticated();
+    let userId: string | null = null;
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ uuid: string }> },
-) {
-  try {
-    const { uuid } = await params;
-
-    // Strict UUID validation
-    if (
-      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-        uuid,
-      )
-    ) {
-      return NextResponse.json({ error: "Invalid UUID" }, { status: 400 });
+    if (authenticated) {
+      const user = await getCurrentUser();
+      userId = user?.id ?? null;
+    } else {
+      // Anonymous: sessionId IS the userId directory
+      userId = uuid;
     }
 
-    const filePath = path.join(DATA_DIR, `${uuid}.json`);
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const filePath = safeFilePath(userId, uuid);
+    if (!filePath) {
+      return NextResponse.json({ error: "Invalid path" }, { status: 400 });
+    }
+
     if (!fs.existsSync(filePath)) {
       return NextResponse.json({ error: "Log not found" }, { status: 404 });
     }
 
-    // Validate input using zod to ensure sane lengths and types
-    const body = await request.json().catch(() => ({}));
-    const schema = z
-      .object({
-        displayName: z.string().min(1).max(200).optional(),
-        pilotName: z.string().min(1).max(100).optional(),
-        shipType: z.string().min(1).max(100).optional(),
-      })
-      .strict();
-
-    const parsedBody = schema.safeParse(body);
-    if (!parsedBody.success) {
-      return NextResponse.json(
-        { error: "Invalid request body", details: parsedBody.error.issues },
-        { status: 400 },
-      );
-    }
-
-    const { displayName, pilotName, shipType } = parsedBody.data;
-
     const raw = fs.readFileSync(filePath, "utf-8");
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const log = JSON.parse(raw);
 
-    if (typeof displayName === "string")
-      parsed.displayName = displayName.trim();
-    if (typeof pilotName === "string") parsed.pilotName = pilotName.trim();
-    if (typeof shipType === "string") parsed.shipType = shipType.trim();
+    return NextResponse.json({ log });
+  } catch (error) {
+    console.error("[API] GET /api/logs/[uuid] error:", error);
+    return NextResponse.json({ error: "Failed to fetch log" }, { status: 500 });
+  }
+}
 
-    // Pretty-print to keep on-disk store readable
-    fs.writeFileSync(filePath, JSON.stringify(parsed, null, 2), "utf-8");
+/**
+ * DELETE /api/logs/[id]
+ * Deletes a log file owned by the caller.
+ * Authenticated: deletes data/user-logs/<characterId>/<uuid>.json
+ * Unauthenticated: deletes data/user-logs/<uuid>/<uuid>.json
+ */
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ uuid: string }> },
+) {
+  const { uuid } = await params;
 
-    // best-effort audit
-    try {
-      const { appendAuditEntry } = await import("@/lib/audit");
-      appendAuditEntry({
-        action: "patchSharedLog",
-        uuid,
-        updates: { displayName, pilotName, shipType },
-      });
-    } catch {
-      // ignore
+  if (!UUID_RE.test(uuid)) {
+    return NextResponse.json({ error: "Invalid UUID" }, { status: 400 });
+  }
+
+  try {
+    const authenticated = await isUserAuthenticated();
+    let userId: string | null = null;
+
+    if (authenticated) {
+      const user = await getCurrentUser();
+      userId = user?.id ?? null;
+    } else {
+      // Anonymous: sessionId IS the userId directory
+      userId = uuid;
     }
 
-    return NextResponse.json({ ok: true, log: parsed });
-  } catch (err) {
-    console.error("Failed to PATCH shared log:", err);
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const filePath = safeFilePath(userId, uuid);
+    if (!filePath) {
+      return NextResponse.json({ error: "Invalid path" }, { status: 400 });
+    }
+
+    if (!fs.existsSync(filePath)) {
+      return NextResponse.json({ error: "Log not found" }, { status: 404 });
+    }
+
+    fs.unlinkSync(filePath);
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("[API] DELETE /api/logs/[uuid] error:", error);
     return NextResponse.json(
-      { error: "Failed to update log" },
+      { error: "Failed to delete log" },
       { status: 500 },
     );
   }
+}
+
+/**
+ * PATCH /api/logs/[id]
+ * Shared logs are read-only via this route.
+ */
+export async function PATCH(
+  _request: NextRequest,
+  { params }: { params: Promise<{ uuid: string }> },
+) {
+  const { uuid } = await params;
+  if (!UUID_RE.test(uuid)) {
+    return NextResponse.json({ error: "Invalid UUID" }, { status: 400 });
+  }
+  return NextResponse.json(
+    { error: "Shared logs are read-only" },
+    { status: 405 },
+  );
 }

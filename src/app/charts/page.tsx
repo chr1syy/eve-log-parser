@@ -12,6 +12,9 @@ import CapHitTimelineChart from "@/components/charts/CapHitTimelineChart";
 import AppLayout from "@/components/layout/AppLayout";
 import Panel from "@/components/ui/Panel";
 import { useParsedLogs } from "@/hooks/useParsedLogs";
+import type { ParsedLog } from "@/lib/types";
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 
 function ToggleButton({
   label,
@@ -43,8 +46,21 @@ function ToggleButton({
 
 export default function ChartsPage() {
   const ctx = useParsedLogs();
+  const searchParams = useSearchParams();
+  const sharedId = searchParams.get("shared");
+  const [sharedLog, setSharedLog] = useState<ParsedLog | null>(null);
+  const [sharedStatus, setSharedStatus] = useState<
+    "idle" | "loading" | "error" | "notfound" | "ready"
+  >("idle");
   // useParsedLogs exposes activeLog (see src/app/damage-dealt/page.tsx)
-  const entries = ctx.activeLog?.entries ?? [];
+  const effectiveSharedLog = sharedId ? sharedLog : null;
+  const effectiveSharedStatus = sharedId ? sharedStatus : "idle";
+  const sharedLoading = !!sharedId && effectiveSharedStatus !== "ready";
+  const entries = sharedId
+    ? effectiveSharedStatus === "ready"
+      ? effectiveSharedLog?.entries ?? []
+      : []
+    : ctx.activeLog?.entries ?? [];
 
   const [activeToggles, setActiveToggles] = useState<ActiveToggles>({
     damageOut: true,
@@ -78,6 +94,53 @@ export default function ChartsPage() {
     end: Date;
   } | null>(null);
 
+  useEffect(() => {
+    if (!sharedId) return;
+
+    let cancelled = false;
+    const loadShared = async () => {
+      try {
+        if (cancelled) return;
+        setSharedStatus("loading");
+
+        const res = await fetch(`/api/shared-logs/${sharedId}`);
+        if (res.status === 404) {
+          if (!cancelled) setSharedStatus("notfound");
+          return;
+        }
+        if (!res.ok) throw new Error();
+
+        const data = (await res.json()) as { log: ParsedLog } | null;
+        if (!data || cancelled) return;
+        const log = data.log;
+        const hydrated: ParsedLog = {
+          ...log,
+          parsedAt: new Date(log.parsedAt as unknown as string),
+          sessionStart: log.sessionStart
+            ? new Date(log.sessionStart as unknown as string)
+            : undefined,
+          sessionEnd: log.sessionEnd
+            ? new Date(log.sessionEnd as unknown as string)
+            : undefined,
+          entries: log.entries.map((e) => ({
+            ...e,
+            timestamp: new Date(e.timestamp as unknown as string),
+          })),
+        };
+        setSharedLog(hydrated);
+        setSharedStatus("ready");
+      } catch {
+        if (!cancelled) setSharedStatus("error");
+      }
+    };
+
+    void loadShared();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sharedId]);
+
   const handleBrushChange = useCallback(
     (start: Date | null, end: Date | null) => {
       setBrushWindow(start && end ? { start, end } : null);
@@ -100,9 +163,79 @@ export default function ChartsPage() {
   const toggleKey = (key: keyof ActiveToggles) =>
     setActiveToggles((prev) => ({ ...prev, [key]: !prev[key] }));
 
+  if (sharedId && effectiveSharedStatus === "loading") {
+    return (
+      <AppLayout title="COMBINED CHART">
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <p className="text-text-muted font-mono text-sm animate-pulse">
+            LOADING SHARED LOG...
+          </p>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (sharedId && effectiveSharedStatus === "notfound") {
+    return (
+      <AppLayout title="COMBINED CHART">
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Panel className="text-center max-w-sm w-full">
+            <div className="py-8">
+              <h2 className="text-text-primary font-ui font-bold uppercase tracking-widest text-lg mb-2">
+                LOG NOT FOUND
+              </h2>
+              <p className="text-text-muted font-mono text-sm">
+                This share link is invalid or has expired.
+              </p>
+            </div>
+          </Panel>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (sharedId && effectiveSharedStatus === "error") {
+    return (
+      <AppLayout title="COMBINED CHART">
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Panel className="text-center max-w-sm w-full">
+            <div className="py-8">
+              <h2 className="text-status-kill font-ui font-bold uppercase tracking-widest text-lg mb-2">
+                ERROR
+              </h2>
+              <p className="text-text-muted font-mono text-sm">
+                Failed to load shared log.
+              </p>
+            </div>
+          </Panel>
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout title="COMBINED CHART">
       <div className="flex flex-col gap-3">
+        {sharedId && (
+          <Panel variant="accent">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-text-muted text-xs font-ui uppercase tracking-widest mb-0.5">
+                  Viewing Shared Log
+                </p>
+                <p className="text-text-primary font-mono text-sm">
+                  Read-only view from share link
+                </p>
+              </div>
+              <Link
+                href="/"
+                className="text-xs font-mono uppercase tracking-widest text-cyan-glow hover:text-text-primary transition-colors"
+              >
+                Back To My Logs
+              </Link>
+            </div>
+          </Panel>
+        )}
         {/* Toggle bar */}
         <div className="flex items-center gap-2 shrink-0">
           <span className="font-mono text-xs text-[#888] uppercase tracking-widest mr-2">
@@ -198,20 +331,37 @@ export default function ChartsPage() {
         {/* Chart + raw log panel side by side */}
         <div className="flex gap-3 items-stretch h-[492px]">
           <Panel title="CHART" className="flex-1 min-w-0">
-            <CombinedChart
-              entries={entries}
-              activeToggles={activeToggles}
-              onBrushChange={handleBrushChange}
-              brushResetKey={brushResetKey}
-              initialBrushWindow={initialBrushWindow}
-            />
+            {sharedLoading ? (
+              <div className="flex items-center justify-center h-[420px] text-[#666] font-mono text-sm animate-pulse">
+                Loading...
+              </div>
+            ) : (
+              <CombinedChart
+                entries={entries}
+                activeToggles={activeToggles}
+                onBrushChange={handleBrushChange}
+                brushResetKey={brushResetKey}
+                initialBrushWindow={initialBrushWindow}
+              />
+            )}
           </Panel>
           <div className="w-[560px] shrink-0 flex flex-col">
-            <RawLogPanel
-              entries={entries}
-              brushWindow={brushWindow}
-              activeToggles={activeToggles}
-            />
+            {sharedLoading ? (
+              <Panel
+                title="RAW LOG"
+                className="flex items-center justify-center h-[420px]"
+              >
+                <p className="text-[#666] font-mono text-sm animate-pulse">
+                  Loading...
+                </p>
+              </Panel>
+            ) : (
+              <RawLogPanel
+                entries={entries}
+                brushWindow={brushWindow}
+                activeToggles={activeToggles}
+              />
+            )}
           </div>
         </div>
 
@@ -223,7 +373,7 @@ export default function ChartsPage() {
         )}
 
         {/* Damage per target table — only when Damage Out toggle is active */}
-        {activeToggles.damageOut && (
+        {!sharedLoading && activeToggles.damageOut && (
           <DamagePerTargetTable
             entries={entries}
             brushWindow={brushWindow}
@@ -232,7 +382,7 @@ export default function ChartsPage() {
         )}
 
         {/* Damage received per attacker table — only when Damage In toggle is active */}
-        {activeToggles.damageIn && (
+        {!sharedLoading && activeToggles.damageIn && (
           <DamageReceivedPerTargetTable
             entries={entries}
             brushWindow={brushWindow}
@@ -241,7 +391,7 @@ export default function ChartsPage() {
         )}
 
         {/* Reps by source table — only when Reps toggle is active */}
-        {activeToggles.reps && (
+        {!sharedLoading && activeToggles.reps && (
           <RepsPerSourceTable
             entries={entries}
             brushWindow={brushWindow}
@@ -250,7 +400,7 @@ export default function ChartsPage() {
         )}
 
         {/* Cap pressure by source table — only when Cap Pressure toggle is active */}
-        {activeToggles.capPressure && (
+        {!sharedLoading && activeToggles.capPressure && (
           <CapPressurePerSourceTable
             entries={entries}
             brushWindow={brushWindow}

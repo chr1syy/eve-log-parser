@@ -1,19 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2, ChevronRight, AlertTriangle } from "lucide-react";
+import {
+  Loader2,
+  ChevronRight,
+  AlertTriangle,
+  Lock,
+} from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 import Panel from "@/components/ui/Panel";
 import Button from "@/components/ui/Button";
 import DropZone from "@/components/upload/DropZone";
 import ShareButton from "@/components/upload/ShareButton";
+import EveSsoButton from "@/components/auth/EveSsoButton";
 import { parseLogFile } from "@/lib/parser";
 import { useParsedLogs } from "@/hooks/useParsedLogs";
-import type { ParsedLog } from "@/lib/types";
+import { useAuth } from "@/contexts/AuthContext";
+import { signIn } from "next-auth/react";
 import LogRenameInline from "@/components/logs/LogRenameInline";
 import ConfirmModal from "@/components/ui/ConfirmModal";
+import type { ParsedLog } from "@/lib/types";
 
 function formatNumber(n: number): string {
   return n.toLocaleString();
@@ -30,12 +38,14 @@ function formatMinutes(minutes: number): string {
 export default function UploadPage() {
   const {
     setActiveLog,
-    logs,
+    logs: rawLogs,
     activeLog,
     removeLog,
     updateLogMetadata,
     userId,
   } = useParsedLogs();
+  const logs = rawLogs ?? [];
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [files, setFiles] = useState<File[]>([]);
   const [parsedLogs, setParsedLogs] = useState<ParsedLog[]>([]);
@@ -43,6 +53,18 @@ export default function UploadPage() {
   const [error, setError] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+  const totalPages = Math.max(1, Math.ceil(logs.length / pageSize));
+  const pageStart = (page - 1) * pageSize;
+  const pageEnd = pageStart + pageSize;
+  const pagedLogs = logs.slice(pageStart, pageEnd);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
 
   const handleFilesAccepted = (accepted: File[]) => {
     setFiles(accepted);
@@ -90,11 +112,47 @@ export default function UploadPage() {
   };
 
   return (
-    <AppLayout title="LOGS">
+    <AppLayout title="UPLOAD LOGS">
       <div className="max-w-4xl mx-auto space-y-6">
+        {/* Authentication info banner for unauthenticated users */}
+        {!authLoading && !isAuthenticated && (
+          <Panel variant="default" className="border-t-cyan-glow bg-opacity-50">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3 flex-1">
+                <Lock
+                  size={18}
+                  className="text-cyan-glow flex-shrink-0 mt-0.5"
+                />
+                <div>
+                  <p className="text-cyan-glow font-ui font-semibold uppercase tracking-wider text-sm mb-1">
+                    Sign in to Save Logs
+                  </p>
+                  <p className="text-text-muted font-mono text-sm">
+                    Authenticate with EVE Online to save logs across devices and
+                    manage multiple character logs.
+                  </p>
+                </div>
+              </div>
+              <div className="flex-shrink-0">
+                <EveSsoButton
+                  size="small"
+                  variant="white"
+                  onClick={() => signIn("eve-sso")}
+                />
+              </div>
+            </div>
+          </Panel>
+        )}
+
         {/* Drop zone panel */}
         <Panel title="SELECT LOG FILES">
           <DropZone onFilesAccepted={handleFilesAccepted} files={files} />
+          {!authLoading && !isAuthenticated && (
+            <p className="text-text-muted font-mono text-xs mt-4 pt-4 border-t border-border-subtle">
+              📝 Uploading without signing in? Your current log will be replaced
+              by the next upload.
+            </p>
+          )}
         </Panel>
 
         {/* Parse button */}
@@ -150,7 +208,7 @@ export default function UploadPage() {
                 YOUR LOGS — {logs.length}
               </h2>
               <div className="space-y-2">
-                {logs.map((l) => (
+                {pagedLogs.map((l) => (
                   <Panel
                     key={l.sessionId}
                     variant={
@@ -165,7 +223,6 @@ export default function UploadPage() {
                           <p className="text-text-primary font-ui font-semibold text-base truncate mb-1">
                             {l.displayName ?? l.fileName}
                           </p>
-                          {/* removed duplicate small pilot name to avoid repeated display */}
                           <div className="flex items-center gap-2">
                             <LogRenameInline
                               value={l.displayName ?? l.fileName}
@@ -292,6 +349,37 @@ export default function UploadPage() {
                   </Panel>
                 ))}
               </div>
+              {logs.length > pageSize && (
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <p className="text-text-muted font-mono text-xs">
+                    Showing {pageStart + 1}-{Math.min(pageEnd, logs.length)} of{" "}
+                    {logs.length}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={page === 1}
+                      onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                    >
+                      Prev
+                    </Button>
+                    <p className="text-text-secondary font-mono text-xs">
+                      Page {page} of {totalPages}
+                    </p>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={page === totalPages}
+                      onClick={() =>
+                        setPage((prev) => Math.min(totalPages, prev + 1))
+                      }
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             // fallback: recently parsed logs (transient)
@@ -301,6 +389,11 @@ export default function UploadPage() {
                   PARSE RESULTS — {parsedLogs.length} FILE
                   {parsedLogs.length !== 1 ? "S" : ""}
                 </h2>
+                {isAuthenticated && (
+                  <p className="text-text-secondary font-mono text-xs">
+                    Log saved to your account.
+                  </p>
+                )}
                 {parsedLogs.map((log) => (
                   <Panel key={log.sessionId} variant="accent">
                     <div className="flex items-start justify-between gap-4">

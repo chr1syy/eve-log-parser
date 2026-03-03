@@ -38,7 +38,7 @@ export function useShareLog(): UseShareLogResult {
       if (!log) return;
       setShareState("loading");
       try {
-        const payload = { log };
+        const payload = { log, share: true };
         const jsonString = JSON.stringify(payload);
 
         const res = await fetch("/api/logs", {
@@ -53,7 +53,15 @@ export function useShareLog(): UseShareLogResult {
           throw new Error(`Upload failed: ${res.status}`);
         }
 
-        const { uuid } = (await res.json()) as { uuid: string };
+        const data = (await res.json()) as {
+          uuid?: string;
+          sessionId?: string;
+          id?: string;
+        };
+        const uuid = data.uuid ?? data.sessionId ?? data.id;
+        if (!uuid) {
+          throw new Error("Share response missing uuid");
+        }
         const shareUrl = `${window.location.origin}/share/${uuid}`;
         console.log(`[Share] Generated share URL: ${shareUrl}`);
 

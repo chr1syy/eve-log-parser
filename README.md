@@ -20,7 +20,7 @@ EVE Log Parser transforms raw EVE Online combat logs into actionable intelligenc
 - 🛡️ **Defensive Analysis** — Monitor incoming damage, repair throughput, and tank effectiveness
 - 🚁 **Drone Intelligence** — Separate drone performance from turret/missile effectiveness
 - 🔍 **Combat Timeline** — See exactly when weapons fired, e-war applied, and repairs cycled
-- 👥 **Multi-Character Support** — Persistent log storage with character authentication (coming soon)
+- 👥 **EVE SSO Authentication** — Sign in with your EVE Online account to persist logs across devices
 - 🌙 **Dark UI** — EVE-faithful dark interface inspired by the in-game HUD
 
 ---
@@ -31,7 +31,7 @@ EVE Log Parser transforms raw EVE Online combat logs into actionable intelligenc
 
 - **Node.js** 20+ ([download](https://nodejs.org/))
 - **npm** or **yarn**
-- Optional: **Docker** & **Docker Compose** (for PostgreSQL + container deployment)
+- Optional: **Docker** & **Docker Compose** (for container deployment)
 
 ### Installation
 
@@ -75,31 +75,30 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 eve-log-parser/
 ├── src/
 │   ├── app/                    # Next.js App Router pages & API routes
-│   │   ├── damage-dealt/       # Outgoing damage analysis
-│   │   ├── damage-taken/       # Incoming damage & mitigation
+│   │   ├── api/auth/           # NextAuth (EVE SSO) route handler
+│   │   ├── api/logs/           # Log CRUD API (authenticated)
+│   │   ├── charts/             # Combined charts page
+│   │   ├── fleet/              # Fleet analysis pages
+│   │   ├── history/            # Log history page (authenticated)
 │   │   ├── kills/              # Combat summary
-│   │   ├── api/                # Backend endpoints
+│   │   ├── signin/             # EVE SSO sign-in page
+│   │   ├── upload/             # Log upload page
 │   │   └── layout.tsx          # Root layout
 │   ├── components/             # Reusable React components
 │   │   ├── charts/             # Chart components (Recharts)
-│   │   ├── tables/             # Data tables & grids
+│   │   ├── fleet/              # Fleet analysis components
 │   │   └── layout/             # Layout components (sidebar, topbar)
-│   ├── contexts/               # React Context (logs, auth)
+│   ├── contexts/               # React Context (logs, auth, fleet)
 │   ├── lib/
-│   │   ├── parser/             # Combat log parsing engine
-│   │   │   └── eveLogParser.ts # Main parser regex & logic
-│   │   ├── analysis/           # Data analysis functions
-│   │   │   ├── damageDealt.ts  # Outgoing DPS analysis
-│   │   │   ├── damageTaken.ts  # Incoming damage analysis
-│   │   │   ├── capAnalysis.ts  # Capacitor tracking
-│   │   │   └── repAnalysis.ts  # Repair throughput
-│   │   ├── types.ts            # TypeScript interfaces
-│   │   ├── utils.ts            # Utilities
-│   │   └── npcFilter.ts        # NPC entity filtering
+│   │   ├── analysis/           # Cap, rep, and damage analysis utilities
+│   │   ├── fleet/              # Fleet session management
+│   │   ├── parser/             # EVE combat log parser
+│   │   └── auth.ts             # NextAuth configuration
 │   └── __tests__/              # Unit & integration tests
+├── data/user-logs/             # File-based log storage (per-user subdirs)
+├── scripts/                    # Changelog generation
 ├── public/                     # Static assets
-├── docker-compose.yml          # Docker services (PostgreSQL)
-├── tailwind.config.ts          # Tailwind CSS config
+├── docker-compose.yml          # Docker services (app container)
 ├── tsconfig.json               # TypeScript config
 ├── vitest.config.ts            # Test config
 └── package.json
@@ -129,6 +128,9 @@ npm run test:integration
 
 # Lint code
 npm run lint
+
+# Initialize PostgreSQL (optional)
+npm run db:init
 
 # Generate changelog
 npm run generate-changelog
@@ -161,6 +163,10 @@ npm run generate-changelog
 
 - `GET /api/version` — Application version and build info
 - `GET /api/changelog` — Commit history and changes
+- `GET /api/logs` — List authenticated user's logs
+- `POST /api/logs` — Upload a new log
+- `GET /api/logs/[id]` — Fetch a specific log
+- `DELETE /api/logs/[id]` — Delete a log
 
 ---
 
@@ -171,12 +177,6 @@ npm run generate-changelog
 The application is fully containerized and can be deployed using Docker:
 
 ```bash
-# Build locally
-docker build -t eve-log-parser .
-
-# Run
-docker run -p 3000:3000 eve-log-parser
-
 # Using Docker Compose
 docker-compose up -d
 ```
@@ -201,22 +201,24 @@ GitHub Actions automatically:
 
 ## Configuration
 
-Create a `.env.local` file (copy from `.env.local.example`):
+Create a `.env.local` file:
 
 ```bash
 # Next.js
 NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=<generate-with: openssl rand -base64 32>
 
-# EVE SSO (optional, for authentication)
+# EVE SSO (for authentication)
 EVE_SSO_CLIENT_ID=your_client_id_here
 EVE_SSO_SECRET=your_secret_here
-
-# Database (optional, for multi-character support)
-DATABASE_URL=postgresql://user:password@localhost:5432/eve_logs
 ```
 
-See `DEPLOYMENT.md` for production configuration.
+Logs are stored as JSON files under `data/user-logs/` and core functionality does not require a database.
+Optional PostgreSQL initialization is available via `docker-compose.yml` and `npm run db:init` for future or external integrations.
+
+Register an EVE SSO application at [https://developers.eveonline.com](https://developers.eveonline.com). Set the callback URL to `<NEXTAUTH_URL>/api/auth/callback/eve-sso`.
+
+See [DEPLOYMENT.md](docs/DEPLOYMENT.md) for production configuration.
 
 ---
 
@@ -231,9 +233,8 @@ npm test
 Tests cover:
 
 - Log parsing accuracy (damage, reps, e-war, shield/armor events)
-- DPS calculations
-- Damage aggregation
-- Bad hit percentages
+- DPS calculations and damage aggregation
+- Auth utilities and session handling
 - NPC filtering logic
 
 ### Integration Tests
@@ -245,9 +246,9 @@ npm run test:integration
 Tests cover:
 
 - Full upload → analysis flow
-- UI interactions
-- Chart updates
+- UI interactions and chart updates
 - Table sorting/filtering
+- Authenticated and anonymous upload paths
 
 ### Manual Testing
 
@@ -258,68 +259,6 @@ Test logs are included in `data/`:
 - NPC attacks + player attacks
 - Remote repair events (armor and shield)
 - Capacitor drain events
-
-```bash
-# Upload a sample log via the UI at http://localhost:3000/upload
-```
-
----
-
-## Features in Detail
-
-### Damage Application Tab
-
-- **DPS Line Chart** — Real-time damage output over time with zoom support
-- **Weapon Summary Table** — Per-weapon statistics (hits, misses, damage range)
-- **Target Summary Table** — Per-target breakdown (by ship/pilot)
-- **Drone Filter Toggle** — Exclude drones to analyze weapon accuracy independently
-- **Hit Quality Breakdown** — Visual distribution of hit outcomes
-
-### Damage Mitigation Tab
-
-- **Incoming Weapons Table** — Attackers, their ships, and weapon used
-- **Incoming Drones Table** — Drone damage sources with ship types
-- **Bad Hit Analysis** — Your tank's effectiveness (% of shots missed/glanced)
-- **NPC vs Player Filtering** — Separate NPC damage from player attacks
-- **DPS Mitigation Metrics** — Armor/shield/hull tank analysis
-
-### Kills Tab
-
-- **Combat Summary** — ISK destroyed, kill count, ISK lost
-- **Engagement Timeline** — Visual representation of combat duration
-- **Kill Details** — Pilot, corporation, ship destroyed, and ISK value
-
-### Capacitor Tab
-
-- **Capacitor Timeline** — Energy level throughout combat
-- **Neutralizer Events** — Energy drained by hostile neuts
-- **Repair Costs** — Energy expended on module cycles
-
-### Repairs Tab
-
-- **Remote Armor Repair** — Incoming logistics support (Remote Armor Repairer modules)
-- **Remote Shield Boost** — Incoming shield logistics (Remote Shield Booster modules)
-- **Maintenance Bots** — Armor and shield maintenance drone repair ticks
-- **Throughput Analysis** — Repair rate over time
-
----
-
-## Data Privacy & Session Management
-
-### Anonymous Mode (Default)
-
-- Single combat log stored in browser `localStorage`
-- No server-side storage
-- Automatic clearing when session ends
-- Fallback: Server-side session storage (regenerated per session)
-
-### Authenticated Mode (Optional)
-
-- EVE SSO integration for character verification
-- Persistent log storage with PostgreSQL
-- Multi-character log history
-- Cross-device log access
-- (Coming soon — see roadmap)
 
 ---
 
@@ -332,62 +271,25 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guid
 - Submitting issues and pull requests
 - Reporting bugs
 
-### Quick Start for Contributors
-
-```bash
-# 1. Fork the repository (GitHub)
-# 2. Clone your fork
-git clone https://github.com/YOUR_USERNAME/eve-log-parser.git
-cd eve-log-parser
-
-# 3. Create a feature branch
-git checkout -b feat/your-feature-name
-
-# 4. Make changes, test, commit
-npm test && npm run lint
-
-# 5. Push and open a Pull Request
-git push origin feat/your-feature-name
-```
-
 ---
 
 ## Roadmap
 
 ### In Progress
 
-- [ ] EVE SSO authentication (next-auth + PostgreSQL)
-- [ ] Multi-character log persistence
-- [ ] Log history browser
 - [ ] Fleet combat log analysis
+- [ ] Advanced e-war analytics (jam events, neut effectiveness)
 
 ### Planned
 
-- [ ] Advanced e-war analytics (jam events, neut effectiveness)
 - [ ] Alliance/coalition battle statistics
 - [ ] Log comparison & before/after analysis
 - [ ] Real-time combat overlay (external tool)
 - [ ] Export to CSV/JSON for external analysis
 
-### Experimental
-
-- [ ] AI-powered combat recommendations
-- [ ] Loadout optimizer based on combat data
-- [ ] Multi-log battle reconstruction
-
 ---
 
 ## Architecture & Design
-
-### Design System
-
-EVE Log Parser uses an EVE Online-inspired dark UI. See [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) for:
-
-- Color palette (cyan/gold accents)
-- Typography (Rajdhani + JetBrains Mono)
-- Component patterns (panels, badges, tables)
-- Layout grid and spacing
-- Animation principles
 
 ### Weapon Systems Reference
 
@@ -401,28 +303,12 @@ Combat mechanics are documented in [AGENTS.md](AGENTS.md), including:
 
 ---
 
-## Performance Considerations
-
-- **Large Logs**: Logs 10MB+ may take 5-10 seconds to parse
-- **Browser Storage**: localStorage limited to ~5MB; use authenticated mode for persistent storage
-- **Chart Performance**: 100k+ data points may cause lag; zoom to focus on specific time window
-- **Table Rendering**: 1000+ rows virtualized for performance
-
----
-
 ## Troubleshooting
 
 ### Log Not Parsing
 
 - Verify the file is a `.txt` file from EVE Online (Settings > Logs & Market Logs)
 - Check file format: each line should start with `[YYYY.MM.DD HH:MM:SS]`
-- If using outdated EVE client, certain log formats may be unsupported
-
-### Chart Not Rendering
-
-- Clear browser cache and reload
-- Try a different log file to isolate the issue
-- Open browser DevTools (F12) → Console for error messages
 
 ### Missing Data
 
@@ -431,20 +317,12 @@ Combat mechanics are documented in [AGENTS.md](AGENTS.md), including:
   - macOS: `~/Library/Caches/CCP/EVE/logs/Chatlogs/`
   - Linux: `~/.ccp/eve/logs/Chatlogs/`
 
-### Performance Issues
-
-- Close other tabs/applications
-- Try a smaller log file (first 1000 lines)
-- Enable hardware acceleration in browser settings
-
 ---
 
 ## Support & Community
 
 - **Issues**: [GitHub Issues](https://github.com/chr1syy/eve-log-parser/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/chr1syy/eve-log-parser/discussions)
-- **Discord**: (Coming soon)
-- **EVE Forums**: (Coming soon)
 
 ---
 
@@ -456,16 +334,4 @@ This project is licensed under the **MIT License** — see [LICENSE](LICENSE) fi
 
 ---
 
-## Acknowledgments
-
-- **CCP Games** for EVE Online and the combat log format
-- **Recharts** for beautiful React charts
-- **Tailwind CSS** for rapid UI development
-- **EVE Community** for feedback and combat logs
-- Contributors and testers
-
----
-
 **Made by capsuleers, for capsuleers. 🚀**
-
-_Last updated: 2026-02-24_

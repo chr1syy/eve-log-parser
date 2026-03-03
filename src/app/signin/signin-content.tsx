@@ -1,0 +1,115 @@
+"use client";
+
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
+import { signIn } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { Loader } from "lucide-react";
+import EveSsoButton from "@/components/auth/EveSsoButton";
+
+export default function SignInContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Get error from URL params
+  const errorParam = searchParams.get("error");
+  const error = errorParam ? `Authentication error: ${errorParam}` : null;
+
+  const handleSignIn = async () => {
+    try {
+      setIsLoading(true);
+
+      // Sign in with EVE SSO provider
+      // With redirect: true, this will redirect on success
+      await signIn("eve-sso", {
+        redirect: true,
+        callbackUrl: "/",
+      });
+    } catch (_err: unknown) {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-void flex items-center justify-center px-4">
+      <div className="w-full max-w-md">
+        <div className="bg-panel border border-border rounded-lg p-8">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-ui font-bold uppercase tracking-widest text-text-primary mb-2">
+              EVE Log Parser
+            </h1>
+            <p className="text-text-muted font-mono text-xs uppercase tracking-wider">
+              Sign in with EVE Online
+            </p>
+          </div>
+
+          {/* Description */}
+          <div className="mb-8 p-4 bg-elevated/50 border border-border rounded-sm">
+            <p className="text-sm text-text-secondary font-ui leading-relaxed">
+              Sign in with your EVE Online account to enable persistent log
+              storage across devices and support for multiple characters.
+            </p>
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6 p-3 bg-status-kill/20 border border-status-kill/40 rounded-sm">
+              <p className="text-status-kill font-mono text-xs">{error}</p>
+            </div>
+          )}
+
+          {/* Sign In Button */}
+          <div className="flex flex-col items-center gap-3 mb-4">
+            <EveSsoButton
+              onClick={handleSignIn}
+              disabled={isLoading}
+              size="large"
+              variant="white"
+              className="w-full"
+            />
+            {isLoading && (
+              <div className="flex items-center gap-2 text-text-muted font-mono text-xs uppercase tracking-wider">
+                <Loader className="w-4 h-4 animate-spin" />
+                Signing in...
+              </div>
+            )}
+          </div>
+
+          {/* Back Link */}
+          <button
+            onClick={() => router.push("/")}
+            disabled={isLoading}
+            className="w-full py-2 text-text-muted hover:text-text-secondary disabled:opacity-50 font-ui text-xs uppercase tracking-wider transition-colors"
+          >
+            Back to Home
+          </button>
+
+          {/* Footer */}
+          <div className="mt-8 pt-6 border-t border-border/50">
+            <p className="text-xs text-text-muted font-mono text-center leading-relaxed">
+              By signing in, you agree to our privacy policy and terms of
+              service.
+              <br />
+              Your EVE Online account will only be used for authentication.
+            </p>
+          </div>
+        </div>
+
+        {/* Info Panel */}
+        <div className="mt-6 p-4 bg-elevated/30 border border-border/30 rounded-sm">
+          <p className="text-xs text-text-muted font-mono leading-relaxed">
+            <span className="text-cyan-glow">●</span> Using EVE Online SSO
+            <br />
+            <span className="text-cyan-glow">●</span> No password required
+            <br />
+            <span className="text-cyan-glow">●</span> Secure OAuth 2.0
+            authentication
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}

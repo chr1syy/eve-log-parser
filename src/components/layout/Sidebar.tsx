@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -10,7 +11,14 @@ import {
   BarChart3,
 } from "lucide-react";
 
-const navItems = [
+interface NavItem {
+  label: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: string;
+}
+
+const baseNavItems: NavItem[] = [
   { label: "Logs", href: "/upload", icon: Upload },
   { label: "Fleet", href: "/fleet", icon: Users, badge: "beta" },
   { label: "Overview", href: "/", icon: LayoutDashboard },
@@ -19,6 +27,7 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const navItems = baseNavItems;
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-[240px] bg-void border-r border-border flex flex-col z-sticky">
@@ -64,8 +73,15 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Footer area intentionally left empty; version is shown in footer by tag */}
-      <div className="px-4 py-3 border-t border-border flex-shrink-0" />
+      {/* Footer area */}
+      <div className="px-6 py-3 bg-space border-t border-border flex-shrink-0">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-status-safe animate-pulse flex-shrink-0" />
+          <span className="text-xs text-text-muted font-mono uppercase tracking-wider">
+            System Online
+          </span>
+        </div>
+      </div>
     </aside>
   );
 }
