@@ -8,14 +8,12 @@ export default function TermsPage() {
       <div className="flex flex-col gap-6 md:gap-8">
         <div className="bg-space border border-border-default border-t-2 border-t-cyan-dim rounded-sm p-6">
           <div className="max-w-4xl">
-            <h1 className="text-3xl font-bold mb-2">
-              Terms of Service (Draft)
-            </h1>
+            <h1 className="text-3xl font-bold mb-2">Terms of Service</h1>
 
             <p className="text-text-secondary mb-4">
               These Terms of Service ("Terms") govern your use of the EVE Log
-              Parser application. This is a draft — have legal counsel review
-              before publishing.
+              Parser application. Have legal counsel review them if you need
+              formal legal advice.
             </p>
 
             <section className="mb-4">

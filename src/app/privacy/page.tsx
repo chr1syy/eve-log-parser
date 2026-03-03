@@ -8,12 +8,12 @@ export default function PrivacyPage() {
       <div className="flex flex-col gap-6 md:gap-8">
         <div className="bg-space border border-border-default border-t-2 border-t-cyan-dim rounded-sm p-6">
           <div className="max-w-4xl">
-            <h1 className="text-3xl font-bold mb-2">Privacy Policy (Draft)</h1>
+            <h1 className="text-3xl font-bold mb-2">Privacy Policy</h1>
 
             <p className="text-base text-text-secondary mb-4">
-              This is a draft Privacy Policy for EVE Log Parser. It explains
-              what data we collect, why we collect it, and how you can exercise
-              your rights. Please review with legal counsel before publishing.
+              This Privacy Policy explains what data we collect, why we collect
+              it, and how you can exercise your rights. Please review with legal
+              counsel if you need legal advice.
             </p>
 
             <section className="mb-4">
