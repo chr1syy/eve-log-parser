@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { ExternalLink } from "lucide-react";
-import Link from "next/link";
 import AppLayout from "@/components/layout/AppLayout";
 import Panel from "@/components/ui/Panel";
 import Button from "@/components/ui/Button";
@@ -41,6 +40,7 @@ function formatMinutes(minutes: number): string {
 
 export default function SharePage() {
   const { uuid } = useParams<{ uuid: string }>();
+  const router = useRouter();
   const [log, setLog] = useState<ParsedLog | null>(null);
   const [status, setStatus] = useState<
     "loading" | "notfound" | "error" | "ready"
@@ -197,20 +197,20 @@ export default function SharePage() {
 
         <div className="flex gap-3">
           <Button
-            asChild
             variant="primary"
             size="md"
             icon={<ExternalLink size={14} />}
+            onClick={() => router.push(`/charts?shared=${uuid}`)}
           >
-            <Link href={`/charts?shared=${uuid}`}>SHOW IN CHARTS</Link>
+            SHOW IN CHARTS
           </Button>
           <Button
-            asChild
             variant="primary"
             size="md"
             icon={<ExternalLink size={14} />}
+            onClick={() => router.push("/")}
           >
-            <Link href="/">BACK TO MY LOGS</Link>
+            BACK TO MY LOGS
           </Button>
         </div>
       </div>
