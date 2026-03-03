@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useCallback, useEffect } from "react";
+import { useMemo, useState, useCallback } from "react";
 import {
   BarChart,
   Bar,
@@ -130,14 +130,12 @@ export default function CapHitTimelineChart({
     Math.min(59, Math.max(0, data.length - 1)),
   );
 
-  // When data loads in after initial render, ensure the default brush window
-  // expands beyond a single bar. Avoid clobbering an existing user selection.
-  useEffect(() => {
-    if (data.length === 0) return;
-    if (brushStart === 0 && brushEnd === 0) {
-      setBrushEnd(Math.min(59, data.length - 1));
-    }
-  }, [data.length, brushStart, brushEnd]);
+  const defaultBrushEnd = useMemo(
+    () => Math.min(59, Math.max(0, data.length - 1)),
+    [data.length],
+  );
+  const effectiveBrushEnd =
+    brushStart === 0 && brushEnd === 0 ? defaultBrushEnd : brushEnd;
 
   const handleBrushChange = useCallback(
     ({ startIndex, endIndex }: { startIndex?: number; endIndex?: number }) => {
@@ -149,7 +147,7 @@ export default function CapHitTimelineChart({
 
   // Clamp brush bounds to current data length.
   const safeStart = Math.min(brushStart, Math.max(0, data.length - 1));
-  const safeEnd = Math.min(brushEnd, Math.max(0, data.length - 1));
+  const safeEnd = Math.min(effectiveBrushEnd, Math.max(0, data.length - 1));
 
   // Bar width = 1 second expressed in pixels at the current zoom level.
   const barSize = useMemo(() => {
