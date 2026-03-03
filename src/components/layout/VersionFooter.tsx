@@ -54,12 +54,6 @@ export default function VersionFooter() {
         >
           Terms
         </Link>
-        <Link
-          href="/impressum"
-          className="text-xs font-mono text-text-secondary hover:text-cyan-glow"
-        >
-          Impressum
-        </Link>
       </div>
     </footer>
   );

@@ -4,65 +4,82 @@ import AppLayout from "../../components/layout/AppLayout";
 
 export default function TermsPage() {
   return (
-    <AppLayout title="TERMS OF SERVICE">
+    <AppLayout title="Terms">
       <div className="flex flex-col gap-6 md:gap-8">
-        <div className="bg-space border border-border-default border-t-2 border-t-cyan-dim rounded-sm p-4 md:p-6">
-          <div className="prose prose-invert max-w-4xl">
-            <h1>Terms of Service (Draft)</h1>
-            <p>
+        <div className="bg-space border border-border-default border-t-2 border-t-cyan-dim rounded-sm p-6">
+          <div className="max-w-4xl">
+            <h1 className="text-3xl font-bold mb-2">
+              Terms of Service (Draft)
+            </h1>
+
+            <p className="text-text-secondary mb-4">
               These Terms of Service ("Terms") govern your use of the EVE Log
               Parser application. This is a draft — have legal counsel review
               before publishing.
             </p>
 
-            <h2>1. Acceptance</h2>
-            <p>
-              By using the service you agree to these Terms. If you do not
-              agree, do not use the service.
-            </p>
+            <section className="mb-4">
+              <h3 className="font-semibold">1. Acceptance</h3>
+              <p className="text-text-secondary">
+                By using the service you agree to these Terms. If you do not
+                agree, do not use the service.
+              </p>
+            </section>
 
-            <h2>2. Service Description</h2>
-            <p>
-              The service parses and visualizes EVE Online combat logs you
-              upload.
-            </p>
+            <section className="mb-4">
+              <h3 className="font-semibold">2. Service</h3>
+              <p className="text-text-secondary">
+                The service parses and visualizes EVE Online combat logs you
+                upload.
+              </p>
+            </section>
 
-            <h2>3. User Content</h2>
-            <p>
-              You grant us a non-exclusive license to process, store and display
-              any logs you upload. You are responsible for any content you
-              upload.
-            </p>
+            <section className="mb-4">
+              <h3 className="font-semibold">3. User content</h3>
+              <p className="text-text-secondary">
+                You grant us a non-exclusive license to process, store and
+                display any logs you upload. You are responsible for any content
+                you upload.
+              </p>
+            </section>
 
-            <h2>4. Account & SSO</h2>
-            <p>
-              Authentication uses CCP/EVE SSO. We only request scopes necessary
-              to identify your character. We do not claim affiliation with CCP.
-            </p>
+            <section className="mb-4">
+              <h3 className="font-semibold">4. Account & SSO</h3>
+              <p className="text-text-secondary">
+                Authentication uses CCP/EVE SSO. We only request scopes
+                necessary to identify your character. We do not claim
+                affiliation with CCP.
+              </p>
+            </section>
 
-            <h2>5. Liability & Warranty</h2>
-            <p>
-              The service is provided "as is" without warranties. Liability is
-              limited to the maximum extent permitted by law.
-            </p>
+            <section className="mb-4">
+              <h3 className="font-semibold">5. Liability & warranty</h3>
+              <p className="text-text-secondary">
+                The service is provided "as is" without warranties. Liability is
+                limited to the maximum extent permitted by law.
+              </p>
+            </section>
 
-            <h2>6. Governing Law</h2>
-            <p>These Terms are governed by the laws of [Your Jurisdiction].</p>
+            <section className="mb-4">
+              <h3 className="font-semibold">6. Governing law</h3>
+              <p className="text-text-secondary">
+                These Terms are governed by the laws of [Your Jurisdiction].
+              </p>
+            </section>
 
-            <h2>7. Changes</h2>
-            <p>
-              We may modify these Terms. Material changes will be notified via
-              the app or email.
-            </p>
-
-            <h2>Contact</h2>
-            <p>
-              Contact:{" "}
-              <a href="mailto:legal@eve-log-parser.app">
-                legal@eve-log-parser.app
-              </a>
-              .
-            </p>
+            <section>
+              <h3 className="font-semibold">Contact</h3>
+              <p className="text-text-secondary">
+                Contact:{" "}
+                <a
+                  className="text-cyan-glow"
+                  href="mailto:legal@eve-log-parser.app"
+                >
+                  legal@eve-log-parser.app
+                </a>
+                .
+              </p>
+            </section>
           </div>
         </div>
       </div>

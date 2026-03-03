@@ -4,73 +4,110 @@ import AppLayout from "../../components/layout/AppLayout";
 
 export default function PrivacyPage() {
   return (
-    <AppLayout title="PRIVACY">
-      <div className="prose prose-invert max-w-4xl">
-        <h1>Privacy Policy</h1>
-        <p>
-          This is a draft Privacy Policy for EVE Log Parser. It explains what
-          data we collect, why, and how users can exercise their rights. This
-          draft must be reviewed by legal counsel and adapted to your
-          jurisdiction before publication.
-        </p>
+    <AppLayout title="Privacy">
+      <div className="flex flex-col gap-6 md:gap-8">
+        <div className="bg-space border border-border-default border-t-2 border-t-cyan-dim rounded-sm p-6">
+          <div className="max-w-4xl">
+            <h1 className="text-3xl font-bold mb-2">Privacy Policy (Draft)</h1>
 
-        <h2>Data We Collect</h2>
-        <ul>
-          <li>
-            <strong>Authentication:</strong> CCP/EVE SSO character name and
-            character ID when you login via EVE SSO.
-          </li>
-          <li>
-            <strong>Uploaded logs:</strong> Raw combat log files you upload and
-            derived parsed data used to provide the service.
-          </li>
-          <li>
-            <strong>Analytics & Crash Reports:</strong> Anonymous usage metrics,
-            device information and crash stacks (opt-in configurable).
-          </li>
-          <li>
-            <strong>Support messages:</strong> Email and attachments when you
-            contact support.
-          </li>
-        </ul>
+            <p className="text-base text-text-secondary mb-4">
+              This is a draft Privacy Policy for EVE Log Parser. It explains
+              what data we collect, why we collect it, how long we keep it, and
+              how you can exercise your rights. Please review with legal counsel
+              before publishing.
+            </p>
 
-        <h2>Purpose & Legal Basis</h2>
-        <p>
-          We process uploaded logs to provide parsing and visualization
-          (contract performance). Analytics and crash reports are processed on
-          consent.
-        </p>
+            <section className="mb-4">
+              <h2 className="text-xl font-semibold">Summary</h2>
+              <p className="text-text-secondary">
+                We collect the minimum information necessary to provide the
+                service: authentication via EVE SSO, any combat logs you upload
+                (and derived parse data), optional analytics/crash reports
+                (consented), and support messages.
+              </p>
+            </section>
 
-        <h2>Retention</h2>
-        <p>
-          Raw logs: default 1 year (configurable). Parsed aggregates: 2 years.
-          Auth tokens are stored only as needed and rotated/expired.
-        </p>
+            <section className="mb-4">
+              <h3 className="font-semibold">Data categories</h3>
+              <ul className="list-disc list-inside text-text-secondary">
+                <li>
+                  <strong>Authentication</strong> — CCP/EVE SSO character name
+                  and character ID to associate uploads with your account.
+                </li>
+                <li>
+                  <strong>Uploaded logs</strong> — raw log files and parsed
+                  /derived data used to produce analyses and visualisations.
+                </li>
+                <li>
+                  <strong>Analytics & crash reports</strong> — anonymized usage
+                  metrics and optional crash stacks to improve the product
+                  (collected only with consent where required).
+                </li>
+                <li>
+                  <strong>Support messages</strong> — emails and attachments you
+                  provide when contacting support.
+                </li>
+              </ul>
+            </section>
 
-        <h2>Third-Party Processors</h2>
-        <p>
-          We may use processors such as AWS, Sentry and Stripe. We will enter
-          DPAs where required by law.
-        </p>
+            <section className="mb-4">
+              <h3 className="font-semibold">Purpose & legal basis</h3>
+              <p className="text-text-secondary">
+                Uploaded logs and authentication are processed to deliver the
+                core functionality (parsing, visualisation, optional storage).
+                Analytics and crash reporting are processed to improve the
+                product and are collected on the basis of consent where
+                required.
+              </p>
+            </section>
 
-        <h2>Your Rights</h2>
-        <p>
-          You can request access, correction, deletion, or export of your data.
-          Contact:{" "}
-          <a href="mailto:privacy@eve-log-parser.app">
-            privacy@eve-log-parser.app
-          </a>
-          .
-        </p>
+            <section className="mb-4">
+              <h3 className="font-semibold">Retention</h3>
+              <p className="text-text-secondary">
+                Default retention: raw logs 1 year (configurable by the user),
+                parsed aggregates 2 years. Authentication tokens are stored only
+                as needed and are rotated/expired per best practices.
+              </p>
+            </section>
 
-        <h2>Contact</h2>
-        <p>
-          Data controller: [Company Name], [Address]. Email:{" "}
-          <a href="mailto:privacy@eve-log-parser.app">
-            privacy@eve-log-parser.app
-          </a>
-          .
-        </p>
+            <section className="mb-4">
+              <h3 className="font-semibold">Third-party processors</h3>
+              <p className="text-text-secondary">
+                We may use processors such as AWS (storage), Sentry (error
+                reporting) and Stripe (payments). Data Processing Agreements
+                (DPAs) will be executed where required by law.
+              </p>
+            </section>
+
+            <section className="mb-4">
+              <h3 className="font-semibold">Your rights</h3>
+              <p className="text-text-secondary">
+                You can request access, correction, deletion or export of your
+                personal data. To exercise these rights contact
+                <a
+                  className="ml-1 text-cyan-glow"
+                  href="mailto:privacy@eve-log-parser.app"
+                >
+                  privacy@eve-log-parser.app
+                </a>
+                .
+              </p>
+            </section>
+
+            <section>
+              <h3 className="font-semibold">Contact</h3>
+              <p className="text-text-secondary">
+                Data controller: [Company Name], [Address]. Email:{" "}
+                <a
+                  className="text-cyan-glow"
+                  href="mailto:privacy@eve-log-parser.app"
+                >
+                  privacy@eve-log-parser.app
+                </a>
+              </p>
+            </section>
+          </div>
+        </div>
       </div>
     </AppLayout>
   );
