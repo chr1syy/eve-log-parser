@@ -31,13 +31,36 @@ export default function VersionFooter() {
   }
 
   return (
-    <footer className="flex h-12 flex-shrink-0 items-center justify-center bg-space border-t border-border px-6">
-      <Link
-        href="/changelog"
-        className="inline-flex h-4 items-center text-xs font-mono uppercase tracking-wider leading-none text-text-secondary hover:text-cyan-glow transition-colors"
-      >
-        v{versionInfo.version}
-      </Link>
+    <footer className="flex h-12 flex-shrink-0 items-center justify-between bg-space border-t border-border px-6">
+      <div>
+        <Link
+          href="/changelog"
+          className="inline-flex h-4 items-center text-xs font-mono uppercase tracking-wider leading-none text-text-secondary hover:text-cyan-glow transition-colors"
+        >
+          v{versionInfo.version}
+        </Link>
+      </div>
+
+      <div className="flex items-center gap-4">
+        <Link
+          href="/privacy"
+          className="text-xs font-mono text-text-secondary hover:text-cyan-glow"
+        >
+          Privacy
+        </Link>
+        <Link
+          href="/terms"
+          className="text-xs font-mono text-text-secondary hover:text-cyan-glow"
+        >
+          Terms
+        </Link>
+        <Link
+          href="/impressum"
+          className="text-xs font-mono text-text-secondary hover:text-cyan-glow"
+        >
+          Impressum
+        </Link>
+      </div>
     </footer>
   );
 }
