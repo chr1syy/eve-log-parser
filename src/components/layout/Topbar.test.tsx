@@ -34,7 +34,7 @@ describe("Topbar Component", () => {
     vi.clearAllMocks();
   });
 
-  it("renders login button when not authenticated", () => {
+  it("does not render auth controls when not authenticated", () => {
     (useAuth as any).mockReturnValue({
       isAuthenticated: false,
       character: null,
@@ -52,10 +52,14 @@ describe("Topbar Component", () => {
 
     render(<Topbar title="Test Page" />);
 
-    const loginButton = screen.getByRole("button", {
+    const loginButton = screen.queryByRole("button", {
       name: /log in with eve online/i,
     });
-    expect(loginButton).toBeInTheDocument();
+    expect(loginButton).not.toBeInTheDocument();
+    const characterButton = screen.queryByRole("button", {
+      name: /character menu/i,
+    });
+    expect(characterButton).not.toBeInTheDocument();
   });
 
   it("renders character info and logout button when authenticated", () => {

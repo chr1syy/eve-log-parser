@@ -11,7 +11,6 @@ import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useParsedLogs } from "@/hooks/useParsedLogs";
 import { useAuth } from "@/contexts/AuthContext";
-import EveSsoButton from "@/components/auth/EveSsoButton";
 
 interface TopbarProps {
   title: string;
@@ -25,7 +24,7 @@ export default function Topbar({ title }: TopbarProps) {
   const router = useRouter();
   const { logs, activeLog, needsRecovery, restoreFromUserId } =
     useParsedLogs();
-  const { isAuthenticated, character, isLoading: authLoading } = useAuth();
+  const { isAuthenticated, character } = useAuth();
   const [authMenuOpen, setAuthMenuOpen] = useState(false);
   const authMenuRef = useRef<HTMLDivElement>(null);
 
@@ -78,10 +77,6 @@ export default function Topbar({ title }: TopbarProps) {
 
   async function handleLogout() {
     await signOut({ redirect: true, redirectTo: "/" });
-  }
-
-  function handleLogin() {
-    router.push("/signin");
   }
 
   return (
@@ -154,15 +149,6 @@ export default function Topbar({ title }: TopbarProps) {
                     </button>
                   </div>
                 )}
-              </>
-            ) : !authLoading ? (
-              <>
-                {/* Unauthenticated: Show login button */}
-                <EveSsoButton
-                  size="small"
-                  variant="white"
-                  onClick={handleLogin}
-                />
               </>
             ) : null}
             {/* Loading state: show nothing while auth is initializing */}

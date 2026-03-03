@@ -31,10 +31,10 @@ export default function VersionFooter() {
   }
 
   return (
-    <footer className="flex-shrink-0 px-6 py-3 bg-space border-t border-border text-center">
+    <footer className="flex h-12 flex-shrink-0 items-center justify-center bg-space border-t border-border px-6">
       <Link
         href="/changelog"
-        className="font-mono text-sm text-text-secondary hover:text-cyan-glow transition-colors"
+        className="inline-flex h-4 items-center text-xs font-mono uppercase tracking-wider leading-none text-text-secondary hover:text-cyan-glow transition-colors"
       >
         v{versionInfo.version}
       </Link>

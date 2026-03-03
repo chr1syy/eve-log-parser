@@ -74,10 +74,10 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer area */}
-      <div className="px-6 py-3 bg-space border-t border-border flex-shrink-0">
+      <div className="flex h-12 flex-shrink-0 items-center bg-space border-t border-border px-6">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-status-safe animate-pulse flex-shrink-0" />
-          <span className="text-xs text-text-muted font-mono uppercase tracking-wider">
+          <span className="inline-flex h-4 items-center text-xs text-text-muted font-mono uppercase tracking-wider leading-none">
             System Online
           </span>
         </div>
