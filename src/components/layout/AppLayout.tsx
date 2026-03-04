@@ -1,6 +1,7 @@
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import VersionFooter from "./VersionFooter";
+import ConsentBanner from "../ConsentBanner";
 
 interface AppLayoutProps {
   title: string;
@@ -23,6 +24,7 @@ export default function AppLayout({ title, children }: AppLayoutProps) {
 
         {/* Footer */}
         <VersionFooter />
+        <ConsentBanner />
       </div>
     </div>
   );

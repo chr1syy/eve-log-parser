@@ -55,6 +55,12 @@ export default function VersionFooter() {
           Terms
         </Link>
       </div>
+      <div className="hidden md:flex items-center gap-2 text-xs text-text-muted ml-4">
+        <span>EVE® is a registered trademark of </span>
+        <a href="https://www.ccpgames.com/" className="text-cyan-glow">
+          CCP hf.
+        </a>
+      </div>
     </footer>
   );
 }
