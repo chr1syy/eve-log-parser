@@ -1,22 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 const KEY = "eve_consent_analytics";
 
 export function useConsent() {
-  const [consent, setConsent] = useState<boolean | null>(null);
-
-  useEffect(() => {
+  const [consent, setConsent] = useState<boolean | null>(() => {
+    if (typeof window === "undefined") return null;
     try {
       const raw = localStorage.getItem(KEY);
-      if (raw === "true") setConsent(true);
-      else if (raw === "false") setConsent(false);
-      else setConsent(null);
+      if (raw === "true") return true;
+      if (raw === "false") return false;
+      return null;
     } catch {
-      setConsent(null);
+      return null;
     }
-  }, []);
+  });
 
   function giveConsent() {
     try {

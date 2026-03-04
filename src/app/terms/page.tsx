@@ -11,7 +11,7 @@ export default function TermsPage() {
             <h1 className="text-3xl font-bold mb-2">Terms of Service</h1>
 
             <p className="text-text-secondary mb-4">
-              These Terms of Service ("Terms") govern your use of the EVE Log
+              These Terms of Service (&ldquo;Terms&rdquo;) govern your use of the EVE Log
               Parser application. Have legal counsel review them if you need
               formal legal advice.
             </p>
@@ -62,7 +62,7 @@ export default function TermsPage() {
             <section className="mb-4">
               <h3 className="font-semibold">5. Liability & warranty</h3>
               <p className="text-text-secondary">
-                The service is provided "as is" without warranties. Liability is
+                The service is provided &ldquo;as is&rdquo; without warranties. Liability is
                 limited to the maximum extent permitted by law.
               </p>
             </section>
