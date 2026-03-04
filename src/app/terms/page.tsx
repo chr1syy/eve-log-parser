@@ -70,7 +70,8 @@ export default function TermsPage() {
             <section className="mb-4">
               <h3 className="font-semibold">6. Governing law</h3>
               <p className="text-text-secondary">
-                These Terms are governed by the laws of [Your Jurisdiction].
+                These Terms are governed by the laws of Germany and, where
+                applicable, the laws of the European Union.
               </p>
             </section>
 
