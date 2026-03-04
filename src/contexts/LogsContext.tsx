@@ -296,6 +296,8 @@ export function LogsProvider({ children }: { children: ReactNode }) {
   const autoRestoredRef = useRef(false);
   // Track which character ID we've already loaded server logs for
   const loadedForCharacterRef = useRef<string | null>(null);
+  // Holds an anonymous userId pending server restore until auth status resolves
+  const pendingAnonRestoreRef = useRef<string | null>(null);
 
   const { data: session, status: sessionStatus } = useSession();
   const isAuthenticated =
@@ -355,44 +357,57 @@ export function LogsProvider({ children }: { children: ReactNode }) {
         // Ignore corrupt storage
       }
     } else {
-      // Auto-restore: userId present but no local logs (quota eviction).
-      // Silently re-fetch all user logs from the server in the background.
-      void (async () => {
-        try {
-          const res = await fetch(`/api/user-logs?userId=${resolvedUserId}`);
-          if (!res.ok) return;
-          const { logs: metas } = (await res.json()) as {
-            logs: Array<{ sessionId: string }>;
-          };
-          if (!metas || metas.length === 0) return;
-
-          const isAnonymous = isAnonymousUserId(resolvedUserId);
-          const metasToLoad = isAnonymous ? metas.slice(0, 1) : metas;
-          const restored: ParsedLog[] = [];
-
-          for (const meta of metasToLoad) {
-            try {
-              const logRes = await fetch(
-                `/api/user-logs/${meta.sessionId}?userId=${resolvedUserId}`,
-              );
-              if (!logRes.ok) continue;
-              const { log } = (await logRes.json()) as { log: ParsedLog };
-              restored.push(hydrateLog(log));
-            } catch {
-              // Skip individual failed fetches
-            }
-          }
-
-          if (restored.length > 0) {
-            dispatch({ type: "REPLACE_LOGS", payload: restored });
-          }
-        } catch {
-          // Ignore network errors during silent restore
-        }
-      })();
+      // Defer anonymous server restore until we know the auth status.
+      // Avoids a 403 when the user is authenticated but localStorage still
+      // holds an anonymous UUID from a previous logout cycle.
+      pendingAnonRestoreRef.current = resolvedUserId;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Anonymous server restore: fires once auth status is known.
+  // Only proceeds when the user is unauthenticated — authenticated users are
+  // handled by the EVE SSO effect below.
+  useEffect(() => {
+    if (sessionStatus === "loading") return;
+
+    const pendingUserId = pendingAnonRestoreRef.current;
+    pendingAnonRestoreRef.current = null;
+
+    if (sessionStatus === "authenticated" || !pendingUserId) return;
+    if (!isAnonymousUserId(pendingUserId)) return;
+
+    void (async () => {
+      try {
+        const res = await fetch(`/api/user-logs?userId=${pendingUserId}`);
+        if (!res.ok) return;
+        const { logs: metas } = (await res.json()) as {
+          logs: Array<{ sessionId: string }>;
+        };
+        if (!metas || metas.length === 0) return;
+
+        const restored: ParsedLog[] = [];
+        for (const meta of metas.slice(0, 1)) {
+          try {
+            const logRes = await fetch(
+              `/api/user-logs/${meta.sessionId}?userId=${pendingUserId}`,
+            );
+            if (!logRes.ok) continue;
+            const { log } = (await logRes.json()) as { log: ParsedLog };
+            restored.push(hydrateLog(log));
+          } catch {
+            // Skip individual failed fetches
+          }
+        }
+
+        if (restored.length > 0) {
+          dispatch({ type: "REPLACE_LOGS", payload: restored });
+        }
+      } catch {
+        // Ignore network errors during silent restore
+      }
+    })();
+  }, [sessionStatus]);
 
   // When authenticated via EVE SSO, override userId with character ID and
   // load any server-persisted logs for that character (cross-device restore).
@@ -435,6 +450,7 @@ export function LogsProvider({ children }: { children: ReactNode }) {
         };
         if (!metas || metas.length === 0) return;
 
+        const restored: ParsedLog[] = [];
         for (const meta of metas) {
           try {
             const logRes = await fetch(
@@ -442,9 +458,20 @@ export function LogsProvider({ children }: { children: ReactNode }) {
             );
             if (!logRes.ok) continue;
             const { log } = (await logRes.json()) as { log: ParsedLog };
-            dispatch({ type: "SET_ACTIVE_LOG", payload: hydrateLog(log) });
+            restored.push(hydrateLog(log));
           } catch {
             // Skip individual failed fetches
+          }
+        }
+        // Add all logs in one synchronous pass — React 18 batches these
+        // dispatches into a single render, eliminating the per-log flicker.
+        // ADD_LOG upserts without changing the active log; SET_ACTIVE_LOG
+        // on the last entry sets the final active log once.
+        for (let i = 0; i < restored.length; i++) {
+          if (i < restored.length - 1) {
+            dispatch({ type: "ADD_LOG", payload: restored[i] });
+          } else {
+            dispatch({ type: "SET_ACTIVE_LOG", payload: restored[i] });
           }
         }
       } catch {
