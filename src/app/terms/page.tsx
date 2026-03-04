@@ -78,13 +78,9 @@ export default function TermsPage() {
               <h3 className="font-semibold">Contact</h3>
               <p className="text-text-secondary">
                 Contact:{" "}
-                <a
-                  className="text-cyan-glow"
-                  href="mailto:legal@eve-log-parser.app"
-                >
-                  legal@eve-log-parser.app
+                <a className="text-cyan-glow" href="mailto:logs@bleuel-it.de">
+                  logs@bleuel-it.de
                 </a>
-                .
               </p>
             </section>
           </div>

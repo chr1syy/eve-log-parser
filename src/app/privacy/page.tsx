@@ -69,12 +69,11 @@ export default function PrivacyPage() {
                 establishing a dedicated contact address — for now email
                 <a
                   className="ml-1 text-cyan-glow"
-                  href="mailto:privacy@eve-log-parser.app"
+                  href="mailto:logs@bleuel-it.de"
                 >
-                  privacy@eve-log-parser.app
+                  logs@bleuel-it.de
                 </a>
-                or open an issue on the project GitHub and we will process the
-                removal manually.
+                .
               </p>
             </section>
 
@@ -94,9 +93,9 @@ export default function PrivacyPage() {
                 personal data. To exercise these rights contact
                 <a
                   className="ml-1 text-cyan-glow"
-                  href="mailto:privacy@eve-log-parser.app"
+                  href="mailto:logs@bleuel-it.de"
                 >
-                  privacy@eve-log-parser.app
+                  logs@bleuel-it.de
                 </a>
                 .
               </p>
@@ -105,12 +104,9 @@ export default function PrivacyPage() {
             <section>
               <h3 className="font-semibold">Contact</h3>
               <p className="text-text-secondary">
-                Data controller: [Company Name], [Address]. Email:{" "}
-                <a
-                  className="text-cyan-glow"
-                  href="mailto:privacy@eve-log-parser.app"
-                >
-                  privacy@eve-log-parser.app
+                Contact:{" "}
+                <a className="text-cyan-glow" href="mailto:logs@bleuel-it.de">
+                  logs@bleuel-it.de
                 </a>
               </p>
             </section>
