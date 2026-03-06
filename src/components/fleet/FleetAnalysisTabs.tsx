@@ -20,7 +20,7 @@ import {
   FleetParticipant,
 } from "@/types/fleet";
 import type { LogEntry } from "@/lib/types";
-import { formatNumber } from "@/lib/utils";
+import { formatLogTime, formatNumber } from "@/lib/utils";
 
 interface FleetAnalysisTabsProps {
   sessionData: FleetSession;
@@ -76,12 +76,7 @@ function computePerPilotReps(
   for (let i = 0; i < numBuckets; i++) {
     const t = tMin + i * bucketMs;
     const point: Record<string, unknown> = {
-      label: new Date(t).toLocaleTimeString(undefined, {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false,
-      }),
+      label: formatLogTime(t),
     };
     const m = buckets.get(t);
     for (const pilot of pilots) {

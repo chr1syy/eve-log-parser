@@ -563,7 +563,7 @@ export function parseCombatLine(
       case null: {
         // Outgoing miss: "Your WeaponName misses TargetName completely - WeaponName"
         const outgoingMiss = clean.match(
-          /^Your (.+?) misses (.+?) completely(?:\s+-\s+(.+))?$/,
+          /^Your (?:group of )?(.+?) misses (.+?) completely(?:\s+-\s+(.+))?$/,
         );
         if (outgoingMiss) {
           base.eventType = "miss-outgoing";

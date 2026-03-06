@@ -11,6 +11,7 @@ import type { TackleWindow } from "@/lib/analysis/damageDealt";
 import { generateDamageDealtTimeSeries } from "@/lib/analysis/damageDealt";
 import { analyzeDamageTaken } from "@/lib/analysis/damageTaken";
 import { analyzeReps } from "@/lib/analysis/repAnalysis";
+import { formatLogTime } from "@/lib/utils";
 import {
   ComposedChart,
   Line,
@@ -215,17 +216,6 @@ export function useCombinedChartData(entries: LogEntry[]): CombinedChartData {
   }, [entries]);
 }
 
-export function formatTime(date: Date): string {
-  if (isNaN(date.getTime())) return "--:--:--";
-  return date.toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-    timeZone: "UTC",
-  });
-}
-
 // Placeholder — chart rendering added in Task 1b
 interface TooltipEntry {
   dataKey?: string;
@@ -269,7 +259,7 @@ function CombinedTooltip({
   return (
     <div className="bg-[#1a1a1a] border border-[#444] px-3 py-2 rounded-sm font-mono text-xs">
       {ts != null && (
-        <p className="text-[#888] mb-1">{formatTime(new Date(ts))}</p>
+        <p className="text-[#888] mb-1">{formatLogTime(ts)}</p>
       )}
       {payload.map((entry) => {
         if (entry.value == null) return null;
@@ -407,7 +397,7 @@ export default function CombinedChart({
             type="number"
             scale="time"
             domain={["dataMin", "dataMax"]}
-            tickFormatter={(ts: number) => formatTime(new Date(ts))}
+            tickFormatter={(ts: number) => formatLogTime(ts)}
             tick={{ fill: "#888", fontSize: 11 }}
             tickLine={false}
           />
@@ -565,7 +555,7 @@ export default function CombinedChart({
             stroke="#e53e3e"
             fill="#0d0d0d"
             travellerWidth={8}
-            tickFormatter={(ts: number) => formatTime(new Date(ts))}
+            tickFormatter={(ts: number) => formatLogTime(ts)}
             onChange={handleBrushChange}
             {...(brushIndices ?? {})}
           />

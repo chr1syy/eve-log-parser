@@ -9,6 +9,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { formatLogTime } from "@/lib/utils";
 
 interface CapTimelineChartProps {
   timeline: {
@@ -17,15 +18,6 @@ interface CapTimelineChartProps {
     module: string;
     shipType: string;
   }[];
-}
-
-function formatTime(date: Date): string {
-  return date.toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
 }
 
 // Module color map - red tones for neuts (up to 5 distinct colors)
@@ -55,7 +47,7 @@ function CustomTooltip({ active, payload }: any) {
   };
   return (
     <div className="bg-overlay border border-[#00d4ff40] px-3 py-2 rounded-sm font-mono text-xs backdrop-blur">
-      <p className="text-text-secondary mb-1">{formatTime(point.timestamp)}</p>
+      <p className="text-text-secondary mb-1">{formatLogTime(point.timestamp)}</p>
       <p className="text-status-kill font-bold">
         {point.gjAmount.toLocaleString()} GJ neutralized
       </p>
@@ -79,7 +71,7 @@ export default function CapTimelineChart({ timeline }: CapTimelineChartProps) {
   const data = timeline.map((point) => ({
     ...point,
     timestampMs: point.timestamp.getTime(),
-    timeLabel: formatTime(point.timestamp),
+    timeLabel: formatLogTime(point.timestamp),
     color: getModuleColor(point.module),
   }));
 
@@ -103,7 +95,7 @@ export default function CapTimelineChart({ timeline }: CapTimelineChartProps) {
             }}
             axisLine={{ stroke: "#1a2540" }}
             tickLine={false}
-            tickFormatter={(ts: number) => formatTime(new Date(ts))}
+            tickFormatter={(ts: number) => formatLogTime(ts)}
           />
           <YAxis
             tick={{

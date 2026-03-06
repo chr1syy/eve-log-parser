@@ -21,6 +21,7 @@ import type {
   TackleWindow,
 } from "@/lib/analysis/damageDealt";
 import type { TrackingSeries } from "@/lib/types";
+import { formatLogTime } from "@/lib/utils";
 
 interface DamageDealtChartProps {
   series: DamageDealtTimeSeries;
@@ -31,15 +32,6 @@ interface DamageDealtChartProps {
   // Optional key that, when changed, forces the Brush sliders to remount and
   // snap to the full domain. Page-level RESET should increment this key.
   resetKey?: number;
-}
-
-function formatTime(date: Date): string {
-  return date.toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
 }
 
 function isInTackleWindow(
@@ -86,10 +78,10 @@ function CustomTooltip({ active, payload, tackleWindows }: CustomTooltipProps) {
     timestampMs: number;
   };
   if (!point) return null;
-  const tackleWindow = isInTackleWindow(point.timestampMs, tackleWindows ?? []);
+    const tackleWindow = isInTackleWindow(point.timestampMs, tackleWindows ?? []);
   return (
     <div className="bg-overlay border border-[#00d4ff40] px-3 py-2 rounded-sm font-mono text-xs backdrop-blur space-y-1">
-      <p className="text-text-secondary">{formatTime(point.timestamp)}</p>
+      <p className="text-text-secondary">{formatLogTime(point.timestamp)}</p>
       <p className="text-[#00d4ff] font-bold">
         DPS: {point.dps.toLocaleString(undefined, { maximumFractionDigits: 1 })}
       </p>

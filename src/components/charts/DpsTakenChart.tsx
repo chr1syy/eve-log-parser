@@ -19,6 +19,7 @@ import type {
   AttackerTimeSeries,
 } from "@/lib/analysis/damageTaken";
 import type { RepTimeSeriesPoint } from "@/lib/analysis/repAnalysis";
+import { formatLogTime } from "@/lib/utils";
 
 interface DpsTakenChartProps {
   timeSeries: TimeSeriesDpsPoint[];
@@ -38,13 +39,7 @@ function toDate(value: TimeValue): Date {
 
 function formatTime(value: TimeValue): string {
   const date = toDate(value);
-  if (Number.isNaN(date.getTime())) return "--:--:--";
-  return date.toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
+  return formatLogTime(date);
 }
 
 interface TooltipPayloadEntry {
@@ -76,7 +71,7 @@ function CustomTooltip({
 
   return (
     <div className="bg-overlay border border-[#00d4ff40] px-3 py-2 rounded-sm font-mono text-xs backdrop-blur">
-      <p className="text-text-secondary mb-1">{formatTime(point.timestamp)}</p>
+      <p className="text-text-secondary mb-1">{formatLogTime(point.timestamp)}</p>
       {dpsPoint && (
         <p className="text-status-kill font-bold">
           DPS IN:{" "}
@@ -128,7 +123,7 @@ export default function DpsTakenChart({
       timeSeries.map((point) => ({
         ...point,
         timestampMs: toDate(point.timestamp).getTime(),
-        timeLabel: formatTime(point.timestamp),
+        timeLabel: formatLogTime(point.timestamp),
       })),
     [timeSeries],
   );
@@ -185,7 +180,7 @@ export default function DpsTakenChart({
       merged.push({
         timestampMs: ts,
         timestamp: new Date(ts),
-        timeLabel: formatTime(new Date(ts)),
+        timeLabel: formatLogTime(ts),
         dps: d ? d.dps : lastDps,
         fightIndex: d ? d.fightIndex : lastFightIndex,
         repsPerSecond: lastRps,

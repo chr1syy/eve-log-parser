@@ -19,7 +19,7 @@ import type { Column } from "@/components/ui/DataTable";
 import { analyzeDamageDealt } from "@/lib/analysis/damageDealt";
 import type { WeaponApplicationSummary } from "@/lib/analysis/damageDealt";
 import type { LogEntry } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, formatLogTime } from "@/lib/utils";
 
 // ── Colour palette for per-pilot lines ───────────────────────────────────────
 
@@ -72,12 +72,7 @@ function computePerPilotDps(
   for (let i = 0; i < numBuckets; i++) {
     const t = tMin + i * bucketMs;
     const point: Record<string, unknown> = {
-      label: new Date(t).toLocaleTimeString(undefined, {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false,
-      }),
+      label: formatLogTime(t),
     };
     const m = buckets.get(t);
     for (const pilot of pilots) {

@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import { analyzeCapPressure } from "@/lib/analysis/capAnalysis";
 import type { LogEntry } from "@/lib/types";
+import { formatLogTime } from "@/lib/utils";
 
 interface CapHitTimelineChartProps {
   entries: LogEntry[];
@@ -42,16 +43,6 @@ const OUTGOING_PALETTE = [
 
 const INCOMING_COLOR = "#c2410c";
 
-function formatTime(ts: number): string {
-  return new Date(ts).toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-    timeZone: "UTC",
-  });
-}
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function CustomTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
@@ -60,7 +51,7 @@ function CustomTooltip({ active, payload }: any) {
   const color = payload[0].fill as string;
   return (
     <div className="bg-overlay border border-[#00d4ff40] px-3 py-2 rounded-sm font-mono text-xs backdrop-blur">
-      <p className="text-text-secondary mb-1">{formatTime(pt.timestampMs)}</p>
+      <p className="text-text-secondary mb-1">{formatLogTime(pt.timestampMs)}</p>
       {pt.gjAmount === 0 ? (
         <p className="font-bold" style={{ color }}>
           DRY HIT — 0 GJ
@@ -202,7 +193,7 @@ export default function CapHitTimelineChart({
             }}
             axisLine={{ stroke: "#1a2540" }}
             tickLine={false}
-            tickFormatter={(ts: number) => formatTime(ts)}
+            tickFormatter={(ts: number) => formatLogTime(ts)}
           />
           <YAxis
             tick={{

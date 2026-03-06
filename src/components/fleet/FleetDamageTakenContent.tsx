@@ -22,7 +22,7 @@ import { filterOutHostileNpcs } from "@/lib/npcFilter";
 import type { RepSourceSummary } from "@/lib/analysis/repAnalysis";
 import type { LogEntry } from "@/lib/types";
 import Button from "@/components/ui/Button";
-import { formatNumber } from "@/lib/utils";
+import { formatLogTime, formatNumber } from "@/lib/utils";
 
 function fmtDps(n: number): string {
   return n.toLocaleString(undefined, {
@@ -32,12 +32,7 @@ function fmtDps(n: number): string {
 }
 
 function fmtTime(d: Date): string {
-  return d.toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
+  return formatLogTime(d);
 }
 
 // Per-pilot damage taken chart helpers
@@ -92,7 +87,7 @@ function computePerPilotDamageTaken(entries: LogEntry[]) {
     const row: Record<string, number | Date | string> = {
       timestampMs: ts,
       timestamp: new Date(ts),
-      timeLabel: fmtTime(new Date(ts)),
+      timeLabel: formatLogTime(ts),
     };
     for (const p of pilots) {
       row[p] = bucket[p] ?? 0;
@@ -140,7 +135,7 @@ function FleetPilotDamageTakenChart({ entries }: { entries: LogEntry[] }) {
             }}
             axisLine={{ stroke: "#1a2540" }}
             tickLine={false}
-            tickFormatter={(ts: number) => fmtTime(new Date(ts))}
+            tickFormatter={(ts: number) => formatLogTime(ts)}
           />
           <YAxis
             tick={{
@@ -159,7 +154,7 @@ function FleetPilotDamageTakenChart({ entries }: { entries: LogEntry[] }) {
               return (
                 <div className="bg-overlay border border-[#00d4ff40] px-3 py-2 rounded-sm font-mono text-xs backdrop-blur">
                   <p className="text-text-secondary mb-1">
-                    {fmtTime(point.timestamp as Date)}
+                    {formatLogTime(point.timestamp as Date | number)}
                   </p>
                   {pilots.map((p, i) => (
                     <p key={p} className="text-text-primary">
