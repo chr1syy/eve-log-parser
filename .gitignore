@@ -2,6 +2,7 @@
 
 # Fleet session persistence file (local data, not for version control)
 .fleet-sessions.json
+dsr-requests.log
 
 # dependencies
 /node_modules

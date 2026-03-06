@@ -55,10 +55,15 @@ export default function UploadPage() {
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const pageSize = 10;
-  const totalPages = Math.max(1, Math.ceil(logs.length / pageSize));
+  const sortedLogs = [...logs].sort((a, b) => {
+    const aTime = a.parsedAt ? new Date(a.parsedAt as unknown as string).getTime() : 0;
+    const bTime = b.parsedAt ? new Date(b.parsedAt as unknown as string).getTime() : 0;
+    return bTime - aTime;
+  });
+  const totalPages = Math.max(1, Math.ceil(sortedLogs.length / pageSize));
   const pageStart = (page - 1) * pageSize;
   const pageEnd = pageStart + pageSize;
-  const pagedLogs = logs.slice(pageStart, pageEnd);
+  const pagedLogs = sortedLogs.slice(pageStart, pageEnd);
 
   useEffect(() => {
     if (page > totalPages) {
