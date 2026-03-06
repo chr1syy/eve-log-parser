@@ -9,18 +9,24 @@ export function useConsent() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    try {
-      const raw = localStorage.getItem(KEY);
-      if (raw === "true") {
-        setConsent(true);
-      } else if (raw === "false") {
-        setConsent(false);
-      } else {
+    const timer = window.setTimeout(() => {
+      try {
+        const raw = localStorage.getItem(KEY);
+        if (raw === "true") {
+          setConsent(true);
+        } else if (raw === "false") {
+          setConsent(false);
+        } else {
+          setConsent(null);
+        }
+      } catch {
         setConsent(null);
       }
-    } catch {
-      setConsent(null);
-    }
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, []);
 
   function giveConsent() {

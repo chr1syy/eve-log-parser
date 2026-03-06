@@ -350,7 +350,6 @@ export function LogsProvider({ children }: { children: ReactNode }) {
       // holds an anonymous UUID from a previous logout cycle.
       pendingAnonRestoreRef.current = resolvedUserId;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Anonymous server restore: fires once auth status is known.
