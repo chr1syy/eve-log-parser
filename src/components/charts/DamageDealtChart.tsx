@@ -23,6 +23,8 @@ import type {
 import type { TrackingSeries } from "@/lib/types";
 import { formatLogTime } from "@/lib/utils";
 
+const formatTime = formatLogTime;
+
 interface DamageDealtChartProps {
   series: DamageDealtTimeSeries;
   zoomedWindow?: { start: Date; end: Date };
@@ -81,7 +83,7 @@ function CustomTooltip({ active, payload, tackleWindows }: CustomTooltipProps) {
     const tackleWindow = isInTackleWindow(point.timestampMs, tackleWindows ?? []);
   return (
     <div className="bg-overlay border border-[#00d4ff40] px-3 py-2 rounded-sm font-mono text-xs backdrop-blur space-y-1">
-      <p className="text-text-secondary">{formatLogTime(point.timestamp)}</p>
+      <p className="text-text-secondary">{formatTime(point.timestamp)}</p>
       <p className="text-[#00d4ff] font-bold">
         DPS: {point.dps.toLocaleString(undefined, { maximumFractionDigits: 1 })}
       </p>

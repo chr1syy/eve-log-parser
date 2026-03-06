@@ -16,6 +16,8 @@ import { analyzeCapPressure } from "@/lib/analysis/capAnalysis";
 import type { LogEntry } from "@/lib/types";
 import { formatLogTime } from "@/lib/utils";
 
+const formatTime = formatLogTime;
+
 interface CapHitTimelineChartProps {
   entries: LogEntry[];
 }
