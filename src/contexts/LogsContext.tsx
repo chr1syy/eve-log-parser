@@ -303,26 +303,8 @@ export function LogsProvider({ children }: { children: ReactNode }) {
   const isAuthenticated =
     sessionStatus === "authenticated" && !!session?.user;
 
-  const initial = useMemo(() => {
-    if (typeof window === "undefined") {
-      return { userId: null, needsRecovery: false };
-    }
-
-    const storedUserId = localStorage.getItem(USER_ID_KEY);
-    const parsedLogsRaw = localStorage.getItem(STORAGE_KEY);
-    const needsRecovery = !storedUserId && !parsedLogsRaw;
-
-    let resolvedUserId = storedUserId;
-    if (!resolvedUserId) {
-      resolvedUserId = generateUUID();
-      localStorage.setItem(USER_ID_KEY, resolvedUserId);
-    }
-
-    return { userId: resolvedUserId, needsRecovery };
-  }, []);
-
-  const [userId, setUserId] = useState<string | null>(initial.userId);
-  const [needsRecovery, setNeedsRecovery] = useState(initial.needsRecovery);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [needsRecovery, setNeedsRecovery] = useState(false);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -331,17 +313,23 @@ export function LogsProvider({ children }: { children: ReactNode }) {
     if (autoRestoredRef.current) return;
     autoRestoredRef.current = true;
 
+    const storedUserId = localStorage.getItem(USER_ID_KEY);
     const parsedLogsRaw = localStorage.getItem(STORAGE_KEY);
+    const computedNeedsRecovery = !storedUserId && !parsedLogsRaw;
 
-    if (needsRecovery) {
-      userIdRef.current = initial.userId;
-      return;
+    let resolvedUserId = storedUserId;
+    if (!resolvedUserId) {
+      resolvedUserId = generateUUID();
+      localStorage.setItem(USER_ID_KEY, resolvedUserId);
     }
 
-    // Resolve or generate userId
-    const resolvedUserId = initial.userId;
     userIdRef.current = resolvedUserId;
     setUserId(resolvedUserId);
+    setNeedsRecovery(computedNeedsRecovery);
+
+    if (computedNeedsRecovery) {
+      return;
+    }
 
     if (parsedLogsRaw) {
       // Normal hydration from localStorage
