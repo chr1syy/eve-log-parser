@@ -41,7 +41,14 @@ const PILOT_COLORS = [
 function computePerPilotDps(
   entries: LogEntry[],
   bucketSecs = 30,
-): { data: Array<{ label: string; timestampMs: number; [pilot: string]: number | string }>; pilots: string[] } {
+): {
+  data: Array<{
+    label: string;
+    timestampMs: number;
+    [pilot: string]: number | string;
+  }>;
+  pilots: string[];
+} {
   const dmgEntries = entries.filter((e) => e.eventType === "damage-dealt");
   if (dmgEntries.length === 0) return { data: [], pilots: [] };
 
@@ -500,7 +507,8 @@ export default function FleetDamageDealtContent({
       brushWindow
         ? entries.filter(
             (e) =>
-              e.timestamp >= brushWindow.start && e.timestamp <= brushWindow.end,
+              e.timestamp >= brushWindow.start &&
+              e.timestamp <= brushWindow.end,
           )
         : entries,
     [entries, brushWindow],

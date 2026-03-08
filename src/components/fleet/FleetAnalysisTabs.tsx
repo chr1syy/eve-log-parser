@@ -109,15 +109,19 @@ function RepsTab({
   const windowedEntries = useMemo(() => {
     if (!brushWindow) return entries;
     return entries.filter(
-      (e) =>
-        e.timestamp >= brushWindow.start && e.timestamp <= brushWindow.end,
+      (e) => e.timestamp >= brushWindow.start && e.timestamp <= brushWindow.end,
     );
   }, [entries, brushWindow]);
 
   const pilotStats = useMemo(() => {
     const byPilot = new Map<
       string,
-      { pilotName: string; shipType: string; repsGiven: number; repsTaken: number }
+      {
+        pilotName: string;
+        shipType: string;
+        repsGiven: number;
+        repsTaken: number;
+      }
     >();
     const lookupByPilot = new Map(
       participants.map((p) => [p.pilotName, p.shipType]),
@@ -427,9 +431,8 @@ export default function FleetAnalysisTabs({
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [brushWindow, setBrushWindow] = useState<BrushWindow | null>(null);
   const [brushResetKey, setBrushResetKey] = useState(0);
-  const [initialBrushWindow, setInitialBrushWindow] = useState<BrushWindow | null>(
-    null,
-  );
+  const [initialBrushWindow, setInitialBrushWindow] =
+    useState<BrushWindow | null>(null);
 
   const handleBrushChange = (start: Date, end: Date) => {
     setBrushWindow({ start, end });

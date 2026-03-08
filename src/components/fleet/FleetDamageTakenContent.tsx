@@ -53,7 +53,10 @@ const PILOT_COLORS = [
 function computePerPilotDamageTaken(entries: LogEntry[]) {
   const damageEvents = entries.filter((e) => e.eventType === "damage-received");
   if (damageEvents.length === 0)
-    return { pilots: [] as string[], data: [] as Record<string, number | Date | string>[] };
+    return {
+      pilots: [] as string[],
+      data: [] as Record<string, number | Date | string>[],
+    };
 
   const bucketMs = 30 * 1000; // 30s buckets
   const tsSorted = damageEvents
@@ -215,7 +218,15 @@ function FleetPilotDamageTakenChart({
             width={56}
           />
           <Tooltip
-            content={({ active, payload }: { active?: boolean; payload?: ReadonlyArray<{ payload: Record<string, number | Date | string> }> }) => {
+            content={({
+              active,
+              payload,
+            }: {
+              active?: boolean;
+              payload?: ReadonlyArray<{
+                payload: Record<string, number | Date | string>;
+              }>;
+            }) => {
               if (!active || !payload?.length) return null;
               const point = payload[0]?.payload;
               return (
@@ -599,7 +610,8 @@ export default function FleetDamageTakenContent({
       brushWindow
         ? filteredEntries.filter(
             (e) =>
-              e.timestamp >= brushWindow.start && e.timestamp <= brushWindow.end,
+              e.timestamp >= brushWindow.start &&
+              e.timestamp <= brushWindow.end,
           )
         : filteredEntries,
     [brushWindow, filteredEntries],
