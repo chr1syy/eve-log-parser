@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import FleetOverviewTab from "@/components/fleet/FleetOverviewTab";
 import type { FleetCombatAnalysis } from "@/types/fleet";
+import type { LogEntry } from "@/lib/types";
 
 describe("FleetOverviewTab", () => {
   const mockFleetCombatAnalysis: FleetCombatAnalysis = {
@@ -111,5 +112,50 @@ describe("FleetOverviewTab", () => {
     render(<FleetOverviewTab fleetCombatAnalysis={mockFleetCombatAnalysis} />);
 
     expect(screen.getByText("Fleet Enemies")).toBeInTheDocument();
+  });
+
+  it("recomputes total stats from brush-windowed entries when provided", () => {
+    const entries: LogEntry[] = [
+      {
+        id: "1",
+        timestamp: new Date("2026-01-01T00:00:00.000Z"),
+        rawLine: "[combat]",
+        eventType: "damage-dealt",
+        amount: 1000,
+      },
+      {
+        id: "2",
+        timestamp: new Date("2026-01-01T00:00:10.000Z"),
+        rawLine: "[combat]",
+        eventType: "damage-received",
+        amount: 500,
+      },
+      {
+        id: "3",
+        timestamp: new Date("2026-01-01T00:00:20.000Z"),
+        rawLine: "[combat]",
+        eventType: "rep-outgoing",
+        amount: 200,
+      },
+      {
+        id: "4",
+        timestamp: new Date("2026-01-01T00:05:00.000Z"),
+        rawLine: "[combat]",
+        eventType: "damage-dealt",
+        amount: 50000,
+      },
+    ];
+
+    render(
+      <FleetOverviewTab
+        fleetCombatAnalysis={mockFleetCombatAnalysis}
+        entries={entries}
+        brushWindow={{ start: new Date("2026-01-01T00:00:00.000Z"), end: new Date("2026-01-01T00:00:30.000Z") }}
+      />,);
+
+    expect(screen.getByText("Showing zoomed selection")).toBeInTheDocument();
+    expect(screen.getByText("1.0K ISK")).toBeInTheDocument();
+    expect(screen.getByText("500 ISK")).toBeInTheDocument();
+    expect(screen.getByText("200 HP")).toBeInTheDocument();
   });
 });

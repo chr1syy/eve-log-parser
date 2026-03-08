@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Sword } from "lucide-react";
 import {
   ComposedChart,
@@ -11,6 +11,7 @@ import {
   Legend,
   ResponsiveContainer,
   CartesianGrid,
+  Brush,
 } from "recharts";
 import Panel from "@/components/ui/Panel";
 import StatCard from "@/components/dashboard/StatCard";
@@ -40,7 +41,7 @@ const PILOT_COLORS = [
 function computePerPilotDps(
   entries: LogEntry[],
   bucketSecs = 30,
-): { data: Record<string, unknown>[]; pilots: string[] } {
+): { data: Array<{ label: string; timestampMs: number; [pilot: string]: number | string }>; pilots: string[] } {
   const dmgEntries = entries.filter((e) => e.eventType === "damage-dealt");
   if (dmgEntries.length === 0) return { data: [], pilots: [] };
 
@@ -73,6 +74,7 @@ function computePerPilotDps(
     const t = tMin + i * bucketMs;
     const point: Record<string, unknown> = {
       label: formatLogTime(t),
+      timestampMs: t,
     };
     const m = buckets.get(t);
     for (const pilot of pilots) {
@@ -86,12 +88,66 @@ function computePerPilotDps(
 
 interface FleetPilotDpsChartProps {
   entries: LogEntry[];
+  onBrushChange?: (start: Date, end: Date) => void;
+  brushResetKey?: number;
+  initialBrushWindow?: { start: Date; end: Date } | null;
 }
 
-function FleetPilotDpsChart({ entries }: FleetPilotDpsChartProps) {
+function FleetPilotDpsChart({
+  entries,
+  onBrushChange,
+  brushResetKey,
+  initialBrushWindow,
+}: FleetPilotDpsChartProps) {
   const { data, pilots } = useMemo(
     () => computePerPilotDps(entries),
     [entries],
+  );
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const brushIndices = useMemo(() => {
+    if (!initialBrushWindow || data.length === 0) return null;
+
+    const startTs = initialBrushWindow.start.getTime();
+    const endTs = initialBrushWindow.end.getTime();
+
+    const findClosestIndex = (targetTs: number) => {
+      let bestIndex = 0;
+      let bestDiff = Infinity;
+
+      for (let i = 0; i < data.length; i++) {
+        const point = data[i];
+        if (!point) continue;
+        const diff = Math.abs((point.timestampMs as number) - targetTs);
+        if (diff < bestDiff) {
+          bestDiff = diff;
+          bestIndex = i;
+        }
+      }
+      return bestIndex;
+    };
+
+    const startIndex = findClosestIndex(startTs);
+    const endIndex = findClosestIndex(endTs);
+    return {
+      startIndex: Math.min(startIndex, endIndex),
+      endIndex: Math.max(startIndex, endIndex),
+    };
+  }, [initialBrushWindow, data]);
+
+  const handleBrushChange = useCallback(
+    (brushData: { startIndex?: number; endIndex?: number }) => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        const { startIndex, endIndex } = brushData;
+        if (startIndex == null || endIndex == null) return;
+        const startTs = data[startIndex]?.timestampMs;
+        const endTs = data[endIndex]?.timestampMs;
+        if (startTs == null || endTs == null) return;
+        onBrushChange?.(new Date(startTs), new Date(endTs));
+      }, 300);
+    },
+    [data, onBrushChange],
   );
 
   if (data.length === 0) return null;
@@ -143,6 +199,17 @@ function FleetPilotDpsChart({ entries }: FleetPilotDpsChartProps) {
             activeDot={{ r: 4 }}
           />
         ))}
+        <Brush
+          key={brushResetKey}
+          dataKey="timestampMs"
+          height={28}
+          stroke="#e53e3e"
+          fill="#0d0d0d"
+          travellerWidth={8}
+          tickFormatter={(ts: number) => formatLogTime(ts)}
+          onChange={handleBrushChange}
+          {...(brushIndices ?? {})}
+        />
       </ComposedChart>
     </ResponsiveContainer>
   );
@@ -401,12 +468,40 @@ function WeaponTable({
 
 interface FleetDamageDealtContentProps {
   entries: LogEntry[];
+  brushWindow?: {
+    start: Date;
+    end: Date;
+  } | null;
+  onBrushChange?: (start: Date, end: Date) => void;
+  brushResetKey?: number;
+  initialBrushWindow?: {
+    start: Date;
+    end: Date;
+  } | null;
 }
 
 export default function FleetDamageDealtContent({
   entries,
+  brushWindow,
+  onBrushChange,
+  brushResetKey,
+  initialBrushWindow,
 }: FleetDamageDealtContentProps) {
-  const analysis = useMemo(() => analyzeDamageDealt(entries), [entries]);
+  const windowedEntries = useMemo(
+    () =>
+      brushWindow
+        ? entries.filter(
+            (e) =>
+              e.timestamp >= brushWindow.start && e.timestamp <= brushWindow.end,
+          )
+        : entries,
+    [entries, brushWindow],
+  );
+
+  const analysis = useMemo(
+    () => analyzeDamageDealt(windowedEntries),
+    [windowedEntries],
+  );
 
   // NOTE: engagement table / zoom state removed for Phase 05 matrix drill-down.
 
@@ -432,6 +527,11 @@ export default function FleetDamageDealtContent({
   return (
     <div className="space-y-6">
       {/* Stat cards */}
+      {brushWindow && (
+        <p className="font-mono text-xs uppercase tracking-widest text-text-muted">
+          Showing brush selection
+        </p>
+      )}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         <StatCard label="Best Single Hit" value={bestHit} variant="gold" />
         <StatCard label="Worst Hit" value={worstHit} variant="default" />
@@ -454,12 +554,17 @@ export default function FleetDamageDealtContent({
 
       {/* Per-pilot DPS chart */}
       <Panel title="DPS OVER TIME — PER PILOT (30s buckets)">
-        <FleetPilotDpsChart entries={entries} />
+        <FleetPilotDpsChart
+          entries={entries}
+          onBrushChange={onBrushChange}
+          brushResetKey={brushResetKey}
+          initialBrushWindow={initialBrushWindow}
+        />
       </Panel>
 
       {/* Drill-down: fleet pilot ↔ target */}
       <Panel title="DAMAGE MATRIX — FLEET PILOTS vs TARGETS">
-        <DamageDealtMatrix entries={entries} />
+        <DamageDealtMatrix entries={windowedEntries} />
       </Panel>
 
       {/* Weapons & Drones (no hit quality) */}

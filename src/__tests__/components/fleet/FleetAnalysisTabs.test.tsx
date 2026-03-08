@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import FleetAnalysisTabs from "@/components/fleet/FleetAnalysisTabs";
 import type { FleetSession } from "@/types/fleet";
+import type { LogEntry } from "@/lib/types";
 
 describe("FleetAnalysisTabs", () => {
   const mockSession: FleetSession = {
@@ -14,8 +15,8 @@ describe("FleetAnalysisTabs", () => {
         shipType: "Typhoon",
         damageDealt: 1500,
         damageTaken: 800,
-        repsGiven: 500,
-        repsTaken: 300,
+        repsGiven: 0,
+        repsTaken: 0,
         status: "active",
         logId: "log-1",
       },
@@ -96,5 +97,32 @@ describe("FleetAnalysisTabs", () => {
     fireEvent.click(screen.getByRole("button", { name: "Damage Dealt" }));
 
     expect(screen.queryByText("Fleet Participants")).not.toBeInTheDocument();
+  });
+
+  it("renders rep rows from rep entries even when participant totals are zero", () => {
+    const entries: LogEntry[] = [
+      {
+        id: "rep-1",
+        timestamp: new Date("2026-03-08T12:00:00.000Z"),
+        rawLine: "125 remote armor repaired to",
+        eventType: "rep-outgoing",
+        amount: 125,
+        fleetPilot: "Pilot One",
+      },
+    ];
+
+    render(
+      <FleetAnalysisTabs
+        sessionData={mockSession}
+        analysisReady={true}
+        entries={entries}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Reps" }));
+
+    expect(screen.getByText("Pilot One")).toBeInTheDocument();
+    expect(screen.getByText("125")).toBeInTheDocument();
+    expect(screen.getByText("Total reps given")).toBeInTheDocument();
   });
 });
