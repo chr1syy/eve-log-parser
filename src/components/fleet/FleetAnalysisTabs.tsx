@@ -14,6 +14,7 @@ import {
 import FleetOverviewTab from "./FleetOverviewTab";
 import FleetDamageDealtContent from "./FleetDamageDealtContent";
 import FleetDamageTakenContent from "./FleetDamageTakenContent";
+import Button from "@/components/ui/Button";
 import {
   FleetSession,
   FleetCombatAnalysis,
@@ -28,6 +29,11 @@ interface FleetAnalysisTabsProps {
   /** Merged LogEntry array from all uploaded pilot logs (timestamps already revived as Dates). */
   entries?: LogEntry[];
 }
+
+type BrushWindow = {
+  start: Date;
+  end: Date;
+};
 
 // ── Colour palette for per-pilot lines (re-used) ───────────────────────────────
 
@@ -93,21 +99,77 @@ function computePerPilotReps(
 
 function RepsTab({
   participants,
-  totalGiven,
   entries,
+  brushWindow,
 }: {
   participants: FleetParticipant[];
-  totalGiven: number;
   entries: LogEntry[];
+  brushWindow?: BrushWindow | null;
 }) {
-  const withReps = participants.filter(
-    (p) => p.repsGiven > 0 || p.repsTaken > 0,
-  );
-  const sorted = [...withReps].sort((a, b) => b.repsGiven - a.repsGiven);
+  const windowedEntries = useMemo(() => {
+    if (!brushWindow) return entries;
+    return entries.filter(
+      (e) => e.timestamp >= brushWindow.start && e.timestamp <= brushWindow.end,
+    );
+  }, [entries, brushWindow]);
+
+  const pilotStats = useMemo(() => {
+    const byPilot = new Map<
+      string,
+      {
+        pilotName: string;
+        shipType: string;
+        repsGiven: number;
+        repsTaken: number;
+      }
+    >();
+    const lookupByPilot = new Map(
+      participants.map((p) => [p.pilotName, p.shipType]),
+    );
+
+    const addPilot = (name: string): void => {
+      if (!byPilot.has(name)) {
+        byPilot.set(name, {
+          pilotName: name,
+          shipType: lookupByPilot.get(name) || "Unknown",
+          repsGiven: 0,
+          repsTaken: 0,
+        });
+      }
+    };
+
+    for (const entry of windowedEntries) {
+      const amount = entry.amount ?? 0;
+      if (entry.eventType === "rep-outgoing") {
+        const pilot = entry.fleetPilot ?? entry.pilotName ?? "Unknown";
+        addPilot(pilot);
+        byPilot.get(pilot)!.repsGiven += amount;
+      }
+
+      if (entry.eventType === "rep-received") {
+        const pilot = entry.fleetPilot ?? entry.pilotName ?? "Unknown";
+        addPilot(pilot);
+        byPilot.get(pilot)!.repsTaken += amount;
+      }
+    }
+
+    const repRows = [...byPilot.values()].filter(
+      (p) => p.repsGiven > 0 || p.repsTaken > 0,
+    );
+    const sorted = repRows.sort((a, b) => b.repsGiven - a.repsGiven);
+
+    const computedTotalGiven = sorted.reduce((sum, p) => sum + p.repsGiven, 0);
+    return { sorted, computedTotalGiven };
+  }, [windowedEntries, participants]);
+
+  const { sorted, computedTotalGiven } = pilotStats;
+
+  // Preserve chart behaviour on full timeline for now; Reps analysis stays zoom-aware.
   const { data: repsChartData, pilots: repsPilots } = useMemo(
     () => computePerPilotReps(entries),
     [entries],
   );
+
   if (sorted.length === 0) {
     return (
       <p className="text-text-muted text-center py-12">
@@ -185,7 +247,8 @@ function RepsTab({
         </div>
       )}
       {sorted.map((p) => {
-        const pct = totalGiven > 0 ? (p.repsGiven / totalGiven) * 100 : 0;
+        const pct =
+          computedTotalGiven > 0 ? (p.repsGiven / computedTotalGiven) * 100 : 0;
         return (
           <div
             key={p.pilotName}
@@ -226,7 +289,7 @@ function RepsTab({
       })}
       <div className="flex justify-between text-xs text-text-muted pt-1 px-1">
         <span>Total reps given</span>
-        <span className="font-mono">{formatNumber(totalGiven)}</span>
+        <span className="font-mono">{formatNumber(computedTotalGiven)}</span>
       </div>
     </div>
   );
@@ -366,6 +429,21 @@ export default function FleetAnalysisTabs({
   entries = [],
 }: FleetAnalysisTabsProps) {
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
+  const [brushWindow, setBrushWindow] = useState<BrushWindow | null>(null);
+  const [brushResetKey, setBrushResetKey] = useState(0);
+  const [initialBrushWindow, setInitialBrushWindow] =
+    useState<BrushWindow | null>(null);
+
+  const handleBrushChange = (start: Date, end: Date) => {
+    setBrushWindow({ start, end });
+    setInitialBrushWindow({ start, end });
+  };
+
+  const handleResetBrush = () => {
+    setBrushWindow(null);
+    setInitialBrushWindow(null);
+    setBrushResetKey((v) => v + 1);
+  };
 
   const fleetCombatAnalysis: FleetCombatAnalysis = useMemo(
     () => ({
@@ -399,38 +477,65 @@ export default function FleetAnalysisTabs({
       )}
 
       {/* Tab Navigation */}
-      <div className="flex gap-2 border-b border-border flex-wrap">
-        {TABS.map((tab) => (
-          <button
-            key={tab.key}
-            className={`px-4 py-2 ${
-              activeTab === tab.key
-                ? "text-text-primary border-b-2 border-accent"
-                : "text-text-muted hover:text-text-primary"
-            }`}
-            onClick={() => setActiveTab(tab.key)}
+      <div className="flex gap-2 border-b border-border flex-wrap justify-between">
+        <div className="flex gap-2 flex-wrap">
+          {TABS.map((tab) => (
+            <button
+              key={tab.key}
+              className={`px-4 py-2 ${
+                activeTab === tab.key
+                  ? "text-text-primary border-b-2 border-accent"
+                  : "text-text-muted hover:text-text-primary"
+              }`}
+              onClick={() => setActiveTab(tab.key)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        {brushWindow !== null && (
+          <Button
+            variant="secondary"
+            onClick={handleResetBrush}
+            className="text-xs mt-2"
           >
-            {tab.label}
-          </button>
-        ))}
+            {`Zoomed: ${formatLogTime(brushWindow.start)} – ${formatLogTime(brushWindow.end)} · Reset Zoom`}
+          </Button>
+        )}
       </div>
 
       {/* Tab Content */}
       <div>
         {activeTab === "overview" && (
-          <FleetOverviewTab fleetCombatAnalysis={fleetCombatAnalysis} />
+          <FleetOverviewTab
+            fleetCombatAnalysis={fleetCombatAnalysis}
+            entries={entries}
+            brushWindow={brushWindow}
+          />
         )}
         {activeTab === "damage-dealt" && (
-          <FleetDamageDealtContent entries={entries} />
+          <FleetDamageDealtContent
+            entries={entries}
+            brushWindow={brushWindow}
+            onBrushChange={handleBrushChange}
+            brushResetKey={brushResetKey}
+            initialBrushWindow={initialBrushWindow}
+          />
         )}
         {activeTab === "damage-taken" && (
-          <FleetDamageTakenContent entries={entries} />
+          <FleetDamageTakenContent
+            entries={entries}
+            brushWindow={brushWindow}
+            onBrushChange={handleBrushChange}
+            brushResetKey={brushResetKey}
+            initialBrushWindow={initialBrushWindow}
+          />
         )}
         {activeTab === "reps" && (
           <RepsTab
             participants={fleetCombatAnalysis.participants}
-            totalGiven={fleetCombatAnalysis.totalRepsGiven}
             entries={entries}
+            brushWindow={brushWindow}
           />
         )}
         {activeTab === "cap-pressure" && (

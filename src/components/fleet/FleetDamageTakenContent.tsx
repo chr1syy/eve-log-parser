@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ShieldAlert } from "lucide-react";
 import Panel from "@/components/ui/Panel";
 import Badge from "@/components/ui/Badge";
@@ -13,6 +13,7 @@ import {
   XAxis,
   YAxis,
   Tooltip,
+  Brush,
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
@@ -52,7 +53,10 @@ const PILOT_COLORS = [
 function computePerPilotDamageTaken(entries: LogEntry[]) {
   const damageEvents = entries.filter((e) => e.eventType === "damage-received");
   if (damageEvents.length === 0)
-    return { pilots: [] as string[], data: [] as Record<string, number | Date | string>[] };
+    return {
+      pilots: [] as string[],
+      data: [] as Record<string, number | Date | string>[],
+    };
 
   const bucketMs = 30 * 1000; // 30s buckets
   const tsSorted = damageEvents
@@ -98,11 +102,77 @@ function computePerPilotDamageTaken(entries: LogEntry[]) {
   return { pilots, data };
 }
 
-function FleetPilotDamageTakenChart({ entries }: { entries: LogEntry[] }) {
+interface FleetPilotDamageTakenChartProps {
+  entries: LogEntry[];
+  onBrushChange?: (start: Date, end: Date) => void;
+  brushResetKey?: number;
+  initialBrushWindow?: { start: Date; end: Date } | null;
+}
+
+function FleetPilotDamageTakenChart({
+  entries,
+  onBrushChange,
+  brushResetKey,
+  initialBrushWindow,
+}: FleetPilotDamageTakenChartProps) {
   const { pilots, data } = useMemo(
     () => computePerPilotDamageTaken(entries),
     [entries],
   );
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const brushIndices = useMemo(() => {
+    if (!initialBrushWindow || data.length === 0) return null;
+
+    const startTs = initialBrushWindow.start.getTime();
+    const endTs = initialBrushWindow.end.getTime();
+
+    const findClosestIndex = (targetTs: number) => {
+      let bestIndex = 0;
+      let bestDiff = Infinity;
+
+      for (let i = 0; i < data.length; i++) {
+        const point = data[i];
+        if (!point) continue;
+        const diff = Math.abs((point.timestampMs as number) - targetTs);
+        if (diff < bestDiff) {
+          bestDiff = diff;
+          bestIndex = i;
+        }
+      }
+      return bestIndex;
+    };
+
+    const startIndex = findClosestIndex(startTs);
+    const endIndex = findClosestIndex(endTs);
+    return {
+      startIndex: Math.min(startIndex, endIndex),
+      endIndex: Math.max(startIndex, endIndex),
+    };
+  }, [initialBrushWindow, data]);
+
+  const handleBrushChange = useCallback(
+    (brushData: { startIndex?: number; endIndex?: number }) => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        const { startIndex, endIndex } = brushData;
+        if (startIndex == null || endIndex == null) return;
+        const startTs = data[startIndex]?.timestampMs;
+        const endTs = data[endIndex]?.timestampMs;
+        if (startTs == null || endTs == null) return;
+        onBrushChange?.(new Date(startTs), new Date(endTs));
+      }, 300);
+    },
+    [data, onBrushChange],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
 
   if (!data || data.length === 0 || pilots.length === 0) {
     return (
@@ -148,7 +218,15 @@ function FleetPilotDamageTakenChart({ entries }: { entries: LogEntry[] }) {
             width={56}
           />
           <Tooltip
-            content={({ active, payload }: { active?: boolean; payload?: ReadonlyArray<{ payload: Record<string, number | Date | string> }> }) => {
+            content={({
+              active,
+              payload,
+            }: {
+              active?: boolean;
+              payload?: ReadonlyArray<{
+                payload: Record<string, number | Date | string>;
+              }>;
+            }) => {
               if (!active || !payload?.length) return null;
               const point = payload[0]?.payload;
               return (
@@ -184,6 +262,17 @@ function FleetPilotDamageTakenChart({ entries }: { entries: LogEntry[] }) {
               animationDuration={600}
             />
           ))}
+          <Brush
+            key={brushResetKey}
+            dataKey="timestampMs"
+            height={28}
+            stroke="#e53e3e"
+            fill="#0d0d0d"
+            travellerWidth={8}
+            tickFormatter={(ts: number) => formatLogTime(ts)}
+            onChange={handleBrushChange}
+            {...(brushIndices ?? {})}
+          />
         </ComposedChart>
       </ResponsiveContainer>
     </div>
@@ -490,10 +579,24 @@ function RepTable({
 
 interface FleetDamageTakenContentProps {
   entries: LogEntry[];
+  brushWindow?: {
+    start: Date;
+    end: Date;
+  } | null;
+  onBrushChange?: (start: Date, end: Date) => void;
+  brushResetKey?: number;
+  initialBrushWindow?: {
+    start: Date;
+    end: Date;
+  } | null;
 }
 
 export default function FleetDamageTakenContent({
   entries,
+  brushWindow,
+  onBrushChange,
+  brushResetKey,
+  initialBrushWindow,
 }: FleetDamageTakenContentProps) {
   const [hideNpcs, setHideNpcs] = useState(false);
 
@@ -502,14 +605,26 @@ export default function FleetDamageTakenContent({
     [entries, hideNpcs],
   );
 
+  const windowedEntries = useMemo(
+    () =>
+      brushWindow
+        ? filteredEntries.filter(
+            (e) =>
+              e.timestamp >= brushWindow.start &&
+              e.timestamp <= brushWindow.end,
+          )
+        : filteredEntries,
+    [brushWindow, filteredEntries],
+  );
+
   const damageAnalysis = useMemo(
-    () => analyzeDamageTaken(filteredEntries),
-    [filteredEntries],
+    () => analyzeDamageTaken(windowedEntries),
+    [windowedEntries],
   );
 
   const repAnalysis = useMemo(
-    () => analyzeReps(filteredEntries),
-    [filteredEntries],
+    () => analyzeReps(windowedEntries),
+    [windowedEntries],
   );
 
   if (damageAnalysis.totalIncomingHits === 0) {
@@ -543,10 +658,20 @@ export default function FleetDamageTakenContent({
 
       {/* Per-pilot incoming DPS chart */}
       <Panel title="INCOMING DPS — PER PILOT (30s buckets)">
-        <FleetPilotDamageTakenChart entries={filteredEntries} />
+        <FleetPilotDamageTakenChart
+          entries={filteredEntries}
+          onBrushChange={onBrushChange}
+          brushResetKey={brushResetKey}
+          initialBrushWindow={initialBrushWindow}
+        />
       </Panel>
 
       {/* Peak DPS */}
+      {brushWindow && (
+        <p className="font-mono text-xs uppercase tracking-widest text-text-muted">
+          Showing brush selection
+        </p>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
           label="PEAK DPS (10s)"
@@ -570,7 +695,7 @@ export default function FleetDamageTakenContent({
 
       {/* Per-pilot damage taken bars */}
       <Panel title="DAMAGE TAKEN — PER PILOT">
-        <PilotDamageTakenBars entries={filteredEntries} />
+        <PilotDamageTakenBars entries={windowedEntries} />
       </Panel>
 
       {/* Reps */}
