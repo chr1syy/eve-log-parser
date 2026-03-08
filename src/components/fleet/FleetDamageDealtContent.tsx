@@ -76,10 +76,18 @@ function computePerPilotDps(
   }
 
   const numBuckets = Math.ceil((tMax - tMin) / bucketMs) + 1;
-  const data: Record<string, unknown>[] = [];
+  const data: Array<{
+    label: string;
+    timestampMs: number;
+    [pilot: string]: number | string;
+  }> = [];
   for (let i = 0; i < numBuckets; i++) {
     const t = tMin + i * bucketMs;
-    const point: Record<string, unknown> = {
+    const point: {
+      label: string;
+      timestampMs: number;
+      [pilot: string]: number | string;
+    } = {
       label: formatLogTime(t),
       timestampMs: t,
     };
