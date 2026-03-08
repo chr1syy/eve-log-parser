@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Sword } from "lucide-react";
 import {
   ComposedChart,
@@ -149,6 +149,14 @@ function FleetPilotDpsChart({
     },
     [data, onBrushChange],
   );
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
 
   if (data.length === 0) return null;
 

@@ -99,12 +99,10 @@ function computePerPilotReps(
 
 function RepsTab({
   participants,
-  totalGiven,
   entries,
   brushWindow,
 }: {
   participants: FleetParticipant[];
-  totalGiven: number;
   entries: LogEntry[];
   brushWindow?: BrushWindow | null;
 }) {
@@ -161,8 +159,6 @@ function RepsTab({
   }, [windowedEntries, participants]);
 
   const { sorted, computedTotalGiven } = pilotStats;
-
-  void totalGiven;
 
   // Preserve chart behaviour on full timeline for now; Reps analysis stays zoom-aware.
   const { data: repsChartData, pilots: repsPilots } = useMemo(
@@ -535,7 +531,6 @@ export default function FleetAnalysisTabs({
         {activeTab === "reps" && (
           <RepsTab
             participants={fleetCombatAnalysis.participants}
-            totalGiven={fleetCombatAnalysis.totalRepsGiven}
             entries={entries}
             brushWindow={brushWindow}
           />

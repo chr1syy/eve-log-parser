@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ShieldAlert } from "lucide-react";
 import Panel from "@/components/ui/Panel";
 import Badge from "@/components/ui/Badge";
@@ -162,6 +162,14 @@ function FleetPilotDamageTakenChart({
     },
     [data, onBrushChange],
   );
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
 
   if (!data || data.length === 0 || pilots.length === 0) {
     return (
