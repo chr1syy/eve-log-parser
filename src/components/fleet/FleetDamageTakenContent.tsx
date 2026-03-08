@@ -579,7 +579,6 @@ export default function FleetDamageTakenContent({
   brushResetKey,
   initialBrushWindow,
 }: FleetDamageTakenContentProps) {
-  void brushWindow;
   const [hideNpcs, setHideNpcs] = useState(false);
 
   const filteredEntries = useMemo(
@@ -587,14 +586,25 @@ export default function FleetDamageTakenContent({
     [entries, hideNpcs],
   );
 
+  const windowedEntries = useMemo(
+    () =>
+      brushWindow
+        ? filteredEntries.filter(
+            (e) =>
+              e.timestamp >= brushWindow.start && e.timestamp <= brushWindow.end,
+          )
+        : filteredEntries,
+    [brushWindow, filteredEntries],
+  );
+
   const damageAnalysis = useMemo(
-    () => analyzeDamageTaken(filteredEntries),
-    [filteredEntries],
+    () => analyzeDamageTaken(windowedEntries),
+    [windowedEntries],
   );
 
   const repAnalysis = useMemo(
-    () => analyzeReps(filteredEntries),
-    [filteredEntries],
+    () => analyzeReps(windowedEntries),
+    [windowedEntries],
   );
 
   if (damageAnalysis.totalIncomingHits === 0) {
@@ -637,6 +647,11 @@ export default function FleetDamageTakenContent({
       </Panel>
 
       {/* Peak DPS */}
+      {brushWindow && (
+        <p className="font-mono text-xs uppercase tracking-widest text-text-muted">
+          Showing brush selection
+        </p>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
           label="PEAK DPS (10s)"
@@ -660,7 +675,7 @@ export default function FleetDamageTakenContent({
 
       {/* Per-pilot damage taken bars */}
       <Panel title="DAMAGE TAKEN — PER PILOT">
-        <PilotDamageTakenBars entries={filteredEntries} />
+        <PilotDamageTakenBars entries={windowedEntries} />
       </Panel>
 
       {/* Reps */}
