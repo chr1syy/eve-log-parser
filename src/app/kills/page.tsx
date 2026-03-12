@@ -2,12 +2,14 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { Upload } from "lucide-react";
+import { Upload, Crosshair } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 import Panel from "@/components/ui/Panel";
 import Button from "@/components/ui/Button";
 import KillRow from "@/components/kills/KillRow";
+import KillmailPanel from "@/components/kills/KillmailPanel";
 import { useParsedLogs } from "@/hooks/useParsedLogs";
+import { useKillmails } from "@/hooks/useKillmails";
 import type { EventType, LogEntry } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -27,6 +29,7 @@ function filterEntries(entries: LogEntry[], mode: FilterMode): LogEntry[] {
 
 export default function KillReportPage() {
   const { activeLog } = useParsedLogs();
+  const killmails = useKillmails(activeLog);
   const [filterMode, setFilterMode] = useState<FilterMode>("all");
 
   const hasLogs = activeLog !== null;
@@ -93,6 +96,17 @@ export default function KillReportPage() {
                 {label}
               </Button>
             ))}
+            {killmails.hasCandidates && (
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<Crosshair size={14} />}
+                onClick={killmails.fetch}
+                disabled={killmails.isLoading}
+              >
+                MATCH KILLMAILS
+              </Button>
+            )}
           </div>
 
           {/* Stats summary bar */}
@@ -131,6 +145,17 @@ export default function KillReportPage() {
               <KillTable entries={filteredEntries} />
             )}
           </Panel>
+
+          {/* Killmail matches */}
+          {(killmails.isLoading ||
+            killmails.matches.length > 0 ||
+            killmails.error !== null) && (
+            <KillmailPanel
+              matches={killmails.matches}
+              isLoading={killmails.isLoading}
+              error={killmails.error}
+            />
+          )}
         </div>
       )}
     </AppLayout>
