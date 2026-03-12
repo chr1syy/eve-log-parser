@@ -9,6 +9,7 @@ export type EventType =
   | "neut-dealt"
   | "nos-dealt"
   | "warp-scram"
+  | "kill-candidate"
   | "other";
 
 export type HitQuality =
@@ -80,6 +81,11 @@ export interface LogEntry {
   tackleDirection?: "outgoing" | "incoming"; // 'outgoing' = you tackled them
   tackleTarget?: string; // ship type of the vessel being tackled
   tackleSource?: string; // ship type of the scrambler (when incoming)
+
+  // Kill candidate fields
+  killCandidateTarget?: string; // extracted target name or ship type
+  killCandidateWeapon?: string; // weapon/module that deactivated (if present in the line)
+  killCandidateIsLoss?: boolean; // true if the notification indicates YOUR ship was destroyed
 }
 
 export interface ParsedLog {
