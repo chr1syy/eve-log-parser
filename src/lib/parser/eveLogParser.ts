@@ -772,6 +772,38 @@ function getLogFileName(file: LogFileInput): string {
   return "unknown-log";
 }
 
+// Kill candidate detection patterns for notify/None channels
+const DEACTIVATES_EXPLODE_RE =
+  /^(.+?)\s+deactivates as\s+(.+?)\s+begins to explode\.?$/i;
+const YOUR_SHIP_DESTROYED_RE =
+  /^Your\s+(.+?)\s+has been destroyed\.?$/i;
+
+function tryParseKillCandidate(
+  content: string,
+  channel: string,
+): { target?: string; weapon?: string; isLoss?: boolean } | null {
+  if (channel !== "notify" && channel !== "none") return null;
+
+  const deactivateMatch = content.match(DEACTIVATES_EXPLODE_RE);
+  if (deactivateMatch) {
+    return {
+      weapon: deactivateMatch[1].trim(),
+      target: deactivateMatch[2].trim(),
+      isLoss: false,
+    };
+  }
+
+  const yourShipMatch = content.match(YOUR_SHIP_DESTROYED_RE);
+  if (yourShipMatch) {
+    return {
+      target: yourShipMatch[1].trim(),
+      isLoss: true,
+    };
+  }
+
+  return null;
+}
+
 export async function parseLogFile(file: LogFileInput): Promise<ParsedLog> {
   const text = await readLogText(file);
   const lines = text.split(/\r\n|\n|\r/);
@@ -825,12 +857,25 @@ export async function parseLogFile(file: LogFileInput): Promise<ParsedLog> {
     if (channel === "hint" || channel === "question") continue;
 
     if (channel !== "combat") {
-      entries.push({
-        id,
-        timestamp,
-        rawLine: `(${channelRaw}) ${content}`.trim(),
-        eventType: "other",
-      });
+      const killCandidate = tryParseKillCandidate(content, channel);
+      if (killCandidate) {
+        entries.push({
+          id,
+          timestamp,
+          rawLine: `(${channelRaw}) ${content}`.trim(),
+          eventType: "kill-candidate",
+          killCandidateTarget: killCandidate.target,
+          killCandidateWeapon: killCandidate.weapon,
+          killCandidateIsLoss: killCandidate.isLoss,
+        });
+      } else {
+        entries.push({
+          id,
+          timestamp,
+          rawLine: `(${channelRaw}) ${content}`.trim(),
+          eventType: "other",
+        });
+      }
       continue;
     }
 
