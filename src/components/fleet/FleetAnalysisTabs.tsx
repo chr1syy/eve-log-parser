@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  Brush,
   ComposedChart,
   Line,
   XAxis,
@@ -15,6 +16,7 @@ import FleetOverviewTab from "./FleetOverviewTab";
 import FleetDamageDealtContent from "./FleetDamageDealtContent";
 import FleetDamageTakenContent from "./FleetDamageTakenContent";
 import Button from "@/components/ui/Button";
+import { BRUSH_STYLE } from "@/lib/chartConstants";
 import {
   FleetSession,
   FleetCombatAnalysis,
@@ -48,10 +50,16 @@ const PILOT_COLORS = [
   "#ff4500", // red-orange
 ];
 
+type RepsChartPoint = {
+  label: string;
+  timestampMs: number;
+  [pilot: string]: number | string;
+};
+
 function computePerPilotReps(
   entries: LogEntry[],
   bucketSecs = 30,
-): { data: Record<string, unknown>[]; pilots: string[] } {
+): { data: RepsChartPoint[]; pilots: string[] } {
   const repEntries = entries.filter((e) => e.eventType === "rep-received");
   if (repEntries.length === 0) return { data: [], pilots: [] };
 
@@ -78,11 +86,12 @@ function computePerPilotReps(
   }
 
   const numBuckets = Math.ceil((tMax - tMin) / bucketMs) + 1;
-  const data: Record<string, unknown>[] = [];
+  const data: RepsChartPoint[] = [];
   for (let i = 0; i < numBuckets; i++) {
     const t = tMin + i * bucketMs;
-    const point: Record<string, unknown> = {
+    const point: RepsChartPoint = {
       label: formatLogTime(t),
+      timestampMs: t,
     };
     const m = buckets.get(t);
     for (const pilot of pilots) {
@@ -101,10 +110,16 @@ function RepsTab({
   participants,
   entries,
   brushWindow,
+  onBrushChange,
+  brushResetKey,
+  initialBrushWindow,
 }: {
   participants: FleetParticipant[];
   entries: LogEntry[];
   brushWindow?: BrushWindow | null;
+  onBrushChange?: (start: Date, end: Date) => void;
+  brushResetKey?: number;
+  initialBrushWindow?: BrushWindow | null;
 }) {
   const windowedEntries = useMemo(() => {
     if (!brushWindow) return entries;
@@ -164,11 +179,65 @@ function RepsTab({
 
   const { sorted, computedTotalGiven } = pilotStats;
 
-  // Preserve chart behaviour on full timeline for now; Reps analysis stays zoom-aware.
+  // Chart stays on the full timeline so the brush has context to select from;
+  // pilotStats above already filters by the applied brush window.
   const { data: repsChartData, pilots: repsPilots } = useMemo(
     () => computePerPilotReps(entries),
     [entries],
   );
+
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const brushIndices = useMemo(() => {
+    if (!initialBrushWindow || repsChartData.length === 0) return null;
+
+    const startTs = initialBrushWindow.start.getTime();
+    const endTs = initialBrushWindow.end.getTime();
+
+    const findClosestIndex = (targetTs: number) => {
+      let bestIndex = 0;
+      let bestDiff = Infinity;
+      for (let i = 0; i < repsChartData.length; i++) {
+        const point = repsChartData[i];
+        if (!point) continue;
+        const diff = Math.abs(point.timestampMs - targetTs);
+        if (diff < bestDiff) {
+          bestDiff = diff;
+          bestIndex = i;
+        }
+      }
+      return bestIndex;
+    };
+
+    const startIndex = findClosestIndex(startTs);
+    const endIndex = findClosestIndex(endTs);
+    return {
+      startIndex: Math.min(startIndex, endIndex),
+      endIndex: Math.max(startIndex, endIndex),
+    };
+  }, [initialBrushWindow, repsChartData]);
+
+  const handleBrushChange = useCallback(
+    (brushData: { startIndex?: number; endIndex?: number }) => {
+      if (!onBrushChange) return;
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        const { startIndex, endIndex } = brushData;
+        if (startIndex == null || endIndex == null) return;
+        const startTs = repsChartData[startIndex]?.timestampMs;
+        const endTs = repsChartData[endIndex]?.timestampMs;
+        if (startTs == null || endTs == null) return;
+        onBrushChange(new Date(startTs), new Date(endTs));
+      }, 300);
+    },
+    [repsChartData, onBrushChange],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   if (sorted.length === 0) {
     return (
@@ -185,6 +254,7 @@ function RepsTab({
         <div>
           <ResponsiveContainer width="100%" height={260}>
             <ComposedChart
+              key={`reps-chart-${brushResetKey ?? 0}`}
               data={repsChartData}
               margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
             >
@@ -242,6 +312,17 @@ function RepsTab({
                   activeDot={{ r: 4 }}
                 />
               ))}
+              <Brush
+                dataKey="timestampMs"
+                {...BRUSH_STYLE}
+                tickFormatter={(ts: number) => formatLogTime(ts)}
+                onChange={handleBrushChange}
+                startIndex={brushIndices?.startIndex ?? 0}
+                endIndex={
+                  brushIndices?.endIndex ??
+                  Math.max(0, repsChartData.length - 1)
+                }
+              />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
@@ -536,6 +617,9 @@ export default function FleetAnalysisTabs({
             participants={fleetCombatAnalysis.participants}
             entries={entries}
             brushWindow={brushWindow}
+            onBrushChange={handleBrushChange}
+            brushResetKey={brushResetKey}
+            initialBrushWindow={initialBrushWindow}
           />
         )}
         {activeTab === "cap-pressure" && (

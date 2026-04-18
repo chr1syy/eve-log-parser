@@ -186,6 +186,7 @@ function FleetPilotDamageTakenChart({
     <div className="space-y-3">
       <ResponsiveContainer width="100%" height={280}>
         <ComposedChart
+          key={`dt-chart-${brushResetKey ?? 0}`}
           data={data}
           margin={{ top: 4, right: 8, left: 0, bottom: 0 }}
         >
@@ -271,7 +272,8 @@ function FleetPilotDamageTakenChart({
             travellerWidth={8}
             tickFormatter={(ts: number) => formatLogTime(ts)}
             onChange={handleBrushChange}
-            {...(brushIndices ?? {})}
+            startIndex={brushIndices?.startIndex ?? 0}
+            endIndex={brushIndices?.endIndex ?? Math.max(0, data.length - 1)}
           />
         </ComposedChart>
       </ResponsiveContainer>

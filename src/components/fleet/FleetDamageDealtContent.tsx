@@ -178,6 +178,7 @@ function FleetPilotDpsChart({
   return (
     <ResponsiveContainer width="100%" height={300}>
       <ComposedChart
+        key={`dd-chart-${brushResetKey ?? 0}`}
         data={data}
         margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
       >
@@ -231,7 +232,8 @@ function FleetPilotDpsChart({
           travellerWidth={8}
           tickFormatter={(ts: number) => formatLogTime(ts)}
           onChange={handleBrushChange}
-          {...(brushIndices ?? {})}
+          startIndex={brushIndices?.startIndex ?? 0}
+          endIndex={brushIndices?.endIndex ?? Math.max(0, data.length - 1)}
         />
       </ComposedChart>
     </ResponsiveContainer>
