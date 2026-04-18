@@ -87,8 +87,8 @@ describe("Fleet Component Integration Tests", () => {
     expect(screen.getByText("Total Reps Given")).toBeInTheDocument();
 
     // Verify aggregated metrics (1500 + 1200 = 2700 damage dealt)
-    expect(screen.getByText("2.7K ISK")).toBeInTheDocument(); // Total damage dealt
-    expect(screen.getByText("700 ISK")).toBeInTheDocument(); // Total damage taken (300 + 400)
+    expect(screen.getByText("2.7K HP")).toBeInTheDocument(); // Total damage dealt
+    expect(screen.getByText("700 HP")).toBeInTheDocument(); // Total damage taken (300 + 400)
     expect(screen.getByText("350 HP")).toBeInTheDocument(); // Total reps given (200 + 150)
   });
 

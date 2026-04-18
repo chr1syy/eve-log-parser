@@ -79,11 +79,11 @@ export default function FleetOverviewTab({
         />
         <StatCard
           label="Total Damage Dealt"
-          value={`${formatNumber(scopedTotals.totalDamageDealt)} ISK`}
+          value={`${formatNumber(scopedTotals.totalDamageDealt)} HP`}
         />
         <StatCard
           label="Total Damage Received"
-          value={`${formatNumber(scopedTotals.totalDamageTaken)} ISK`}
+          value={`${formatNumber(scopedTotals.totalDamageTaken)} HP`}
         />
         <StatCard
           label="Total Reps Given"

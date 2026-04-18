@@ -87,10 +87,10 @@ describe("FleetOverviewTab", () => {
     expect(screen.getByText("15m 32s")).toBeInTheDocument();
 
     expect(screen.getByText("Total Damage Dealt")).toBeInTheDocument();
-    expect(screen.getByText("2.4B ISK")).toBeInTheDocument();
+    expect(screen.getByText("2.4B HP")).toBeInTheDocument();
 
     expect(screen.getByText("Total Damage Received")).toBeInTheDocument();
-    expect(screen.getByText("1.8B ISK")).toBeInTheDocument();
+    expect(screen.getByText("1.8B HP")).toBeInTheDocument();
 
     expect(screen.getByText("Total Reps Given")).toBeInTheDocument();
     expect(screen.getByText("890.0M HP")).toBeInTheDocument();
@@ -154,8 +154,8 @@ describe("FleetOverviewTab", () => {
       />,);
 
     expect(screen.getByText("Showing zoomed selection")).toBeInTheDocument();
-    expect(screen.getByText("1.0K ISK")).toBeInTheDocument();
-    expect(screen.getByText("500 ISK")).toBeInTheDocument();
+    expect(screen.getByText("1.0K HP")).toBeInTheDocument();
+    expect(screen.getByText("500 HP")).toBeInTheDocument();
     expect(screen.getByText("200 HP")).toBeInTheDocument();
   });
 });
