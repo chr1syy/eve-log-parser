@@ -12,6 +12,7 @@ import { generateDamageDealtTimeSeries } from "@/lib/analysis/damageDealt";
 import { analyzeDamageTaken } from "@/lib/analysis/damageTaken";
 import { analyzeReps } from "@/lib/analysis/repAnalysis";
 import { formatLogTime } from "@/lib/utils";
+import { BRUSH_STYLE } from "@/lib/chartConstants";
 import {
   ComposedChart,
   Line,
@@ -551,10 +552,7 @@ export default function CombinedChart({
 
           <Brush
             dataKey="timestamp"
-            height={28}
-            stroke="#e53e3e"
-            fill="#0d0d0d"
-            travellerWidth={8}
+            {...BRUSH_STYLE}
             tickFormatter={(ts: number) => formatLogTime(ts)}
             onChange={handleBrushChange}
             {...(brushIndices ?? {})}

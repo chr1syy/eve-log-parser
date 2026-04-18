@@ -15,6 +15,7 @@ import {
 import { analyzeCapPressure } from "@/lib/analysis/capAnalysis";
 import type { LogEntry } from "@/lib/types";
 import { formatLogTime } from "@/lib/utils";
+import { BRUSH_STYLE } from "@/lib/chartConstants";
 
 const formatTime = formatLogTime;
 
@@ -236,10 +237,7 @@ export default function CapHitTimelineChart({
           </Bar>
           <Brush
             dataKey="timestampMs"
-            height={28}
-            stroke="#e53e3e"
-            fill="#0d0d0d"
-            travellerWidth={8}
+            {...BRUSH_STYLE}
             startIndex={safeStart}
             endIndex={safeEnd}
             onChange={handleBrushChange}
