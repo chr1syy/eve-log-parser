@@ -40,6 +40,7 @@ export interface CombinedChartProps {
   onBrushChange?: (start: Date | null, end: Date | null) => void;
   brushResetKey?: number;
   initialBrushWindow?: { start: Date; end: Date } | null;
+  excludeDrones?: boolean;
 }
 
 // Internal — numeric timestamp so Recharts scale="time" works cleanly
@@ -146,14 +147,17 @@ function applyTrackingTiers(
   });
 }
 
-export function useCombinedChartData(entries: LogEntry[]): CombinedChartData {
+export function useCombinedChartData(
+  entries: LogEntry[],
+  excludeDrones?: boolean,
+): CombinedChartData {
   return useMemo(() => {
     const map = new Map<number, UnifiedPoint>();
     const toBucket = (ts: number) =>
       Math.floor(ts / UNIFIED_BUCKET_MS) * UNIFIED_BUCKET_MS;
 
     // Damage Out
-    const dealtSeries = generateDamageDealtTimeSeries(entries);
+    const dealtSeries = generateDamageDealtTimeSeries(entries, excludeDrones);
     for (const pt of dealtSeries.points) {
       const ts = toBucket(pt.timestamp.getTime());
       const existing = map.get(ts) ?? { timestamp: ts };
@@ -214,7 +218,7 @@ export function useCombinedChartData(entries: LogEntry[]): CombinedChartData {
       tackleWindows: dealtSeries.tackleWindows,
       hasTurretWeapons,
     };
-  }, [entries]);
+  }, [entries, excludeDrones]);
 }
 
 // Placeholder — chart rendering added in Task 1b
@@ -295,13 +299,14 @@ export default function CombinedChart({
   onBrushChange,
   brushResetKey,
   initialBrushWindow,
+  excludeDrones,
 }: CombinedChartProps) {
   const {
     points: unifiedData,
     fights,
     tackleWindows,
     hasTurretWeapons,
-  } = useCombinedChartData(entries);
+  } = useCombinedChartData(entries, excludeDrones);
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

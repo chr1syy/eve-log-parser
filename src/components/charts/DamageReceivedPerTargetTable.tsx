@@ -1,10 +1,11 @@
 "use client";
 
 import { useMemo } from "react";
-import type { LogEntry } from "@/lib/types";
+import type { HitQuality, LogEntry } from "@/lib/types";
 import Panel from "@/components/ui/Panel";
 import DataTable from "@/components/ui/DataTable";
 import type { Column } from "@/components/ui/DataTable";
+import HitQualityTooltip from "./HitQualityTooltip";
 
 interface AttackerRow {
   attacker: string;
@@ -17,6 +18,7 @@ interface AttackerRow {
   maxHit: number;
   avgHit: number;
   misses: number;
+  hitQualities: Partial<Record<HitQuality, number>>;
   firstHit: Date;
   lastHit: Date;
   [key: string]: unknown;
@@ -82,6 +84,14 @@ const COLUMNS: Column<AttackerRow>[] = [
     label: "Hits",
     sortable: true,
     numeric: true,
+    render: (v, row) => (
+      <HitQualityTooltip
+        hitQualities={row.hitQualities}
+        totalHits={row.hits}
+      >
+        <span>{(v as number).toLocaleString()}</span>
+      </HitQualityTooltip>
+    ),
   },
   {
     key: "minHit",
@@ -170,6 +180,14 @@ export default function DamageReceivedPerTargetTable({
       const corp = group.find((e) => e.corpTicker)?.corpTicker ?? "";
       const misses = missMap.get(key) ?? 0;
 
+      const hitQualities: Partial<Record<HitQuality, number>> = {};
+      for (const entry of group) {
+        if (entry.hitQuality) {
+          hitQualities[entry.hitQuality] =
+            (hitQualities[entry.hitQuality] ?? 0) + 1;
+        }
+      }
+
       result.push({
         attacker: attackerName,
         shipType,
@@ -181,6 +199,7 @@ export default function DamageReceivedPerTargetTable({
         maxHit,
         avgHit,
         misses,
+        hitQualities,
         firstHit: new Date(firstMs),
         lastHit: new Date(lastMs),
       });

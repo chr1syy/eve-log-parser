@@ -68,6 +68,7 @@ export default function ChartsClient() {
     reps: true,
     tracking: true,
   });
+  const [excludeDrones, setExcludeDrones] = useState(false);
   const [showTrackingInfo, setShowTrackingInfo] = useState(false);
   const trackingInfoRef = useRef<HTMLDivElement>(null);
 
@@ -309,15 +310,33 @@ export default function ChartsClient() {
             </div>
           )}
         </div>
-        {brushWindow && (
+        <div className="ml-auto flex items-center gap-2">
+          <span className="font-mono text-xs text-[#888] uppercase tracking-widest mr-1">
+            Filter:
+          </span>
           <button
             type="button"
-            onClick={handleResetBrush}
-            className="ml-auto px-3 py-1 font-mono text-xs border border-[#e53e3e] text-[#e53e3e] bg-transparent hover:bg-[#e53e3e] hover:text-[#0d0d0d] rounded-sm transition-colors"
+            aria-pressed={excludeDrones}
+            onClick={() => setExcludeDrones((v) => !v)}
+            className={`px-3 py-1 rounded-sm font-mono text-xs border transition-colors ${
+              excludeDrones
+                ? "bg-[#e58c00] border-[#e58c00] text-[#0d0d0d]"
+                : "bg-transparent text-[#888] border-[#333] hover:border-[#e58c00] hover:text-[#e58c00]"
+            }`}
+            title="Exclude drone damage and hits from the chart and damage-per-target table"
           >
-            Reset Zoom
+            Exclude Drones
           </button>
-        )}
+          {brushWindow && (
+            <button
+              type="button"
+              onClick={handleResetBrush}
+              className="px-3 py-1 font-mono text-xs border border-[#e53e3e] text-[#e53e3e] bg-transparent hover:bg-[#e53e3e] hover:text-[#0d0d0d] rounded-sm transition-colors"
+            >
+              Reset Zoom
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Chart + raw log panel side by side */}
@@ -334,6 +353,7 @@ export default function ChartsClient() {
               onBrushChange={handleBrushChange}
               brushResetKey={brushResetKey}
               initialBrushWindow={initialBrushWindow}
+              excludeDrones={excludeDrones}
             />
           )}
         </Panel>
@@ -370,6 +390,7 @@ export default function ChartsClient() {
           entries={entries}
           brushWindow={brushWindow}
           onTargetClick={handleTargetClick}
+          excludeDrones={excludeDrones}
         />
       )}
 

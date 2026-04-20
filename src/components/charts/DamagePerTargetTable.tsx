@@ -1,10 +1,11 @@
 "use client";
 
 import { useMemo } from "react";
-import type { LogEntry } from "@/lib/types";
+import type { HitQuality, LogEntry } from "@/lib/types";
 import Panel from "@/components/ui/Panel";
 import DataTable from "@/components/ui/DataTable";
 import type { Column } from "@/components/ui/DataTable";
+import HitQualityTooltip from "./HitQualityTooltip";
 
 interface TargetRow {
   target: string;
@@ -17,6 +18,7 @@ interface TargetRow {
   maxHit: number;
   avgHit: number;
   misses: number;
+  hitQualities: Partial<Record<HitQuality, number>>;
   firstHit: Date;
   lastHit: Date;
   [key: string]: unknown;
@@ -26,6 +28,7 @@ export interface DamagePerTargetTableProps {
   entries: LogEntry[];
   brushWindow: { start: Date; end: Date } | null;
   onTargetClick?: (start: Date, end: Date) => void;
+  excludeDrones?: boolean;
 }
 
 const COLUMNS: Column<TargetRow>[] = [
@@ -82,6 +85,14 @@ const COLUMNS: Column<TargetRow>[] = [
     label: "Hits",
     sortable: true,
     numeric: true,
+    render: (v, row) => (
+      <HitQualityTooltip
+        hitQualities={row.hitQualities}
+        totalHits={row.hits}
+      >
+        <span>{(v as number).toLocaleString()}</span>
+      </HitQualityTooltip>
+    ),
   },
   {
     key: "minHit",
@@ -126,6 +137,7 @@ export default function DamagePerTargetTable({
   entries,
   brushWindow,
   onTargetClick,
+  excludeDrones,
 }: DamagePerTargetTableProps) {
   const rows = useMemo((): TargetRow[] => {
     const windowedEntries =
@@ -140,6 +152,7 @@ export default function DamagePerTargetTable({
     const missMap = new Map<string, number>();
 
     for (const entry of windowedEntries) {
+      if (excludeDrones && entry.isDrone) continue;
       const targetName = entry.pilotName ?? entry.shipType ?? "Unknown";
       const shipType = entry.shipType ?? "Unknown";
       const key = `${targetName}||${shipType}`;
@@ -170,6 +183,14 @@ export default function DamagePerTargetTable({
       const corp = group.find((e) => e.corpTicker)?.corpTicker ?? "";
       const misses = missMap.get(key) ?? 0;
 
+      const hitQualities: Partial<Record<HitQuality, number>> = {};
+      for (const entry of group) {
+        if (entry.hitQuality) {
+          hitQualities[entry.hitQuality] =
+            (hitQualities[entry.hitQuality] ?? 0) + 1;
+        }
+      }
+
       result.push({
         target: targetName,
         shipType,
@@ -181,6 +202,7 @@ export default function DamagePerTargetTable({
         maxHit,
         avgHit,
         misses,
+        hitQualities,
         firstHit: new Date(firstMs),
         lastHit: new Date(lastMs),
       });
@@ -188,15 +210,16 @@ export default function DamagePerTargetTable({
 
     result.sort((a, b) => b.totalDamage - a.totalDamage);
     return result;
-  }, [entries, brushWindow]);
+  }, [entries, brushWindow, excludeDrones]);
 
   if (rows.length === 0) return null;
 
   const subtitle = brushWindow ? "brush selection" : "full session";
+  const droneNote = excludeDrones ? " · drones excluded" : "";
 
   return (
     <Panel
-      title={`DAMAGE PER TARGET — ${subtitle.toUpperCase()}`}
+      title={`DAMAGE PER TARGET — ${subtitle.toUpperCase()}${droneNote.toUpperCase()}`}
       headerAction={
         onTargetClick ? (
           <span className="font-mono text-[10px] text-text-muted uppercase tracking-widest">
