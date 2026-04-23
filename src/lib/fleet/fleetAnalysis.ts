@@ -140,11 +140,15 @@ export function aggregateCapPressure(
   const capDrainers = new Set<string>();
 
   for (const entry of entries) {
-    if (entry.eventType === "neut-received" && entry.capAmount) {
+    if (
+      (entry.eventType === "neut-received" ||
+        entry.eventType === "nos-received") &&
+      entry.capAmount
+    ) {
       const pilot = entry.fleetPilot || "Unknown";
       capDrained.set(pilot, (capDrained.get(pilot) || 0) + entry.capAmount);
     }
-    if (entry.eventType === "neut-dealt") {
+    if (entry.eventType === "neut-dealt" || entry.eventType === "nos-dealt") {
       const drainer = entry.fleetPilot || "Unknown";
       capDrainers.add(drainer);
     }

@@ -69,15 +69,19 @@ describe("Log A — Event type counts", () => {
   });
 
   it("counts neut-dealt entries", () => {
+    // Fixture line 10 uses the verb "energy drained from" which the parser
+    // (correctly per real EVE-log syntax) classifies as nos-dealt regardless of
+    // module-name text. There are no actual `energy neutralized` outgoing
+    // lines in this fixture, so neut-dealt count is 0.
     expect(
       parsed.entries.filter((e) => e.eventType === "neut-dealt").length,
-    ).toBe(1);
+    ).toBe(0);
   });
 
   it("counts nos-dealt entries", () => {
     expect(
       parsed.entries.filter((e) => e.eventType === "nos-dealt").length,
-    ).toBe(0);
+    ).toBe(1);
   });
 });
 
@@ -359,11 +363,14 @@ describe("Log A — analyzeCapPressure", () => {
     ).toBe(true);
   });
 
-  it("nos-dealt zeroHits is greater than 0", () => {
+  it("classifies the outgoing 300 GJ drain as nos-dealt with capAmount 300", () => {
     const cap = analyzeCapPressure(parsed.entries);
     const nosSummary = cap.outgoingModuleSummaries.find(
       (m) => m.eventType === "nos-dealt",
     );
-    expect(nosSummary).toBeUndefined();
+    expect(nosSummary).toBeDefined();
+    expect(nosSummary!.totalGj).toBe(300);
+    expect(nosSummary!.hitCount).toBe(1);
+    expect(nosSummary!.zeroHits).toBe(0);
   });
 });

@@ -132,6 +132,7 @@ export default function CapPressurePerSourceTable({
     const capEntries = windowedEntries.filter(
       (e) =>
         e.capEventType === "neut-received" ||
+        e.capEventType === "nos-received" ||
         e.capEventType === "neut-dealt" ||
         e.capEventType === "nos-dealt",
     );

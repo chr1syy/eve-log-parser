@@ -465,28 +465,81 @@ describe("parseCombatLine — neut-dealt", () => {
 });
 
 // ────────────────────────────────────────────────────────────
-// parseCombatLine — nos-dealt
+// parseCombatLine — nos-received
+//   "energy drained to <X>" with the red colour means an enemy nos pulled
+//   cap FROM you TO them — incoming pressure, not your own nos.
 // ────────────────────────────────────────────────────────────
-describe("parseCombatLine — nos-dealt", () => {
+describe("parseCombatLine — nos-received", () => {
   const ts = new Date("2025-10-23T02:10:23");
 
-  it("parses a nos-dealt line with -0 GJ", () => {
+  it("parses an incoming nos line with -0 GJ as nos-received", () => {
     const raw =
       "<color=0xffe57f7f><b>-0 GJ</b><color=0x77ffffff><font size=10> energy drained to </font><b><color=0xffffffff><fontsize=12><color=0xFFFFFF00><b> <u>Brutix Navy Issue</u></b></color></fontsize></b></fontsize></b><color=0x77ffffff><font size=10> - Medium Energy Nosferatu II</font>";
     const entry = parseCombatLine(raw, ts, "test-10");
-    expect(entry.eventType).toBe("nos-dealt");
-    expect(entry.capEventType).toBe("nos-dealt");
-    expect(entry.direction).toBe("outgoing");
+    expect(entry.eventType).toBe("nos-received");
+    expect(entry.capEventType).toBe("nos-received");
+    expect(entry.direction).toBe("incoming");
     expect(entry.capAmount).toBe(0);
     expect(entry.capShipType).toBe("Brutix Navy Issue");
     expect(entry.capModule).toBe("Medium Energy Nosferatu II");
   });
 
-  it("parses a nos-dealt line with -7 GJ", () => {
+  it("parses an incoming nos line with -7 GJ", () => {
     const raw =
       "<color=0xffe57f7f><b>-7 GJ</b><color=0x77ffffff><font size=10> energy drained to </font><b><color=0xffffffff><fontsize=12><color=0xFFFFFF00><b> <u>Typhoon</u></b></color></fontsize></b></fontsize></b><color=0x77ffffff><font size=10> - Medium Energy Nosferatu II</font>";
     const entry = parseCombatLine(raw, ts, "test-11");
+    expect(entry.eventType).toBe("nos-received");
     expect(entry.capAmount).toBe(7);
+  });
+
+  it("parses a player-attacker incoming nos line with the [Corp] suffix", () => {
+    const raw =
+      '<color=0xffe57f7f><b>-33 GJ</b><color=0x77ffffff><font size=10> energy drained to </font><b><color=0xffffffff><font size=14><color=0xFF40FF40>Osprey Navy Issue </color></font><font size=11>[PastyWhiteDevil] -</font></b><color=0x77ffffff><font size=10> - Medium Ghoul Compact Energy Nosferatu</font>';
+    const entry = parseCombatLine(raw, ts, "test-12");
+    expect(entry.eventType).toBe("nos-received");
+    expect(entry.capAmount).toBe(33);
+    expect(entry.capModule).toBe("Medium Ghoul Compact Energy Nosferatu");
+  });
+});
+
+// ────────────────────────────────────────────────────────────
+// parseCombatLine — nos-dealt
+//   "energy drained from <X>" with the cyan colour means YOUR nos pulled
+//   cap from <X> into your capacitor. Amounts in the log are prefixed "+N".
+// ────────────────────────────────────────────────────────────
+describe("parseCombatLine — nos-dealt", () => {
+  const ts = new Date("2025-10-23T02:10:48");
+
+  it("parses an outgoing nos line with +12 GJ", () => {
+    const raw =
+      "<color=0xff7fffff><b>+12 GJ</b><color=0x77ffffff><font size=10> energy drained from </font><b><color=0xffffffff><fontsize=12><color=0xFFFFFF00><b> <u>Brutix Navy Issue</u></b></color></fontsize></b></fontsize></b><color=0x77ffffff><font size=10> - Heavy Energy Nosferatu II</font>";
+    const entry = parseCombatLine(raw, ts, "test-13");
+    expect(entry.eventType).toBe("nos-dealt");
+    expect(entry.capEventType).toBe("nos-dealt");
+    expect(entry.direction).toBe("outgoing");
+    expect(entry.capAmount).toBe(12);
+    expect(entry.capShipType).toBe("Brutix Navy Issue");
+    expect(entry.capModule).toBe("Heavy Energy Nosferatu II");
+  });
+
+  it("parses a +0 GJ outgoing nos line as a true zero hit (not undefined)", () => {
+    const raw =
+      '<color=0xff7fffff><b>+0 GJ</b><color=0x77ffffff><font size=10> energy drained from </font><b><color=0xffffffff><font size=14><color=0xFF40FF40>Inquisitor </color></font><font size=11>[Xerathul Naskingar] -</font></b><color=0x77ffffff><font size=10> - Small Ghoul Compact Energy Nosferatu</font>';
+    const entry = parseCombatLine(raw, ts, "test-14");
+    expect(entry.eventType).toBe("nos-dealt");
+    expect(entry.capEventType).toBe("nos-dealt");
+    expect(entry.capAmount).toBe(0);
+    expect(entry.capModule).toBe("Small Ghoul Compact Energy Nosferatu");
+  });
+
+  it("parses an NPC-target outgoing nos line", () => {
+    const raw =
+      "<color=0xff7fffff><b>+4 GJ</b><color=0x77ffffff><font size=10> energy drained from </font><b><color=0xffffffff>Sansha's Loyal Ravener</b><color=0x77ffffff><font size=10> - Heavy Energy Nosferatu II</font>";
+    const entry = parseCombatLine(raw, ts, "test-15");
+    expect(entry.eventType).toBe("nos-dealt");
+    expect(entry.capAmount).toBe(4);
+    expect(entry.capShipType).toBe("Sansha's Loyal Ravener");
+    expect(entry.capModule).toBe("Heavy Energy Nosferatu II");
   });
 });
 

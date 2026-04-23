@@ -458,20 +458,20 @@ export function parseCombatLine(
       }
 
       case "0xffe57f7f": {
-        // Neut received OR nos dealt (same color — distinguished by text)
+        // Red color = bad-for-you cap event: incoming nos OR incoming neut.
+        // "energy drained to <YourSelf-target>" means an enemy nos pulled cap
+        // FROM you TO them — i.e. incoming nos pressure, not outgoing.
         if (clean.includes("energy drained to")) {
-          base.eventType = "nos-dealt";
-          base.capEventType = "nos-dealt";
-          base.direction = "outgoing";
+          base.eventType = "nos-received";
+          base.capEventType = "nos-received";
+          base.direction = "incoming";
           const m = clean.match(
-            /^(-?[\d.]+)\s+GJ\s+energy drained to\s+(.+?)(?:\s+-\s+from\s+(.+?))?\s+-\s+(.+?)(?:\s+-\s+energy drained)?$/,
+            /^[+-]?([\d.]+)\s+GJ\s+energy drained to\s+(.+?)(?:\s+-)?\s+-\s+(.+?)(?:\s+-\s+energy drained)?$/,
           );
           if (m) {
             base.capAmount = Math.abs(parseFloat(m[1]));
-            base.capShipType =
-              extractUnderlinkText(raw) ?? (m[3] ?? m[2]).trim();
-            base.capModule = m[4].trim();
-            base.pilotName = m[3]?.trim();
+            base.capShipType = extractUnderlinkText(raw) ?? m[2].trim();
+            base.capModule = m[3].trim();
           }
         } else if (clean.includes("energy neutralized")) {
           base.eventType = "neut-received";
@@ -500,27 +500,32 @@ export function parseCombatLine(
       }
 
       case "0xff7fffff": {
-        // Neut dealt
-        base.eventType = "neut-dealt";
-        base.capEventType = "neut-dealt";
+        // Cyan color = good-for-you cap event: outgoing nos OR outgoing neut.
+        // "energy drained from <Target>" with leading "+N" means YOUR nos
+        // pulled cap from the target into your capacitor.
         base.direction = "outgoing";
-        const drainedMatch = clean.match(
-          /^([\d.]+)\s+GJ\s+energy drained from\s+(.+?)\s+-\s+(.+?)\s+-\s+energy drained$/,
-        );
-        if (drainedMatch) {
-          base.capAmount = parseFloat(drainedMatch[1]);
-          base.capShipType = drainedMatch[2].trim();
-          base.capModule = drainedMatch[3].trim();
-          base.pilotName = drainedMatch[2].trim();
-          break;
-        }
-        const m = clean.match(
-          /^([\d.]+)\s+GJ\s+energy neutralized\s+.+\s+-\s+(.+)$/,
-        );
-        if (m) {
-          base.capAmount = parseFloat(m[1]);
-          base.capShipType = extractUnderlinkText(raw) ?? undefined;
-          base.capModule = m[2].trim();
+        if (clean.includes("energy drained from")) {
+          base.eventType = "nos-dealt";
+          base.capEventType = "nos-dealt";
+          const m = clean.match(
+            /^[+-]?([\d.]+)\s+GJ\s+energy drained from\s+(.+?)(?:\s+-)?\s+-\s+(.+?)(?:\s+-\s+energy drained)?$/,
+          );
+          if (m) {
+            base.capAmount = Math.abs(parseFloat(m[1]));
+            base.capShipType = extractUnderlinkText(raw) ?? m[2].trim();
+            base.capModule = m[3].trim();
+          }
+        } else if (clean.includes("energy neutralized")) {
+          base.eventType = "neut-dealt";
+          base.capEventType = "neut-dealt";
+          const m = clean.match(
+            /^([\d.]+)\s+GJ\s+energy neutralized\s+.+\s+-\s+(.+)$/,
+          );
+          if (m) {
+            base.capAmount = parseFloat(m[1]);
+            base.capShipType = extractUnderlinkText(raw) ?? undefined;
+            base.capModule = m[2].trim();
+          }
         }
         break;
       }

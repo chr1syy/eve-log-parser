@@ -5,7 +5,6 @@ import {
   BarChart,
   Bar,
   Brush,
-  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -29,6 +28,11 @@ type HitPoint = {
   module: string;
   shipType: string;
   direction: "in" | "out";
+  // Per-bar fill is stored on the data point so Recharts maps colour to the
+  // payload, not to a Cell at a fixed child index. Without this, brushing/zoom
+  // shifts the visible Cells against the visible bars and the legend stops
+  // matching the bar colours.
+  fill: string;
 };
 
 // Distinct palette for outgoing neut targets — avoids orange-red tones
@@ -51,7 +55,7 @@ function CustomTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   const pt = payload[0].payload as HitPoint;
   const isIn = pt.direction === "in";
-  const color = payload[0].fill as string;
+  const color = pt.fill;
   return (
     <div className="bg-overlay border border-[#00d4ff40] px-3 py-2 rounded-sm font-mono text-xs backdrop-blur">
       <p className="text-text-secondary mb-1">{formatLogTime(pt.timestampMs)}</p>
@@ -74,9 +78,20 @@ function CustomTooltip({ active, payload }: any) {
 export default function CapHitTimelineChart({
   entries,
 }: CapHitTimelineChartProps) {
-  const data = useMemo<HitPoint[]>(() => {
+  const { data, outgoingColorMap } = useMemo(() => {
     const { neutReceivedTimeline, neutDealtTimeline } =
       analyzeCapPressure(entries);
+
+    // Assign stable outgoing colours by first-seen ship type so the legend
+    // ordering matches the chart deterministically.
+    const colourMap = new Map<string, string>();
+    let i = 0;
+    for (const pt of neutDealtTimeline) {
+      if (!colourMap.has(pt.shipType)) {
+        colourMap.set(pt.shipType, OUTGOING_PALETTE[i % OUTGOING_PALETTE.length]);
+        i++;
+      }
+    }
 
     const incoming: HitPoint[] = neutReceivedTimeline.map((pt) => ({
       timestampMs: pt.timestamp.getTime(),
@@ -84,6 +99,7 @@ export default function CapHitTimelineChart({
       module: pt.module,
       shipType: pt.shipType,
       direction: "in",
+      fill: INCOMING_COLOR,
     }));
 
     const outgoing: HitPoint[] = neutDealtTimeline.map((pt) => ({
@@ -92,25 +108,14 @@ export default function CapHitTimelineChart({
       module: pt.module,
       shipType: pt.shipType,
       direction: "out",
+      fill: colourMap.get(pt.shipType) ?? OUTGOING_PALETTE[0],
     }));
 
-    return [...incoming, ...outgoing].sort(
+    const merged = [...incoming, ...outgoing].sort(
       (a, b) => a.timestampMs - b.timestampMs,
     );
+    return { data: merged, outgoingColorMap: colourMap };
   }, [entries]);
-
-  // Assign a stable colour to each unique outgoing ship type.
-  const outgoingColorMap = useMemo(() => {
-    const map = new Map<string, string>();
-    let i = 0;
-    for (const pt of data) {
-      if (pt.direction === "out" && !map.has(pt.shipType)) {
-        map.set(pt.shipType, OUTGOING_PALETTE[i % OUTGOING_PALETTE.length]);
-        i++;
-      }
-    }
-    return map;
-  }, [data]);
 
   // Container width tracked via ResponsiveContainer onResize.
   const [containerWidth, setContainerWidth] = useState(800);
@@ -216,25 +221,17 @@ export default function CapHitTimelineChart({
             }}
           />
           <Tooltip content={<CustomTooltip />} />
+          {/* Per-bar fill comes from each data point's `fill` field — see the
+              HitPoint type. Using <Cell> children here misaligns colours when
+              the brush is dragged because Cells map to visible-bar index, not
+              data index. */}
           <Bar
             dataKey="gjAmount"
             barSize={barSize}
             minPointSize={2}
             radius={[2, 2, 0, 0]}
             isAnimationActive={false}
-          >
-            {data.map((pt, idx) => (
-              <Cell
-                key={`cell-${idx}`}
-                fill={
-                  pt.direction === "in"
-                    ? INCOMING_COLOR
-                    : (outgoingColorMap.get(pt.shipType) ??
-                      OUTGOING_PALETTE[0])
-                }
-              />
-            ))}
-          </Bar>
+          />
           <Brush
             dataKey="timestampMs"
             {...BRUSH_STYLE}

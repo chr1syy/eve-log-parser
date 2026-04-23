@@ -8,6 +8,7 @@ export type EventType =
   | "neut-received"
   | "neut-dealt"
   | "nos-dealt"
+  | "nos-received"
   | "warp-scram"
   | "other";
 
@@ -29,7 +30,11 @@ export enum WeaponSystemType {
   UNKNOWN = "UNKNOWN",
 }
 
-export type CapEventType = "neut-received" | "neut-dealt" | "nos-dealt";
+export type CapEventType =
+  | "neut-received"
+  | "neut-dealt"
+  | "nos-dealt"
+  | "nos-received";
 
 export type SecurityClass =
   | "highsec"

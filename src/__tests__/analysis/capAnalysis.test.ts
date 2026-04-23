@@ -120,4 +120,71 @@ describe("analyzeCapPressure — neutReceivedTimeline", () => {
     expect(neutReceivedTimeline).toHaveLength(1);
     expect(neutReceivedTimeline[0].gjAmount).toBe(300);
   });
+
+  it("includes nos-received entries in incoming totals and the timeline", () => {
+    const entries: LogEntry[] = [
+      mkEntry({
+        eventType: "neut-received",
+        capEventType: "neut-received",
+        timestamp: new Date("2026-01-01T00:00:00Z"),
+        capAmount: 200,
+        capModule: "Heavy Energy Neutralizer II",
+        capShipType: "Curse",
+      }),
+      mkEntry({
+        eventType: "nos-received",
+        capEventType: "nos-received",
+        timestamp: new Date("2026-01-01T00:00:05Z"),
+        capAmount: 33,
+        capModule: "Medium Ghoul Compact Energy Nosferatu",
+        capShipType: "Osprey Navy Issue",
+      }),
+      mkEntry({
+        eventType: "nos-received",
+        capEventType: "nos-received",
+        timestamp: new Date("2026-01-01T00:00:10Z"),
+        capAmount: 0,
+        capModule: "Medium Ghoul Compact Energy Nosferatu",
+        capShipType: "Osprey Navy Issue",
+      }),
+    ];
+
+    const result = analyzeCapPressure(entries);
+    expect(result.totalGjNeutReceived).toBe(200);
+    expect(result.totalGjNosReceived).toBe(33);
+    expect(result.totalGjIncoming).toBe(233);
+    expect(result.neutReceivedTimeline).toHaveLength(3);
+    expect(result.neutReceivedTimeline.map((p) => p.eventType)).toEqual([
+      "neut-received",
+      "nos-received",
+      "nos-received",
+    ]);
+    expect(
+      result.incomingByShipType.find((s) => s.shipType === "Osprey Navy Issue")
+        ?.totalGjTaken,
+    ).toBe(33);
+    // nos-received with 0 GJ is recorded as a real incoming dry hit, not
+    // attributed to your own modules.
+    expect(result.totalGjOutgoing).toBe(0);
+  });
+
+  it("does NOT count incoming nos hits as outgoing nos drained", () => {
+    const entries: LogEntry[] = [
+      mkEntry({
+        eventType: "nos-received",
+        capEventType: "nos-received",
+        timestamp: new Date("2026-01-01T00:00:00Z"),
+        capAmount: 36,
+        capModule: "Corpum C-Type Medium Energy Nosferatu",
+        capShipType: "Loki",
+      }),
+    ];
+
+    const result = analyzeCapPressure(entries);
+    expect(result.totalGjOutgoing).toBe(0);
+    expect(result.totalGjNosDrained).toBe(0);
+    expect(result.outgoingModuleSummaries).toHaveLength(0);
+    expect(result.incomingModuleSummaries).toHaveLength(1);
+    expect(result.incomingModuleSummaries[0].eventType).toBe("nos-received");
+  });
 });

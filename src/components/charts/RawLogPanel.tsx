@@ -13,7 +13,7 @@ export interface RawLogPanelProps {
 const TOGGLE_EVENT_TYPES: Record<keyof ActiveToggles, EventType[]> = {
   damageOut: ["damage-dealt", "miss-outgoing"],
   damageIn: ["damage-received", "miss-incoming"],
-  capPressure: ["neut-received", "neut-dealt", "nos-dealt"],
+  capPressure: ["neut-received", "neut-dealt", "nos-dealt", "nos-received"],
   reps: ["rep-received", "rep-outgoing"],
   tracking: [], // chart-only overlay — no raw log entries to filter
 };
@@ -26,6 +26,7 @@ const EVENT_TYPE_COLOR: Partial<Record<EventType, string>> = {
   "neut-received": "#e58c00",
   "neut-dealt": "#e58c00",
   "nos-dealt": "#e58c00",
+  "nos-received": "#e58c00",
   "rep-received": "#66cc66",
   "rep-outgoing": "#66cc66",
   other: "#888",

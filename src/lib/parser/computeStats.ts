@@ -116,7 +116,8 @@ export function computeStats(entries: LogEntry[]): LogStats {
         break
       }
 
-      case 'neut-received': {
+      case 'neut-received':
+      case 'nos-received': {
         capNeutReceived += entry.capAmount ?? 0
 
         const capShipType = entry.capShipType ?? 'Unknown'
