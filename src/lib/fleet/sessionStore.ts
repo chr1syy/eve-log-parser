@@ -9,14 +9,16 @@ import {
   existsSync,
   readdirSync,
   statSync,
+  mkdirSync,
 } from "fs";
-import { join } from "path";
+import { dirname, join } from "path";
 import type { FleetSession, FleetLog, FleetSessionCode } from "@/types/fleet";
-// Note: avoid duplicate fs imports
 
 // ── Persistence ───────────────────────────────────────────────────────────────
 
-const STORE_FILE = join(process.cwd(), ".fleet-sessions.json");
+// Stored under data/ so the file lives inside the production bind mount
+// (/var/www/eve-log-parser/data → /app/data) and survives container redeploys.
+const STORE_FILE = join(process.cwd(), "data", "fleet-sessions.json");
 
 function loadFromDisk(): Map<string, FleetSession> {
   try {
@@ -47,6 +49,7 @@ function loadFromDisk(): Map<string, FleetSession> {
 
 function saveToDisk(store: Map<string, FleetSession>): void {
   try {
+    mkdirSync(dirname(STORE_FILE), { recursive: true });
     writeFileSync(
       STORE_FILE,
       JSON.stringify(Object.fromEntries(store.entries()), null, 2),

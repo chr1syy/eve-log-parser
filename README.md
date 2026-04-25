@@ -129,9 +129,6 @@ npm run test:integration
 # Lint code
 npm run lint
 
-# Initialize PostgreSQL (optional)
-npm run db:init
-
 # Generate changelog
 npm run generate-changelog
 ```
@@ -213,8 +210,7 @@ EVE_SSO_CLIENT_ID=your_client_id_here
 EVE_SSO_SECRET=your_secret_here
 ```
 
-Logs are stored as JSON files under `data/user-logs/` and core functionality does not require a database.
-Optional PostgreSQL initialization is available via `docker-compose.yml` and `npm run db:init` for future or external integrations.
+All persisted state (user logs, shared logs, fleet sessions) is stored as JSON files under `data/`. In production this directory is bind-mounted from the host (`/var/www/eve-log-parser/data` → `/app/data`) so it survives container redeploys. No database is required.
 
 Register an EVE SSO application at [https://developers.eveonline.com](https://developers.eveonline.com). Set the callback URL to `<NEXTAUTH_URL>/api/auth/callback/eve-sso`.
 

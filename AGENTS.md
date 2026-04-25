@@ -22,7 +22,7 @@ This is a Next.js + TypeScript web application for parsing and analysing EVE Onl
 | Styling | Tailwind CSS 4 (EVE-themed custom colours) |
 | Testing | Vitest 4 + React Testing Library + jsdom |
 | Charting | Recharts 3 |
-| Database | PostgreSQL (pg driver) |
+| Storage | File-based JSON under `data/` (volume-mounted in production) |
 | Authentication | NextAuth 5 (beta) — EVE SSO |
 | Icons | Lucide React |
 | Utilities | date-fns, react-countup, clsx, tailwind-merge, react-dropzone |
@@ -49,11 +49,6 @@ This is a Next.js + TypeScript web application for parsing and analysing EVE Onl
 - `sessionStore.ts` — fleet session state and persistence.
 - `sseConnections.ts` — server-sent events for real-time fleet updates.
 - `constants.ts` — fleet-specific configuration constants.
-
-### Database — `src/lib/db/`
-- `client.ts` — PostgreSQL client initialisation.
-- `models.ts` — schema definitions.
-- `logs.ts` — log CRUD operations and persistence.
 
 ### Other `src/lib/` Modules
 - `types.ts` — core event shapes and enums.

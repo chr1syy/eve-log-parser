@@ -560,7 +560,7 @@ export function Chart({ data, title, onZoom, excludeDrones }: ChartProps) {
 ### Memory Usage
 
 - `localStorage` limited to ~5MB
-- For larger logs, use authenticated mode (PostgreSQL)
+- For larger logs, use authenticated mode (logs persist to `data/user-logs/<userId>/`)
 - Minimize chart data points in view (aggregation/downsampling)
 
 ### Rendering Performance
