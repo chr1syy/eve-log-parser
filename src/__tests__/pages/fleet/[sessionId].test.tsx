@@ -195,7 +195,7 @@ describe("FleetSessionDetailPage", () => {
       screen.getByRole("button", { name: "Damage Taken" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Cap Pressure" }),
+      screen.getByRole("button", { name: "Cap" }),
     ).toBeInTheDocument();
   });
 
