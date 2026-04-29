@@ -87,7 +87,7 @@ const COLUMNS: Column<AttackerRow>[] = [
     render: (v, row) => (
       <HitQualityTooltip
         hitQualities={row.hitQualities}
-        totalHits={row.hits}
+        totalHits={row.hits + row.misses}
       >
         <span>{(v as number).toLocaleString()}</span>
       </HitQualityTooltip>
@@ -146,25 +146,25 @@ export default function DamageReceivedPerTargetTable({
           )
         : entries;
 
+    // Damage and miss events are keyed on attacker name alone — EVE's incoming
+    // miss line ("X misses you completely") carries no ship info, so we can't
+    // include shipType in the key without de-coupling the two streams.
     const damageMap = new Map<string, LogEntry[]>();
     const missMap = new Map<string, number>();
 
     for (const entry of windowedEntries) {
       const attackerName = entry.pilotName ?? entry.shipType ?? "Unknown";
-      const shipType = entry.shipType ?? "Unknown";
-      const key = `${attackerName}||${shipType}`;
 
       if (entry.eventType === "damage-received") {
-        if (!damageMap.has(key)) damageMap.set(key, []);
-        damageMap.get(key)!.push(entry);
+        if (!damageMap.has(attackerName)) damageMap.set(attackerName, []);
+        damageMap.get(attackerName)!.push(entry);
       } else if (entry.eventType === "miss-incoming") {
-        missMap.set(key, (missMap.get(key) ?? 0) + 1);
+        missMap.set(attackerName, (missMap.get(attackerName) ?? 0) + 1);
       }
     }
 
     const result: AttackerRow[] = [];
-    for (const [key, group] of damageMap) {
-      const [attackerName, shipType] = key.split("||");
+    for (const [attackerName, group] of damageMap) {
       const timestamps = group.map((e) => e.timestamp.getTime());
       const firstMs = Math.min(...timestamps);
       const lastMs = Math.max(...timestamps);
@@ -178,7 +178,8 @@ export default function DamageReceivedPerTargetTable({
       const avgHit = hits > 0 ? totalDamage / hits : 0;
       const dps = windowSeconds > 0 ? totalDamage / windowSeconds : 0;
       const corp = group.find((e) => e.corpTicker)?.corpTicker ?? "";
-      const misses = missMap.get(key) ?? 0;
+      const shipType = group.find((e) => e.shipType)?.shipType ?? "Unknown";
+      const misses = missMap.get(attackerName) ?? 0;
 
       const hitQualities: Partial<Record<HitQuality, number>> = {};
       for (const entry of group) {
@@ -187,6 +188,7 @@ export default function DamageReceivedPerTargetTable({
             (hitQualities[entry.hitQuality] ?? 0) + 1;
         }
       }
+      if (misses > 0) hitQualities.misses = misses;
 
       result.push({
         attacker: attackerName,
