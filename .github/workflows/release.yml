@@ -17,15 +17,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-      - name: Debug npm registry and .npmrc
-        run: |
-          echo "npm registry: $(npm config get registry)"
-          echo "--- ~/.npmrc (if present) ---"
-          sed -n '1,200p' ~/.npmrc || true
-          echo "--- attempt HEAD on zod tarball ---"
-          curl -I https://registry.npmjs.org/zod/-/zod-4.3.6.tgz || true
-
+          node-version: 24.22.1
       - name: Ensure public npm registry
         run: npm config set registry https://registry.npmjs.org
 
